@@ -1,0 +1,18 @@
+{
+    "name": "EON-FulgoraDiscovered",
+    "version": "0.1.0",
+    "title": "EverythingOnNauvis - Fulgora Discovered!",
+    "description": "Everything On Nauvis, until Fulgora is discovered",
+    "author": "0n0w1c",
+    "contact": "",
+    "factorio_version": "2.0",
+    "space_travel_required": true,
+    "dependencies": [
+        "base >= 2.0.47",
+        "space-age >= 2.0.47",
+        "! EverythingOnNauvis",
+        "! EverythingOnNauvis-Patches",
+        "! naufulglebunusilo",
+        "! rso-mod"
+    ]
+}

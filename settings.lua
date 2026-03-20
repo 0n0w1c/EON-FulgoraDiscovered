@@ -1,0 +1,1 @@
+-- startup setting removed; Fulgora is always enabled
