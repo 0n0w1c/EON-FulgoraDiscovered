@@ -126,31 +126,34 @@ end
 -- ---------------------------------------------------------------------------
 local pollution_setting = settings.startup["eon-fd-gleba-enemies-react-to-pollution"]
 if pollution_setting and pollution_setting.value then
-    local function move_key_spores_to_pollution(absorptions)
+    local function move_spores_to_pollution(absorptions)
         if not absorptions then return end
         if absorptions.spores == nil then return end
 
         if absorptions.pollution == nil then
             absorptions.pollution = absorptions.spores
+            absorptions.spores = nil
         end
-
-        absorptions.spores = nil
-    end
-
-    for _, tile in pairs(data.raw["tile"] or {}) do
-        move_key_spores_to_pollution(tile.absorptions_per_second)
     end
 
     for _, proto in pairs(data.raw["unit"] or {}) do
-        move_key_spores_to_pollution(proto.absorptions_to_join_attack)
+        move_spores_to_pollution(proto.absorptions_to_join_attack)
     end
 
     for _, proto in pairs(data.raw["spider-unit"] or {}) do
-        move_key_spores_to_pollution(proto.absorptions_to_join_attack)
+        move_spores_to_pollution(proto.absorptions_to_join_attack)
     end
 
     for _, proto in pairs(data.raw["unit-spawner"] or {}) do
-        move_key_spores_to_pollution(proto.absorptions_per_second)
+        move_spores_to_pollution(proto.absorptions_per_second)
+    end
+
+    if data.raw["unit-spawner"] and data.raw["unit-spawner"]["gleba-spawner-small"] then
+        data.raw["unit-spawner"]["gleba-spawner-small"].collision_mask = nil
+    end
+
+    if data.raw["unit-spawner"] and data.raw["unit-spawner"]["gleba-spawner"] then
+        data.raw["unit-spawner"]["gleba-spawner"].collision_mask = nil
     end
 
     if data.raw["plant"] and data.raw["plant"]["jellystem"] then

@@ -1,8 +1,8 @@
-#### Everything on Nauvis - Fulgora Discovered!
-
- "Everything On Nauvis... until Fulgora is discovered!"
+#### Everything On Nauvis... until Fulgora is discovered!
  
  *This mod is currently in Beta. However, it is believed to be complete and fully playable.*
+
+---
 
 ## Features
 
@@ -10,6 +10,12 @@
  - Northern regions are frozen, desolate terrain of icy ammoniacal seas and drifting icebergs.
  - Volcanoes and lava flows may be found in any region, creating hazardous zones.
  - Planet Fulgora has been discovered!
+
+---
+
+## Recommended:
+
+[Fulgoran enemies](https://mods.factorio.com/mod/Electric_flying_enemies)
 
 ---
 

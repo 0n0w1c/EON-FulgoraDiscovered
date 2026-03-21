@@ -1,4 +1,13 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.2
+Date: 21.03.2026
+  Bugfixes:
+    - Pentapod spawners now have the Nauvis unit collision mask (resolves log warning)
+      Pentapod spawners will now spawn only on land tiles
+    - Modified the noise expressions for Pentapod map generation
+  Changes:
+    - Gleba enemy base map gen slider now has noticable effect
+---------------------------------------------------------------------------------------------------
 Version: 0.1.1
 Date: 20.03.2026
   Bugfixes:
