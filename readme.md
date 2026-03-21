@@ -13,23 +13,25 @@
 
 ---
 
-#### Startup settings:
+#### Startup settings
 
 - Pentapods react to pollution (default: disabled)
 - Foundry made with tungsten plate (default: disabled)
 
 ---
 
-#### Limitations:
+#### Limitations
 
 - No freezing in the northern region, heating not required
 
 ---
 
-#### Suggestions:
+#### Suggestions
 
 [Fulgoran enemies](https://mods.factorio.com/mod/Electric_flying_enemies)
 
 ---
+
+#### Credits
 
 Forked from [Everything on Nauvis](https://mods.factorio.com/mod/EverythingOnNauvis)
