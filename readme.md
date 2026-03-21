@@ -13,6 +13,19 @@
 
 ---
 
+## Startup settings:
+
+- Pentapods react to pollution (default: disabled)
+- Foundry made with tungsten plate (default: disabled)
+
+---
+
+## Limitations:
+
+- No freezing in the northern region, heating not required
+
+---
+
 ## Recommended:
 
 [Fulgoran enemies](https://mods.factorio.com/mod/Electric_flying_enemies)
