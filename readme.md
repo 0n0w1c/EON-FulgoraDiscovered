@@ -1,10 +1,10 @@
-#### Everything On Nauvis... until Fulgora is discovered!
+## Everything On Nauvis... until Fulgora is discovered!
  
  *This mod is currently in Beta. However, it is believed to be complete and fully playable.*
 
 ---
 
-## Features
+#### Features
 
  - Southern regions are moist, overgrown terrain filled with fungal growth and aggressive wildlife.
  - Northern regions are frozen, desolate terrain of icy ammoniacal seas and drifting icebergs.
@@ -13,20 +13,20 @@
 
 ---
 
-## Startup settings:
+#### Startup settings:
 
 - Pentapods react to pollution (default: disabled)
 - Foundry made with tungsten plate (default: disabled)
 
 ---
 
-## Limitations:
+#### Limitations:
 
 - No freezing in the northern region, heating not required
 
 ---
 
-## Suggestions:
+#### Suggestions:
 
 [Fulgoran enemies](https://mods.factorio.com/mod/Electric_flying_enemies)
 
