@@ -23,8 +23,24 @@ data_util.delete_prototype("space-connection", "nauvis-vulcanus")
 data_util.delete_prototype("space-connection", "nauvis-gleba")
 data_util.delete_prototype("space-connection", "vulcanus-gleba")
 data_util.delete_prototype("space-connection", "gleba-aquilo")
-data.raw["space-connection"]["aquilo-solar-system-edge"].from = "nauvis"
--- data_util.delete_prototype("space-connection", "aquilo-solar-system-edge")
+data_util.delete_prototype("space-connection", "gleba-fulgora")
+data_util.delete_prototype("space-connection", "fulgora-aquilo")
+
+local edge = data.raw["space-connection"]["aquilo-solar-system-edge"]
+
+if edge then
+    local fulgora_edge = table.deepcopy(edge)
+
+    fulgora_edge.name = "fulgora-solar-system-edge"
+    fulgora_edge.from = "fulgora"
+
+    data:extend({ fulgora_edge })
+
+    data_util.delete_prototype("space-connection", "aquilo-solar-system-edge")
+end
+
+--data.raw["space-connection"]["aquilo-solar-system-edge"].from = "fulgora"
+--data_util.delete_prototype("space-connection", "aquilo-solar-system-edge")
 
 -- remove space age menu simulations that break
 -- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_solar_power_construction = nil  -- Safe simulations

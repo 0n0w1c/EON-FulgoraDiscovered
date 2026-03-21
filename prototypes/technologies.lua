@@ -1,6 +1,6 @@
 local data_util = require("data-util")
 
--- Fix tech tree
+local technologies = data.raw["technology"]
 
 -- Add new technology for traveling to solar system edge
 data:extend({
@@ -32,22 +32,22 @@ data:extend({
             {
                 type = "unlock-recipe",
                 recipe = "ice-platform",
-            },
-            {
-                type = "unlock-recipe",
-                recipe = "lightning-rod",
-            },
+            }
         },
-        prerequisites = { "space-platform-thruster" },
+        prerequisites = { "cryogenic-science-pack", "planet-discovery-fulgora" },
         unit =
         {
-            count = 500,
+            count = 2000,
             ingredients =
             {
-                { "automation-science-pack", 1 },
-                { "logistic-science-pack",   1 },
-                { "chemical-science-pack",   1 },
-                { "space-science-pack",      1 }
+                { "automation-science-pack",   1 },
+                { "logistic-science-pack",     1 },
+                { "chemical-science-pack",     1 },
+                { "production-science-pack",   1 },
+                { "utility-science-pack",      1 },
+                { "space-science-pack",        1 },
+                { "metallurgic-science-pack",  1 },
+                { "agricultural-science-pack", 1 }
             },
             time = 60
         }
@@ -55,24 +55,20 @@ data:extend({
 })
 
 -- Add prerequisite to promethium-science-pack
-table.insert(data.raw.technology["promethium-science-pack"].prerequisites, "solar-system-edge-discovery")
+table.insert(technologies["promethium-science-pack"].prerequisites, "solar-system-edge-discovery")
 
 -- Aquilo
---data.raw.technology["lithium-processing"].prerequisites = { "rocket-turret", "advanced-asteroid-processing",
---    "heating-tower", "asteroid-reprocessing", "electromagnetic-science-pack" }
-data.raw.technology["lithium-processing"].prerequisites = { "rocket-turret", "advanced-asteroid-processing",
-    "heating-tower", "asteroid-reprocessing" }
+technologies["lithium-processing"].prerequisites = { "rocket-turret", "advanced-asteroid-processing", "heating-tower",
+    "asteroid-reprocessing" }
 
 -- Gleba
-data.raw.technology["agriculture"].prerequisites = { "landfill", "steel-processing" }
-data.raw.technology["heating-tower"].prerequisites = { "concrete" }
-
--- Fulgora
+technologies["agriculture"].prerequisites = { "landfill", "steel-processing" }
+technologies["heating-tower"].prerequisites = { "concrete" }
 
 -- Vulcanus
-data.raw.technology["calcite-processing"].prerequisites = { "production-science-pack" }
-data.raw.technology["calcite-processing"].research_trigger = nil
-data.raw.technology["calcite-processing"].unit = {
+technologies["calcite-processing"].prerequisites = { "production-science-pack" }
+technologies["calcite-processing"].research_trigger = nil
+technologies["calcite-processing"].unit = {
     count = 100,
     ingredients = {
         { "automation-science-pack", 1 },
@@ -82,9 +78,9 @@ data.raw.technology["calcite-processing"].unit = {
     },
     time = 5
 }
-data.raw.technology["tungsten-carbide"].prerequisites = { "production-science-pack" }
-data.raw.technology["tungsten-carbide"].research_trigger = nil
-data.raw.technology["tungsten-carbide"].unit = {
+technologies["tungsten-carbide"].prerequisites = { "production-science-pack" }
+technologies["tungsten-carbide"].research_trigger = nil
+technologies["tungsten-carbide"].unit = {
     count = 100,
     ingredients = {
         { "automation-science-pack", 1 },
