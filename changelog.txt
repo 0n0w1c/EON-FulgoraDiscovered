@@ -3,9 +3,8 @@ Version: 0.1.4
 Date: 21.03.2026
   Bugfixes:
     - Removed vestige Fulgoran space connections
-    - Modified the Solar System Edge Discovery technology, units and prerequisites
   Changes:
-    - None
+    - Modified the Solar System Edge Discovery technology, units and prerequisites
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.3
 Date: 21.03.2026
