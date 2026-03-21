@@ -26,7 +26,7 @@
 
 ---
 
-## Recommended:
+## Suggestions:
 
 [Fulgoran enemies](https://mods.factorio.com/mod/Electric_flying_enemies)
 
