@@ -1,4 +1,13 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.6
+Date: 23.03.2026
+  Bugfixes:
+    - None
+  Changes:
+    - Modified the Solar System Edge Discovery technology prerequisites (3rd attempt)
+    - Set the mod Alien Biomes as incompatible
+    - Changed the mod thumbnail
+---------------------------------------------------------------------------------------------------
 Version: 0.1.5
 Date: 21.03.2026
   Bugfixes:

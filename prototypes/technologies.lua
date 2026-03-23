@@ -34,7 +34,7 @@ data:extend({
                 recipe = "ice-platform",
             }
         },
-        prerequisites = { "advanced-asteroid-processing", "planet-discovery-fulgora" },
+        prerequisites = { "electromagnetic-science-pack", "metallurgic-science-pack", "advanced-asteroid-processing" },
         unit =
         {
             count = 2000,
