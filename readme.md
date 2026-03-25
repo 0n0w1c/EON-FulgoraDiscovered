@@ -11,12 +11,14 @@
 
 - Pentapods react to pollution (default: disabled)
 - Foundry made with tungsten plate (default: disabled)
+- Enable freezing on Fulgora
+- Remove the frozen entity graphics
 
 ---
 
 #### Limitations
 
-- No freezing in the northern region, heating not required
+- No freezing in the Nauvis northern region, heating not required.
 
 ---
 

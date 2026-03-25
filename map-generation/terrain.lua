@@ -301,7 +301,7 @@ data:extend({
     {
         type = "autoplace-control",
         name = "ammonia_ocean",
-        localised_description = { "autoplace-control-names.ammonia_ocean_description" },
+        localised_description = nil,
         order = "z-ammonia",
         category = "resource",
         can_be_disabled = false
@@ -427,7 +427,7 @@ data:extend({
     {
         type = "noise-expression",
         name = "eon_aquilo_segmentation_multiplier",
-        expression = "0.5 * control:ammonia_ocean:frequency"
+        expression = "control:ammonia_ocean:frequency"
     },
     {
         type = "noise-expression",

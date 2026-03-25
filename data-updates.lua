@@ -1,8 +1,6 @@
-
-require("prototypes.items")
-require("prototypes.recipes")
 require("prototypes.technologies")
 require("prototypes.tiles")
+require("prototypes.fulgora-freezing")
 
 require("map-generation.enemies")
 require("map-generation.resources-updates")

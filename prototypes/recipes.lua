@@ -1,1 +1,0 @@
--- Fulgora is always enabled; no recipe hiding needed.

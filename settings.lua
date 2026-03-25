@@ -13,4 +13,18 @@ data:extend({
         default_value = false,
         order = "b",
     },
+    {
+        type = "bool-setting",
+        name = "eon-fd-fulgora-freezing",
+        setting_type = "startup",
+        default_value = false,
+        order = "c"
+    },
+    {
+        type = "bool-setting",
+        name = "eon-fd-frost-free",
+        setting_type = "startup",
+        default_value = false,
+        order = "d"
+    }
 })

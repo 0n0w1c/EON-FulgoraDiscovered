@@ -41,14 +41,13 @@ terrain.mask_resource_territory("crude-oil", "resource")
 --------------------------------------------------------------------------------
 
 data.raw["noise-expression"]["aquilo_crude_oil_spots"].expression = "0" --  This removes aquilo islands for crude oil
-data.raw.planet["aquilo"].map_gen_settings.autoplace_controls = { nil }
+data.raw.planet["aquilo"].map_gen_settings.autoplace_controls = {}
 
 --------------------------------------------------------------------------------
 -- MARK: Gleba
 --------------------------------------------------------------------------------
 
-data.raw["autoplace-control"]["gleba_plants"].localised_description = {
-    "autoplace-control-names.gleba_plants_description" }
+data.raw["autoplace-control"]["gleba_plants"].localised_description = nil
 
 --------------------------------------------------------------------------------
 -- MARK: Add Vulcanus resources to Nauvis
@@ -68,9 +67,8 @@ table.insert(data.raw["simple-entity"]["huge-volcanic-rock"].minable.results,
 
 -- Set vulcane as resource
 data.raw["autoplace-control"]["vulcanus_volcanism"].order = "z-volcanism"
-data.raw["autoplace-control"]["vulcanus_volcanism"].localised_description = {
-    "autoplace-control-names.vulcanus_volcanism_description" }
 data.raw["autoplace-control"]["vulcanus_volcanism"].category = "resource"
+data.raw["autoplace-control"]["vulcanus_volcanism"].localised_description = nil
 
 -- reorder autoplace controls
 data.raw["autoplace-control"]["sulfuric_acid_geyser"].order = "b-z"
