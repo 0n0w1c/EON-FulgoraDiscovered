@@ -11,8 +11,8 @@
 
 - Pentapods react to pollution (default: disabled)
 - Foundry made with tungsten plate (default: disabled)
-- Enable freezing on Fulgora
-- Remove the frozen entity graphics
+- Enable freezing on Fulgora (default: disabled)
+- Remove the frozen entity graphics (default: disabled)
 
 ---
 

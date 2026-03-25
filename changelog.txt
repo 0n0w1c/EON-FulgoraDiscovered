@@ -6,7 +6,7 @@ Date: 25.03.2026
   Changes:
     - Added startup setting to enable the freeze mechanic on Fulgora
     - Added startup setting to remove the frozen graphics (due to the extreme dryness of Fulgora)
-    - Stack sizes for the asteroids have been reverted from size = 50 to size = 1
+    - Stack sizes for the asteroids have been reverted from 50 to 1
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.6
 Date: 23.03.2026
