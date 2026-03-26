@@ -1,8 +1,9 @@
 #### Features
 
- - Northern regions are frozen, desolate terrain of icy ammoniacal seas and drifting icebergs.
- - Southern regions are moist, overgrown terrain filled with fungal growth and aggressive wildlife.
- - Volcanoes and lava flows may be found in any region, creating hazardous zones.
+ - Northern biome is frozen, desolate terrain of icy ammoniacal seas and drifting icebergs.
+ - Southern biome is moist, overgrown terrain filled with fungal growth and aggressive wildlife.
+ - Equatorial biome is just right.
+ - Volcanoes and lava flows can be found in any biome, creating hazardous zones.
  - Planet Fulgora has been discovered!
 
 ---
