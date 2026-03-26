@@ -32,7 +32,7 @@ How much this matters depends on how the engineer chooses to play.
 
 #### Limitations
 
-- No freezing in the Nauvis northern region, heating not required.
+- No freezing in the Nauvis northern biome, heating not required.
 
 ---
 
