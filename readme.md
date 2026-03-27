@@ -23,6 +23,7 @@ How much this matters depends on how the engineer chooses to play.
 
 #### Startup settings
 
+- Enable planetary music and sounds (default: disabled)
 - Pentapods react to pollution (default: disabled)
 - Foundry made with tungsten plate (default: disabled)
 - Enable freezing on Fulgora (default: disabled)
