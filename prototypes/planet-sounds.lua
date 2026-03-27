@@ -9,9 +9,39 @@ local function ensure_array(v)
     return { v }
 end
 
+local function should_skip_sound(entry)
+    if not entry or not entry.sound then
+        return false
+    end
+
+    local sound = entry.sound
+
+    if sound.filename then
+        if string.find(sound.filename, "rain") then
+            return true
+        end
+    end
+
+    if sound.variations then
+        for _, v in ipairs(sound.variations) do
+            if v.filename then
+                if string.find(v.filename, "ice%-cracks") then
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
+end
+
 local function append_list(dst, src)
-    for _, entry in ipairs(src) do
-        table.insert(dst, table.deepcopy(entry))
+    for i = 1, #src do
+        local entry = src[i]
+
+        if not should_skip_sound(entry) then
+            dst[#dst + 1] = table.deepcopy(entry)
+        end
     end
 end
 
@@ -59,12 +89,10 @@ local function clone_planet_music(source_planet_name, target_planet_name)
     end
 end
 
--- Make the music tracks valid on the new planets
 clone_planet_music("gleba", "nauvis")
 clone_planet_music("vulcanus", "nauvis")
 clone_planet_music("aquilo", "fulgora")
 
--- Merge the persistent ambience definitions
-merge_persistent_sounds("nauvis", { "gleba" })
-merge_persistent_sounds("nauvis", { "vulcanus" })
-merge_persistent_sounds("fulgora", { "aquilo" })
+merge_persistent_sounds("nauvis", "gleba")
+merge_persistent_sounds("nauvis", "vulcanus")
+merge_persistent_sounds("fulgora", "aquilo")
