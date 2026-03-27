@@ -11,7 +11,7 @@ Date: 26.03.2026
   Bugfixes:
     - Frozen graphics not removed from some entities
   Changes:
-    - Added Startup setting to enable planetary music and sounds
+    - Added startup setting to enable planetary music and sounds
       Gleba and Vulcanus on Nauvis and Aquilo on Fulgora
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.0
