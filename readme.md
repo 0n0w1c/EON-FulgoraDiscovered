@@ -19,6 +19,8 @@ How much this matters depends on how the engineer chooses to play.
  - Equatorial biome is just right.
  - Volcanoes and lava flows can be found in any biome, creating hazardous zones.
 
+Interesting effects can be achieved when making adjustments during map generation.
+
 ---
 
 #### Startup settings
