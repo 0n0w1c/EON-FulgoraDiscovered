@@ -427,7 +427,7 @@ data:extend({
     {
         type = "noise-expression",
         name = "eon_aquilo_segmentation_multiplier",
-        expression = "control:ammonia_ocean:frequency"
+        expression = "0.5 * control:ammonia_ocean:frequency"
     },
     {
         type = "noise-expression",
