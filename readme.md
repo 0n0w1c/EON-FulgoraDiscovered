@@ -41,10 +41,11 @@ Interesting effects can be achieved when making adjustments during map generatio
 
 #### Suggestions
 
-[Fulgoran enemies](https://mods.factorio.com/mod/Electric_flying_enemies)
+Fulgora seem a little too quiet? Wage battle with [Fulgoran enemies](https://mods.factorio.com/mod/Electric_flying_enemies).  
+Set maximum water coverage in map generation and naviage [Cargo Ships](https://mods.factorio.com/mod/cargo-ships).  
 
 ---
 
 #### Credits
 
-Forked from [Everything on Nauvis](https://mods.factorio.com/mod/EverythingOnNauvis)
+Forked from [Everything on Nauvis](https://mods.factorio.com/mod/EverythingOnNauvis) by [Spaghetti2364](https://mods.factorio.com/user/Spaghetti2364)
