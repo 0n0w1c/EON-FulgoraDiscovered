@@ -64,6 +64,9 @@ data.raw["planet"]["nauvis"].map_gen_settings.territory_settings =
 
 data.raw["noise-expression"]["demolisher_starting_area"].expression = "if(eon_vulcano_coverage > 0.2, 0, 1)"
 
+data.raw["noise-expression"]["demolisher_variation_expression"].expression =
+"floor(clamp(distance / (30 * 32) - 0.25, 0, 4)) + (-99 * no_enemies_mode)"
+
 --------------------------------------------------------------------------------
 -- MARK: Add Gleba enemies aka strafer, stompers and wriggler pentapods
 --------------------------------------------------------------------------------
