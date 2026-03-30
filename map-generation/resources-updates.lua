@@ -149,3 +149,9 @@ if guarded_resources_enabled then
         end
     end
 end
+
+data.raw.resource["calcite"].autoplace.probability_expression =
+"eon_mask_off_ammonia_ocean(eon_mask_vulcano_terrain(vulcanus_calcite_probability * (1 - clamp(vulcanus_sulfuric_acid_region_patchy, 0, 1))))"
+
+data.raw.resource["tungsten-ore"].autoplace.probability_expression =
+"eon_mask_off_ammonia_ocean(eon_mask_vulcano_terrain(vulcanus_tungsten_ore_probability * (1 - clamp(vulcanus_sulfuric_acid_region_patchy, 0, 1))))"

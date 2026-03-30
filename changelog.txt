@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.1
+Date: 29.03.2026
+  Bugfixes:
+    - Calcite and tungsten resource spawns try to avoid mixing with sulfuric acid geysers
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.3.0
 Date: 29.03.2026
   Bugfixes:
