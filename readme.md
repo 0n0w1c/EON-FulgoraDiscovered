@@ -17,7 +17,7 @@ How much this matters depends on how the engineer chooses to play.
  - Northern biome is frigid, desolate terrain of icy ammoniacal seas and drifting icebergs.
  - Southern biome is moist, overgrown terrain filled with fungal growth and aggressive wildlife.
  - Equatorial biome is just right.
- - Volcanoes and lava flows can be found in any biome, creating hazardous zones.
+ - Volcanoes and lava flows can be found in any biome, creating hazardous territories.
 
 Interesting effects can be achieved when making adjustments during map generation.
 
