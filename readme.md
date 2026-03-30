@@ -28,7 +28,7 @@ Interesting effects can be achieved when making adjustments during map generatio
 - Enable planetary music and sounds (default: disabled)
 - Pentapods react to pollution (default: disabled)
 - Foundry made with tungsten plate (default: disabled)
-- Calcite and tungsten spawn inside territories (default: disabled)
+- Calcite and tungsten spawn on vulcanus terrain (default: disabled)
 - Enable freezing on Fulgora (default: disabled)
 - Remove frozen graphics (default: disabled)
 

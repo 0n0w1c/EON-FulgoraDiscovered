@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.2
+Date: 30.03.2026
+  Bugfixes:
+    - None
+  Changes:
+    - Changed wording of startup setting
+---------------------------------------------------------------------------------------------------
 Version: 0.3.1
 Date: 29.03.2026
   Bugfixes:
@@ -11,7 +18,7 @@ Date: 29.03.2026
   Bugfixes:
     - None
   Changes:
-    - Added startup setting: Calcite and tungsten spawn inside territories (default: disabled)
+    - Added startup setting: Calcite and tungsten spawn on vulcanus terrain (default: disabled)
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.4
 Date: 28.03.2026
