@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.0
+Date: 29.03.2026
+  Bugfixes:
+    - None
+  Changes:
+    - Added startup setting: Calcite and tungsten spawn inside territories (default: disabled)
+---------------------------------------------------------------------------------------------------
 Version: 0.2.4
 Date: 28.03.2026
   Bugfixes:

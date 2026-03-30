@@ -22,16 +22,23 @@ data:extend({
     },
     {
         type = "bool-setting",
+        name = "eon-fd-guarded-resources",
+        setting_type = "startup",
+        default_value = false,
+        order = "d",
+    },
+    {
+        type = "bool-setting",
         name = "eon-fd-fulgora-freezing",
         setting_type = "startup",
         default_value = false,
-        order = "d"
+        order = "e"
     },
     {
         type = "bool-setting",
         name = "eon-fd-frost-free",
         setting_type = "startup",
         default_value = false,
-        order = "e"
+        order = "f"
     }
 })

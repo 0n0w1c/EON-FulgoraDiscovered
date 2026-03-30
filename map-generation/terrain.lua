@@ -1119,7 +1119,7 @@ data:extend({
             volcano_spot_radius = "300 * volcanism * sqrt(1 + control:vulcanus_volcanism:size)",
             volcano_spot_spacing = "1500 * volcanism",
             volcanism =
-            "0.3 + 0.7 * slider_rescale(control:vulcanus_volcanism:size, 3) / slider_rescale(vulcanus_scale_multiplier, 3)",
+            "0.3 + 0.8 * slider_rescale(control:vulcanus_volcanism:size, 3) / slider_rescale(vulcanus_scale_multiplier, 3)",
             volcanism_sq = "volcanism * volcanism",
             density_multiplier = "5 / sqrt(control:vulcanus_volcanism:frequency)"
         }
