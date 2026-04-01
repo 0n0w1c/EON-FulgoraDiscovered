@@ -155,3 +155,27 @@ data.raw.resource["calcite"].autoplace.probability_expression =
 
 data.raw.resource["tungsten-ore"].autoplace.probability_expression =
 "eon_mask_off_ammonia_ocean(eon_mask_vulcano_terrain(vulcanus_tungsten_ore_probability * (1 - clamp(vulcanus_sulfuric_acid_region_patchy, 0, 1))))"
+
+local nauvis_settings = data.raw.planet["nauvis"]
+    and data.raw.planet["nauvis"].map_gen_settings
+    and data.raw.planet["nauvis"].map_gen_settings.autoplace_settings
+    and data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity
+    and data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings
+
+if nauvis_settings then
+    for resource_name, resource in pairs(data.raw.resource) do
+        if nauvis_settings[resource_name]
+            and resource.autoplace
+            and type(resource.autoplace.probability_expression) == "string"
+            and resource.autoplace.probability_expression ~= ""
+        then
+            local expression = resource.autoplace.probability_expression
+
+            if type(expression) == "string" and expression ~= "" then
+                if not string.find(expression, "eon_mask_off_ammonia_ocean%(", 1, false) then
+                    resource.autoplace.probability_expression = "eon_mask_off_ammonia_ocean(" .. expression .. ")"
+                end
+            end
+        end
+    end
+end
