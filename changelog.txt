@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.4
+Date: 01.04.2026
+  Bugfixes:
+    - Hide unused autoplace controls rather than delete them (improves mod compatibility)
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.3.3
 Date: 31.03.2026
   Bugfixes:

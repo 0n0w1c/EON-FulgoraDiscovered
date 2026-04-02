@@ -96,7 +96,8 @@ data_util.hide_prototype("technology", "planet-discovery-aquilo")
 data_util.hide_prototype("technology", "planet-discovery-gleba")
 data_util.hide_prototype("technology", "planet-discovery-vulcanus")
 
-data.raw["autoplace-control"]["aquilo_crude_oil"] = nil
-data.raw["autoplace-control"]["gleba_stone"] = nil
-data.raw["autoplace-control"]["gleba_cliff"] = nil
-data.raw["autoplace-control"]["vulcanus_coal"] = nil
+-- hide unused controls
+data.raw["autoplace-control"]["aquilo_crude_oil"].hidden = true
+data.raw["autoplace-control"]["gleba_stone"].hidden = true
+data.raw["autoplace-control"]["gleba_cliff"].hidden = true
+data.raw["autoplace-control"]["vulcanus_coal"].hidden = true
