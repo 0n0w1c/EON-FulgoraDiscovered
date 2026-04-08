@@ -1,6 +1,6 @@
 {
     "name": "EON-FulgoraDiscovered",
-    "version": "0.3.4",
+    "version": "0.3.5",
     "title": "EverythingOnNauvis - Fulgora Discovered!",
     "description": "Everything On Nauvis, until Fulgora is discovered",
     "author": "0n0w1c",
@@ -12,8 +12,10 @@
         "space-age >= 2.0.47",
         "! EverythingOnNauvis",
         "! EverythingOnNauvis-Patches",
+        "! NauvisWithEverything",
         "! naufulglebunusilo",
         "! rso-mod",
-        "! alien-biomes"
+        "! alien-biomes",
+        "! Engineersvsenvironmentalist-redux"
     ]
 }
