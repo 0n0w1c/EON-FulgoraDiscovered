@@ -10,12 +10,13 @@
     "dependencies": [
         "base >= 2.0.47",
         "space-age >= 2.0.47",
+        "! alien-biomes",
+        "! Engineersvsenvironmentalist-redux",
         "! EverythingOnNauvis",
         "! EverythingOnNauvis-Patches",
-        "! NauvisWithEverything",
         "! naufulglebunusilo",
+        "! NauvisWithEverything",
         "! rso-mod",
-        "! alien-biomes",
-        "! Engineersvsenvironmentalist-redux"
+        "! space-is-fake"
     ]
 }
