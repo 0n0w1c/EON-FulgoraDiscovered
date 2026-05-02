@@ -2,8 +2,6 @@ local resource_autoplace = require("resource-autoplace")
 local base_sounds = require("__base__.prototypes.entity.sounds")
 local simulations = require("__space-age__.prototypes.factoriopedia-simulations")
 
-
-
 local stone_driving_sound = {
     sound = {
         filename = "__base__/sound/driving/vehicle-surface-stone.ogg",
@@ -13,12 +11,10 @@ local stone_driving_sound = {
     fade_ticks = 6
 }
 
-
 data.raw["autoplace-control"]["calcite"] = nil
 data.raw["resource"]["calcite"] = nil
 data.raw["autoplace-control"]["tungsten_ore"] = nil
 data.raw["resource"]["tungsten-ore"] = nil
-
 
 data:extend({
     {
@@ -140,7 +136,5 @@ data:extend({
 
 })
 
-
 data.raw.planet["nauvis"].map_gen_settings.autoplace_controls["calcite"] = {}
 data.raw.planet["nauvis"].map_gen_settings.autoplace_controls["tungsten_ore"] = {}
-

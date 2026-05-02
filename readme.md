@@ -19,31 +19,32 @@ How much this matters depends on how the engineer chooses to play.
  - Equatorial biome is just right.
  - Volcanoes and lava flows can be found in any biome, creating hazardous territories.
 
-Interesting effects can be achieved when making adjustments during map generation.
+*Use the Map Generator Preview to choose a map seed with a nearby volcano.*
 
 ---
 
 #### Startup settings
 
-- Enable planetary music and sounds (default: disabled)
+- Enable all planetary music and ambient sounds (default: disabled)
 - Pentapods react to pollution (default: disabled)
 - Foundry made with tungsten plate (default: disabled)
-- Calcite and tungsten spawn on vulcanus terrain (default: disabled)
-- Enable freezing on Fulgora (default: disabled)
-- Remove frozen graphics (default: disabled)
+- Calcite and tungsten spawn on Vulcanus terrain (default: disabled)
+- Create the Aquilo biome on Fulgora (default: disabled)
+
+*For an alternative experience, the enabling of startup settings is encouraged.*
 
 ---
 
 #### Limitations
 
-- No freezing in the Nauvis northern biome, heating not required.
+- Freezing is enabled only when the Aquilo biome is created on Fulgora.
 
 ---
 
 #### Suggestions
 
-Fulgora seem a little too quiet? Wage battle with [Fulgoran enemies](https://mods.factorio.com/mod/Electric_flying_enemies).  
-Set maximum water coverage in map generation and naviage [Cargo Ships](https://mods.factorio.com/mod/cargo-ships).  
+Does Fulgora seem a little too quiet? Wage battle with [Fulgoran enemies](https://mods.factorio.com/mod/Electric_flying_enemies).  
+Set near maximum water coverage in the map generator and naviage [Cargo Ships](https://mods.factorio.com/mod/cargo-ships).  
 
 ---
 

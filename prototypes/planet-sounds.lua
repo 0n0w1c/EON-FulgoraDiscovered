@@ -1,5 +1,3 @@
--- prototypes/planet-sounds.lua
-
 local sounds_enabled = settings.startup["eon-fd-planet-sounds"].value
 if not sounds_enabled then return end
 

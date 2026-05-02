@@ -1,24 +1,20 @@
 local data_util = require("data-util")
-local asteroid_util = require("__space-age__.prototypes.planet.asteroid-spawn-definitions")
 
--- Remove planets
-
-data.raw.planet["aquilo"].map_gen_settings = nil
 if data.raw.planet["aquilo"] then
+    data.raw.planet["aquilo"].map_gen_settings = nil
     data.raw.planet["aquilo"].hidden = true
 end
 
-data.raw.planet["gleba"].map_gen_settings = nil
 if data.raw.planet["gleba"] then
+    data.raw.planet["gleba"].map_gen_settings = nil
     data.raw.planet["gleba"].hidden = true
 end
 
-data.raw.planet["vulcanus"].map_gen_settings = nil
 if data.raw.planet["vulcanus"] then
+    data.raw.planet["vulcanus"].map_gen_settings = nil
     data.raw.planet["vulcanus"].hidden = true
 end
 
--- delete space connections
 data_util.delete_prototype("space-connection", "nauvis-vulcanus")
 data_util.delete_prototype("space-connection", "nauvis-gleba")
 data_util.delete_prototype("space-connection", "vulcanus-gleba")

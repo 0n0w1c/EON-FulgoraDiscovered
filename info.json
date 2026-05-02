@@ -1,6 +1,6 @@
 {
     "name": "EON-FulgoraDiscovered",
-    "version": "0.3.6",
+    "version": "0.4.0",
     "title": "EverythingOnNauvis - Fulgora Discovered!",
     "description": "Everything On Nauvis, until Fulgora is discovered",
     "author": "0n0w1c",
@@ -17,6 +17,7 @@
         "! EverythingOnNauvisEnableLightningRods",
         "! naufulglebunusilo",
         "! NauvisWithEverything",
+        "! onlyNauvis",
         "! rso-mod",
         "! space-is-fake"
     ]

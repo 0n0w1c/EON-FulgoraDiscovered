@@ -1,4 +1,12 @@
--- Additional compatibility fixes carried over from the customized EverythingOnNauvis fork.
+local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
+    and settings.startup["eon-fd-aquilo-on-fulgora"].value
+
+local function eon_mask_off_aquilo_for_nauvis(expression)
+    if eon_aquilo_on_fulgora then
+        return expression
+    end
+    return "eon_mask_off_aquilo_territory(" .. expression .. ")"
+end
 
 -- ---------------------------------------------------------------------------
 -- Fix: Remove lava and ammoniacal solution tiles from the atomic rocket effects
@@ -30,7 +38,7 @@ end
 local fish = data.raw["fish"] and data.raw["fish"]["fish"]
 if fish and fish.autoplace and fish.autoplace.probability_expression then
     fish.autoplace.probability_expression =
-        "eon_mask_off_aquilo_territory(eon_mask_off_vulcano_terrain(" .. fish.autoplace.probability_expression .. "))"
+        eon_mask_off_aquilo_for_nauvis("eon_mask_off_vulcano_terrain(" .. fish.autoplace.probability_expression .. ")")
 end
 
 -- ---------------------------------------------------------------------------
@@ -40,7 +48,7 @@ local dead_tree = data.raw["tree"] and data.raw["tree"]["dead-grey-trunk"]
 if dead_tree and dead_tree.autoplace and dead_tree.autoplace.probability_expression then
     local expr = dead_tree.autoplace.probability_expression
     dead_tree.autoplace.probability_expression =
-        "eon_mask_off_aquilo_territory(eon_mask_off_gleba_territory(eon_mask_off_vulcano_terrain(" .. expr .. ")))"
+        eon_mask_off_aquilo_for_nauvis("eon_mask_off_gleba_territory(eon_mask_off_vulcano_terrain(" .. expr .. "))")
 end
 
 -- ---------------------------------------------------------------------------

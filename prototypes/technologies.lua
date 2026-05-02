@@ -1,8 +1,5 @@
-local data_util = require("data-util")
-
 local technologies = data.raw["technology"]
 
--- Add new technology for traveling to solar system edge
 data:extend({
     {
         type = "technology",
@@ -55,18 +52,18 @@ data:extend({
     },
 })
 
--- Add prerequisite to promethium-science-pack
 table.insert(technologies["promethium-science-pack"].prerequisites, "solar-system-edge-discovery")
 
--- Aquilo
-technologies["lithium-processing"].prerequisites = { "rocket-turret", "advanced-asteroid-processing", "heating-tower",
-    "asteroid-reprocessing" }
+technologies["lithium-processing"].prerequisites = {
+    "rocket-turret",
+    "advanced-asteroid-processing",
+    "heating-tower",
+    "asteroid-reprocessing"
+}
 
--- Gleba
 technologies["agriculture"].prerequisites = { "landfill", "steel-processing" }
 technologies["heating-tower"].prerequisites = { "concrete" }
 
--- Vulcanus
 technologies["calcite-processing"].prerequisites = { "production-science-pack" }
 technologies["calcite-processing"].research_trigger = nil
 technologies["calcite-processing"].unit = {
@@ -77,17 +74,17 @@ technologies["calcite-processing"].unit = {
         { "chemical-science-pack",   1 },
         { "production-science-pack", 1 }
     },
-    time = 5
+    time = 30
 }
 technologies["tungsten-carbide"].prerequisites = { "production-science-pack" }
 technologies["tungsten-carbide"].research_trigger = nil
 technologies["tungsten-carbide"].unit = {
-    count = 100,
+    count = 200,
     ingredients = {
         { "automation-science-pack", 1 },
         { "logistic-science-pack",   1 },
         { "chemical-science-pack",   1 },
         { "production-science-pack", 1 }
     },
-    time = 5
+    time = 60
 }

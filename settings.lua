@@ -29,16 +29,9 @@ data:extend({
     },
     {
         type = "bool-setting",
-        name = "eon-fd-fulgora-freezing",
+        name = "eon-fd-aquilo-on-fulgora",
         setting_type = "startup",
         default_value = false,
         order = "e"
-    },
-    {
-        type = "bool-setting",
-        name = "eon-fd-frost-free",
-        setting_type = "startup",
-        default_value = false,
-        order = "f"
     }
 })

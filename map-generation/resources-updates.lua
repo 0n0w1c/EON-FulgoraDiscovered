@@ -2,29 +2,37 @@
 -- Fixes map generation for resources
 --------------------------------------------------------------------------------
 local terrain = require("map-generation.terrain")
+local resource_autoplace = require("resource-autoplace")
 
 local guarded_resources_enabled = settings.startup["eon-fd-guarded-resources"]
     and settings.startup["eon-fd-guarded-resources"].value
 
-local data_util =
-{
-    table = {}
-}
+local function mask_off_ammonia_ocean(expression)
+    return "eon_mask_off_ammonia_ocean(" .. expression .. ")"
+end
 
-function data_util.spritesheets_to_pictures(spritesheets)
-    local pictures = {}
-    for _, spritesheet in pairs(spritesheets) do
-        for i = 1, spritesheet.frame_count or 1, 1 do
-            table.insert(pictures, data_util.sprite_load(spritesheet.path,
-                {
-                    frame_index = i - 1,
-                    scale = spritesheet.scale or 0.5,
-                    dice_y = spritesheet.dice_y
-                })
-            )
-        end
+local function mask_vulcanus_terrain(expression)
+    return "eon_mask_vulcano_terrain(" .. expression .. ")"
+end
+
+local function mask_resource_territory_expression(expression)
+    return "eon_mask_resource_territory(" .. expression .. ")"
+end
+
+local function set_resource_probability(resource_name, expression)
+    data.raw.resource[resource_name].autoplace.probability_expression = expression
+end
+
+local function set_guarded_resource_probability(resource_name, expression)
+    set_resource_probability(resource_name, mask_off_ammonia_ocean(mask_vulcanus_terrain(expression)))
+end
+
+local function configure_guarded_resource(config)
+    if guarded_resources_enabled then
+        config.guarded()
+    else
+        config.normal()
     end
-    return pictures
 end
 
 --------------------------------------------------------------------------------
@@ -55,11 +63,6 @@ data.raw["autoplace-control"]["gleba_plants"].localised_description = nil
 -- MARK: Add Vulcanus resources to Nauvis
 --------------------------------------------------------------------------------
 
-data.raw.planet["nauvis"].map_gen_settings.property_expression_names["entity:sulfuric-acid-geyser:probability"] =
-"vulcanus_sulfuric_acid_geyser_probability"
-data.raw.planet["nauvis"].map_gen_settings.property_expression_names["entity:sulfuric-acid-geyser:richness"] =
-"vulcanus_sulfuric_acid_geyser_richness"
-
 table.insert(data.raw["simple-entity"]["big-volcanic-rock"].minable.results,
     { type = "item", name = "calcite", amount_min = 2, amount_max = 8 })
 table.insert(data.raw["simple-entity"]["huge-volcanic-rock"].minable.results,
@@ -83,45 +86,72 @@ if guarded_resources_enabled then
 end
 
 -- START: Fix Resource spawning
-data.raw.resource["calcite"].autoplace.has_starting_area_placement = false
 data.raw["noise-expression"]["vulcanus_starting_calcite"].expression = "-inf"
 
-if guarded_resources_enabled then
-    data.raw.resource["calcite"].autoplace.probability_expression =
-    "eon_mask_off_ammonia_ocean(eon_mask_vulcano_terrain(vulcanus_calcite_probability))"
-    data.raw.resource["calcite"].autoplace.richness_expression = "vulcanus_calcite_richness"
-else
-    data.raw["noise-expression"]["vulcanus_calcite_probability"].expression =
-    "eon_mask_off_ammonia_ocean((control:calcite:size > 0) * (1000 * ((0.5 + vulcanus_calcite_region) * random_penalty_between(0.9, 1, 1) - 1)))"
-    terrain.mask_resource_territory("calcite", "resource")
-end
+configure_guarded_resource {
+    guarded = function()
+        set_guarded_resource_probability("calcite", "vulcanus_calcite_probability")
+        data.raw.resource["calcite"].autoplace.richness_expression = "vulcanus_calcite_richness"
+    end,
+    normal = function()
+        data.raw["noise-expression"]["vulcanus_calcite_probability"].expression =
+            mask_off_ammonia_ocean("(control:calcite:size > 0) * (1000 * ((0.5 + vulcanus_calcite_region) * random_penalty_between(0.9, 1, 1) - 1))")
+        terrain.mask_resource_territory("calcite", "resource")
+    end
+}
 
-data.raw.resource["sulfuric-acid-geyser"].autoplace.has_starting_area_placement = false
 data.raw["noise-expression"]["vulcanus_starting_sulfur"].expression = "-inf"
 
-if guarded_resources_enabled then
-    data.raw["noise-expression"]["vulcanus_sulfuric_acid_geyser_probability"].expression =
-    "(control:sulfuric_acid_geyser:size > 0) * (0.003 * control:sulfuric_acid_geyser:frequency * ((vulcanus_sulfuric_acid_region_patchy > 0) + 2 * eon_updated_volcanic_folds))"
-else
-    data.raw["noise-expression"]["vulcanus_sulfuric_acid_geyser_probability"].expression =
-    "(control:sulfuric_acid_geyser:size > 0) * (0.005 * ((vulcanus_sulfuric_acid_region_patchy > 0) + 2 * eon_updated_volcanic_folds))"
-end
+local nauvis_property_expression_names = data.raw.planet["nauvis"].map_gen_settings.property_expression_names
 
-data.raw.resource["tungsten-ore"].autoplace.has_starting_area_placement = false
+configure_guarded_resource {
+    guarded = function()
+        nauvis_property_expression_names["entity:sulfuric-acid-geyser:probability"] =
+            "vulcanus_sulfuric_acid_geyser_probability"
+        nauvis_property_expression_names["entity:sulfuric-acid-geyser:richness"] =
+            "vulcanus_sulfuric_acid_geyser_richness"
+
+        data.raw["noise-expression"]["vulcanus_sulfuric_acid_geyser_probability"].expression =
+            mask_off_ammonia_ocean(mask_vulcanus_terrain("(control:sulfuric_acid_geyser:size > 0) * (0.015 * control:sulfuric_acid_geyser:frequency * ((vulcanus_sulfuric_acid_region_patchy > 0) + 2 * eon_updated_volcanic_folds))"))
+    end,
+    normal = function()
+        nauvis_property_expression_names["entity:sulfuric-acid-geyser:probability"] = nil
+        nauvis_property_expression_names["entity:sulfuric-acid-geyser:richness"] = nil
+
+        data.raw.resource["sulfuric-acid-geyser"].autoplace = resource_autoplace.resource_autoplace_settings {
+            name = "sulfuric_acid_geyser",
+            order = "c",
+            base_density = 8.2,
+            base_spots_per_km2 = 5.4,
+            random_probability = 1 / 48,
+            random_spot_size_minimum = 1,
+            random_spot_size_maximum = 1,
+            additional_richness = 220000,
+            regular_rq_factor_multiplier = 1
+        }
+        set_resource_probability(
+            "sulfuric-acid-geyser",
+            mask_off_ammonia_ocean(mask_resource_territory_expression(data.raw.resource["sulfuric-acid-geyser"].autoplace.probability_expression))
+        )
+    end
+}
+
 data.raw["noise-expression"]["vulcanus_starting_tungsten"].expression = "-inf"
 
-if guarded_resources_enabled then
-    data.raw.resource["tungsten-ore"].autoplace.probability_expression =
-    "eon_mask_off_ammonia_ocean(eon_mask_vulcano_terrain(1000 * vulcanus_tungsten_ore_probability))"
-    data.raw.resource["tungsten-ore"].autoplace.richness_expression = "vulcanus_tungsten_ore_richness"
+configure_guarded_resource {
+    guarded = function()
+        set_guarded_resource_probability("tungsten-ore", "1000 * vulcanus_tungsten_ore_probability")
+        data.raw.resource["tungsten-ore"].autoplace.richness_expression = "vulcanus_tungsten_ore_richness"
 
-    data.raw["noise-expression"]["vulcanus_tungsten_ore_region"].expression =
-    "max(vulcanus_starting_tungsten, min(1 - vulcanus_starting_circle, vulcanus_place_non_metal_spots(789, 15, 2, vulcanus_tungsten_ore_size * min(1.2, vulcanus_ore_dist) * 25, control:tungsten_ore:frequency, vulcanus_mountains_resource_favorability)))"
-else
-    data.raw["noise-expression"]["vulcanus_tungsten_ore_probability"].expression =
-    "eon_mask_off_ammonia_ocean((control:tungsten_ore:size > 0) * (1000 * ((0.7 + vulcanus_tungsten_ore_region) * random_penalty_between(0.9, 1, 1) - 1)))"
-    terrain.mask_resource_territory("tungsten-ore", "resource")
-end
+        data.raw["noise-expression"]["vulcanus_tungsten_ore_region"].expression =
+            "max(vulcanus_starting_tungsten, min(1 - vulcanus_starting_circle, vulcanus_place_non_metal_spots(789, 15, 2, vulcanus_tungsten_ore_size * min(1.2, vulcanus_ore_dist) * 25, control:tungsten_ore:frequency, vulcanus_mountains_resource_favorability)))"
+    end,
+    normal = function()
+        data.raw["noise-expression"]["vulcanus_tungsten_ore_probability"].expression =
+            mask_off_ammonia_ocean("(control:tungsten_ore:size > 0) * (1000 * ((0.7 + vulcanus_tungsten_ore_region) * random_penalty_between(0.9, 1, 1) - 1))")
+        terrain.mask_resource_territory("tungsten-ore", "resource")
+    end
+}
 -- END: Fix Resource spawning
 
 if guarded_resources_enabled then
@@ -150,11 +180,17 @@ if guarded_resources_enabled then
     end
 end
 
-data.raw.resource["calcite"].autoplace.probability_expression =
-"eon_mask_off_ammonia_ocean(eon_mask_vulcano_terrain(vulcanus_calcite_probability * (1 - clamp(vulcanus_sulfuric_acid_region_patchy, 0, 1))))"
+if guarded_resources_enabled then
+    set_guarded_resource_probability(
+        "calcite",
+        "vulcanus_calcite_probability * (1 - clamp(vulcanus_sulfuric_acid_region_patchy, 0, 1))"
+    )
 
-data.raw.resource["tungsten-ore"].autoplace.probability_expression =
-"eon_mask_off_ammonia_ocean(eon_mask_vulcano_terrain(vulcanus_tungsten_ore_probability * (1 - clamp(vulcanus_sulfuric_acid_region_patchy, 0, 1))))"
+    set_guarded_resource_probability(
+        "tungsten-ore",
+        "vulcanus_tungsten_ore_probability * (1 - clamp(vulcanus_sulfuric_acid_region_patchy, 0, 1))"
+    )
+end
 
 local nauvis_settings = data.raw.planet["nauvis"]
     and data.raw.planet["nauvis"].map_gen_settings
@@ -172,8 +208,8 @@ if nauvis_settings then
             local expression = resource.autoplace.probability_expression
 
             if type(expression) == "string" and expression ~= "" then
-                if not string.find(expression, "eon_mask_off_ammonia_ocean%(", 1, false) then
-                    resource.autoplace.probability_expression = "eon_mask_off_ammonia_ocean(" .. expression .. ")"
+                if not string.find(expression, "eon_mask_off_ammonia_ocean(", 1, true) then
+                    resource.autoplace.probability_expression = mask_off_ammonia_ocean(expression)
                 end
             end
         end

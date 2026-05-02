@@ -1,8 +1,7 @@
 local data_util = require("data-util")
 
-
 -- Returns new noise expression with name "name" to "eon_name"
-function duplicate_noise_expression(name, type)
+local function duplicate_noise_expression(name, type)
     local expression = {
         type = "noise-expression",
         name = data_util.generate_eon_name(name),
@@ -15,8 +14,8 @@ function duplicate_noise_expression(name, type)
 end
 
 -- Returns new noise function with name "name" to "default_name"
-function duplicate_noise_function(name)
-    expression = table.deepcopy(data.raw["noise-function"][name])
+local function duplicate_noise_function(name)
+    local expression = table.deepcopy(data.raw["noise-function"][name])
     expression.name = data_util.generate_eon_name(name)
     return expression
 end
@@ -145,7 +144,7 @@ data:extend({
     duplicate_noise_expression("lowland-brown-blubber", "tile"),
     duplicate_noise_expression("lowland-olive-blubber", "tile"),
     duplicate_noise_expression("lowland-olive-blubber-2", "tile"),
-    duplicate_noise_expression("lowland-olive-blubber-2", "tile"),
+    duplicate_noise_expression("lowland-olive-blubber-3", "tile"),
     duplicate_noise_expression("lowland-pale-green", "tile"),
     duplicate_noise_expression("lowland-cream-cauliflower", "tile"),
     duplicate_noise_expression("lowland-cream-cauliflower-2", "tile"),
