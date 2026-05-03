@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.4.6
+Date: 03.05.2026
+  Bugfixes:
+    - Gleba terrain should not spawn in Vulcanus terrain area
+    - Aquilo on Fulgora: Gleba terrain has been moved north
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.4.5
 Date: 03.05.2026
   Bugfixes:

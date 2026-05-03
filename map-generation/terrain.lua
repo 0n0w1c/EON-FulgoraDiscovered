@@ -27,6 +27,10 @@ local eon_nauvis_territory_expression = eon_aquilo_on_fulgora
 local eon_nauvis_cliffiness_expression = eon_aquilo_on_fulgora
     and "(main_cliffiness >= cliff_cutoff) * 10"
     or "eon_mask_off_aquilo_territory((main_cliffiness >= cliff_cutoff) * 10)"
+local eon_gleba_region_expression = "eon_mask_off_vulcano_terrain(if(gleba_noise + gleba_intermediate_noise + gleba_small_noise + moisture_nauvis + south_offset > threshold, 1, 0))"
+local eon_gleba_y_offset_expression = eon_aquilo_on_fulgora
+    and "y"
+    or "y - 1000"
 
 local eon_aquilo_decorative_names = {
     ["lithium-iceberg-medium"] = true,
@@ -501,8 +505,6 @@ data:extend({
     },
     {
         -- Fulgora-only Aquilo territory mask.
-        -- Keeps the moved Aquilo biome north-biased and separate from Fulgora main resource territory,
-        -- while still allowing the lower elevations needed for ammoniacal ocean generation.
         type = "noise-function",
         name = "eon_mask_fulgora_aquilo_territory",
         parameters = { "expression" },
@@ -510,7 +512,6 @@ data:extend({
     },
     {
         -- Inverse of the Fulgora moved-Aquilo territory.
-        -- Used to keep native Fulgora tiles/decoratives/resources out of the Aquilo biome.
         type = "noise-function",
         name = "eon_mask_off_fulgora_aquilo_territory",
         parameters = { "expression" },
@@ -1293,8 +1294,7 @@ data:extend({
         type = "noise-function",
         name = "eon_gleba_region",
         parameters = { "threshold" },
-        expression =
-        "eon_mask_off_vulcano_coverage(if(gleba_noise + gleba_intermediate_noise + gleba_small_noise + moisture_nauvis + south_offset > threshold, 1, 0))",
+        expression = eon_gleba_region_expression,
         local_expressions = {
             gleba_noise = "quick_multioctave_noise{x = x,\z
                                              y = y,\z
@@ -1323,7 +1323,7 @@ data:extend({
                                                           output_scale = 1,\z
                                                           octave_output_scale_multiplier = 3,\z
                                                           octave_input_scale_multiplier = 1/3}",
-            y_offset = "y - 1000", -- gleba starts around 1000 tiles to the south
+            y_offset = eon_gleba_y_offset_expression, -- when Aquilo moves to Fulgora, shift existing Gleba region north by 1000 tiles
             south_offset = "y_offset / (1 + pow(2, 0.01 * y_offset)) + 0.1 * y_offset - 60"
         }
     },
