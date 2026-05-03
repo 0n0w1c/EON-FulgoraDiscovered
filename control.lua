@@ -186,7 +186,9 @@ local function process_area(surface, area)
     })
 
     for _, cliff in pairs(cliffs) do
-        replace_with_terrain_cliff(cliff)
+        if cliff.name ~= "crater-cliff" then
+            replace_with_terrain_cliff(cliff)
+        end
     end
 end
 
