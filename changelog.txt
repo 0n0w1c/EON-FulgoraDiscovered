@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.4.5
+Date: 03.05.2026
+  Bugfixes:
+    - Exclude the center of volcanoes from demolisher territory
+    - Restrict the spawning of resources to the inner volcano ring
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.4.4
 Date: 03.05.2026
   Bugfixes:

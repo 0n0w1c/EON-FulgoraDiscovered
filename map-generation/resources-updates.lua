@@ -15,6 +15,10 @@ local function mask_vulcanus_terrain(expression)
     return "eon_mask_vulcano_terrain(" .. expression .. ")"
 end
 
+local function mask_vulcanus_coverage(expression)
+    return "eon_mask_vulcano_coverage(" .. expression .. ")"
+end
+
 local function mask_resource_territory_expression(expression)
     return "eon_mask_resource_territory(" .. expression .. ")"
 end
@@ -24,7 +28,7 @@ local function set_resource_probability(resource_name, expression)
 end
 
 local function set_guarded_resource_probability(resource_name, expression)
-    set_resource_probability(resource_name, mask_off_ammonia_ocean(mask_vulcanus_terrain(expression)))
+    set_resource_probability(resource_name, mask_off_ammonia_ocean(mask_vulcanus_coverage(expression)))
 end
 
 local function configure_guarded_resource(config)
@@ -112,7 +116,7 @@ configure_guarded_resource {
             "vulcanus_sulfuric_acid_geyser_richness"
 
         data.raw["noise-expression"]["vulcanus_sulfuric_acid_geyser_probability"].expression =
-            mask_off_ammonia_ocean(mask_vulcanus_terrain("(control:sulfuric_acid_geyser:size > 0) * (0.015 * control:sulfuric_acid_geyser:frequency * ((vulcanus_sulfuric_acid_region_patchy > 0) + 2 * eon_updated_volcanic_folds))"))
+            mask_off_ammonia_ocean(mask_vulcanus_coverage("(control:sulfuric_acid_geyser:size > 0) * (0.015 * control:sulfuric_acid_geyser:frequency * ((vulcanus_sulfuric_acid_region_patchy > 0) + 2 * eon_updated_volcanic_folds))"))
     end,
     normal = function()
         nauvis_property_expression_names["entity:sulfuric-acid-geyser:probability"] = nil

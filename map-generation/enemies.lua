@@ -58,16 +58,26 @@ data.raw["turret"]["behemoth-worm-turret"].autoplace.probability_expression =
 -- MARK: Add Vulcanus enemies aka demolishers
 --------------------------------------------------------------------------------
 
-data.raw["planet"]["nauvis"].map_gen_settings.territory_settings =
-    data.raw["planet"]["vulcanus"].map_gen_settings.territory_settings
+local eon_nauvis_territory_settings = table.deepcopy(data.raw["planet"]["vulcanus"].map_gen_settings.territory_settings)
+data.raw["planet"]["nauvis"].map_gen_settings.territory_settings = eon_nauvis_territory_settings
+
+if eon_nauvis_territory_settings and eon_nauvis_territory_settings.territory_index_expression then
+    data:extend({
+        {
+            type = "noise-expression",
+            name = "eon_demolisher_territory_index_no_lava",
+            expression = "if(max(eon_lava_mountains_range, eon_lava_hot_mountains_range) > 0, -1, (" ..
+                eon_nauvis_territory_settings.territory_index_expression .. "))"
+        }
+    })
+
+    eon_nauvis_territory_settings.territory_index_expression = "eon_demolisher_territory_index_no_lava"
+end
 
 data.raw["noise-expression"]["demolisher_starting_area"].expression = "if(eon_vulcano_coverage > 0.2, 0, 1)"
 
---data.raw["noise-expression"]["demolisher_variation_expression"].expression =
---"floor(clamp(distance / (30 * 32) - 0.25, 0, 4)) + (-99 * no_enemies_mode)"
-
 data.raw["noise-expression"]["demolisher_variation_expression"].expression =
-"floor(clamp(distance / (50 * 32) - 0.25, 0, 4)) + (-99 * no_enemies_mode)"
+    "floor(clamp(distance / (50 * 32) - 0.25, 0, 4)) + (-99 * no_enemies_mode)"
 
 --------------------------------------------------------------------------------
 -- MARK: Add Gleba enemies aka strafer, stompers and wriggler pentapods
