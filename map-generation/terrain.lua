@@ -1577,6 +1577,13 @@ data:extend({
         expression =
         "eon_mask_vulcano_coverage(0.5 * (vulcanus_rock_noise + 0.5 * aux - 0.5 * moisture) * (1 - max(vulcanus_basalts_biome,vulcanus_ashlands_biome)) * place_every_n(21,21,0,0))"
     },
+    --[[
+    {
+        type = "noise-expression",
+        name = "eon_crater_cliff",
+        expression = "eon_mask_vulcano_coverage(10 * place_every_n(6,6,0,0))"
+    },
+    ]]
     {
         -- To remove the small random lava puddles
         type = "noise-expression",
