@@ -21,6 +21,16 @@ How much this matters depends on how the engineer chooses to play.
 
 *Use the Map Generator Preview to choose a map seed with a nearby volcano.*
 
+Per the Factorio Wiki: `The rest` can be accessed by holding `CTRL + ALT` when clicking the `Settings` button in the pause menu (Esc).  
+This will cause a new button to appear, labeled "The rest".  
+
+- Change `max-map-preview-chunk-side`  
+  - Default: `64`  
+  - Recommended: `128`  
+
+This will increase the amount of the map revealed in the Map Generator's Preview.  
+(Enables the viewing of some of the Aquilo and Gleba biomes on Nauvis)  
+
 ---
 
 #### Startup settings
