@@ -687,10 +687,10 @@ data.raw.tile["brash-ice"].autoplace.probability_expression =
 if eon_aquilo_on_fulgora then
     eon_apply_fulgora_to_aquilo_tile_remap({
         ["fulgoran-dust"] = "snow-flat",
-        ["fulgoran-sand"] = "snow-patchy",
+        ["fulgoran-sand"] = "ice-rough",
         ["fulgoran-dunes"] = "snow-lumpy",
         ["fulgoran-rock"] = "snow-flat",
-        ["fulgoran-paving"] = "ice-smooth",
+        ["fulgoran-paving"] = "snow-flat",
         ["fulgoran-machinery"] = "snow-crests",
         ["fulgoran-conduit"] = "brash-ice",
         ["fulgoran-walls"] = "snow-crests",
