@@ -3,7 +3,6 @@
 --------------------------------------------------------------------------------
 
 local terrain = require("map-generation.terrain")
-local space_enemy_autoplace = require("__space-age__.prototypes.entity.space-enemy-autoplace-utils")
 
 --------------------------------------------------------------------------------
 -- MARK: Remove Nauvis enemies aka biters, spitters and spawners from surface that does not belong to nauvis

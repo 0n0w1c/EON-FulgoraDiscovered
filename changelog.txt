@@ -1,9 +1,16 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.4.1
+Date: 02.05.2026
+  Bugfixes:
+    - Fulgora surface properties erroneously applied to some entities
+  Changes:
+    - Reimagined the map generation for the Aquilo biome on Fulgora (by NOiZE)
+---------------------------------------------------------------------------------------------------
 Version: 0.4.0
 Date: 01.05.2026
   Bugfixes:
     - Calcite and tungsten ore were not map generated (Regression occurred in 0.3.0)
-      (Only spawned if the "Calcite and tungsten spawn on vulcanus terrain" startup setting was enabled)
+      (Only when the "Calcite and tungsten spawn on vulcanus terrain" startup setting was enabled)
   Changes:
     - Added startup setting: Create the Aquilo biome on Fulgora (default: disabled)
     - Added on Nauvis chunk generation, cliffs are replaced to match the terrain

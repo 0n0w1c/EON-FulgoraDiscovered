@@ -85,3 +85,4 @@ if eon_aquilo_on_fulgora then
         eon_remove_oil_ocean_from_out_of_map_transition(tile_name)
     end
 end
+

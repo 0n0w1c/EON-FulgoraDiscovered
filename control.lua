@@ -1,4 +1,10 @@
-local surface_name = "nauvis"
+local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
+    and settings.startup["eon-fd-aquilo-on-fulgora"].value
+
+local surface_names = { nauvis = true }
+if eon_aquilo_on_fulgora then
+    surface_names.fulgora = true
+end
 
 local terrain_cliff_rules = {
     {
@@ -99,10 +105,10 @@ local function cliff_overlaps_tiles(cliff, tile_names)
     return false
 end
 
-local function target_cliff_name_for_terrain(cliff)
+local function target_cliff_rule_for_terrain(cliff)
     for _, rule in ipairs(terrain_cliff_rules) do
         if cliff_overlaps_tiles(cliff, rule.tile_names) then
-            return rule.cliff_name
+            return rule
         end
     end
 
@@ -143,7 +149,15 @@ end
 local function replace_with_terrain_cliff(cliff)
     if not (cliff and cliff.valid) then return end
 
-    local target_cliff_name = target_cliff_name_for_terrain(cliff)
+    local target_rule = target_cliff_rule_for_terrain(cliff)
+    if not target_rule then return end
+
+    if target_rule.destroy then
+        cliff.destroy({ raise_destroy = false })
+        return
+    end
+
+    local target_cliff_name = target_rule.cliff_name
     if not target_cliff_name then return end
     if cliff.name == target_cliff_name then return end
 
@@ -179,7 +193,7 @@ end
 script.on_event(defines.events.on_chunk_generated, function(event)
     local surface = event.surface
     if not (surface and surface.valid) then return end
-    if surface.name ~= surface_name then return end
+    if not surface_names[surface.name] then return end
 
     process_area(surface, event.area)
 end)

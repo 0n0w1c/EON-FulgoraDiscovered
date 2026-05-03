@@ -7,7 +7,7 @@ local data_util = require("data-util")
 local terrain = {}
 
 local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
-    and settings.startup["eon-fd-aquilo-on-fulgora"].value
+    and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
 local eon_aquilo_planet_name = eon_aquilo_on_fulgora and "fulgora" or "nauvis"
 local eon_aquilo_exclusion_mask = eon_aquilo_on_fulgora
     and "eon_mask_fulgora_aquilo_territory"
@@ -28,28 +28,6 @@ local eon_nauvis_cliffiness_expression = eon_aquilo_on_fulgora
     and "(main_cliffiness >= cliff_cutoff) * 10"
     or "eon_mask_off_aquilo_territory((main_cliffiness >= cliff_cutoff) * 10)"
 
-local eon_aquilo_tile_names = {
-    ["snow-flat"] = true,
-    ["snow-crests"] = true,
-    ["snow-lumpy"] = true,
-    ["snow-patchy"] = true,
-    ["ice-rough"] = true,
-    ["ice-smooth"] = true,
-    ["brash-ice"] = true,
-    ["ammoniacal-ocean"] = true,
-    ["ammoniacal-ocean-2"] = true,
-}
-
-local eon_aquilo_cliff_blocking_tile_names = {
-    ["snow-flat"] = true,
-    ["snow-crests"] = true,
-    ["snow-lumpy"] = true,
-    ["snow-patchy"] = true,
-    ["ice-rough"] = true,
-    ["ice-smooth"] = true,
-    ["brash-ice"] = true,
-}
-
 local eon_aquilo_decorative_names = {
     ["lithium-iceberg-medium"] = true,
     ["lithium-iceberg-small"] = true,
@@ -68,6 +46,43 @@ local eon_aquilo_entity_names = {
     ["lithium-iceberg-big"] = true,
 }
 
+local eon_fulgora_ruin_entity_names = {
+    ["fulgoran-ruin-huge"] = true,
+    ["fulgoran-ruin-colossal"] = true,
+    ["fulgoran-ruin-vault"] = true,
+}
+
+local eon_fulgora_ruin_tile_restriction = {
+    "fulgoran-dust",
+    "fulgoran-sand",
+    "fulgoran-dunes",
+    "fulgoran-rock",
+    "fulgoran-paving",
+    "fulgoran-machinery",
+    "fulgoran-conduit",
+    "fulgoran-walls",
+    "snow-flat",
+    "snow-crests",
+    "snow-lumpy",
+    "snow-patchy",
+}
+
+local eon_noise_expr_string
+
+local function eon_scale_autoplace_probability(prototype_type, prototype_name, multiplier_expression)
+    local prototypes = data.raw[prototype_type]
+    if not prototypes then return end
+    local prototype = prototypes[prototype_name]
+    if not prototype or not prototype.autoplace then return end
+
+    local expression = prototype.autoplace.probability_expression
+    local expression_string = eon_noise_expr_string(expression)
+    if not expression_string then return end
+
+    prototype.autoplace.probability_expression = "(" ..
+        expression_string .. ") * (" .. tostring(multiplier_expression) .. ")"
+end
+
 local function eon_wrap_probability_expression(prototype, wrapper)
     if not prototype or not prototype.autoplace then return end
     local expression = prototype.autoplace.probability_expression
@@ -78,40 +93,197 @@ local function eon_wrap_probability_expression(prototype, wrapper)
     end
 end
 
-local function eon_wrap_noise_expression(noise_name, wrapper)
-    local noise_expression = data.raw["noise-expression"] and data.raw["noise-expression"][noise_name]
-    if not noise_expression then return end
-    local expression = noise_expression.expression
+function eon_noise_expr_string(expression)
     if type(expression) == "string" and expression ~= "" then
-        if not string.find(expression, wrapper .. "%(", 1, false) then
-            noise_expression.expression = wrapper .. "(" .. expression .. ")"
+        return "(" .. expression .. ")"
+    elseif type(expression) == "number" then
+        return tostring(expression)
+    end
+end
+
+local function eon_aquilo_side_of_boundary(expression)
+    local expression_string = eon_noise_expr_string(expression)
+    if not expression_string then return nil end
+    return "if(y < eon_fulgora_aquilo_boundary, " .. expression_string .. ", -inf)"
+end
+
+local function eon_fulgora_side_of_boundary(expression)
+    local expression_string = eon_noise_expr_string(expression)
+    if not expression_string then return nil end
+    return "if(y < eon_fulgora_aquilo_boundary, -inf, " .. expression_string .. ")"
+end
+
+local function eon_max_noise_expression(left_expression, right_expression)
+    if not left_expression then return right_expression end
+    if not right_expression then return left_expression end
+    return "max(" .. left_expression .. ", " .. right_expression .. ")"
+end
+
+local function eon_apply_fulgora_to_aquilo_tile_remap(tile_map)
+    local north_expressions_by_target = {}
+
+    for source_name, target_name in pairs(tile_map) do
+        local source = data.raw.tile[source_name]
+        local target = data.raw.tile[target_name]
+
+        if source and source.autoplace and source.autoplace.probability_expression and target then
+            local source_expression = source.autoplace.probability_expression
+            local source_expression_string = eon_noise_expr_string(source_expression)
+
+            if source_expression_string then
+                local source_south_expression = eon_fulgora_side_of_boundary(source_expression)
+                if source_south_expression then
+                    source.autoplace.probability_expression = source_south_expression
+                end
+
+                north_expressions_by_target[target_name] =
+                    eon_max_noise_expression(north_expressions_by_target[target_name], source_expression_string)
+            end
+        end
+    end
+
+    for target_name, north_expression in pairs(north_expressions_by_target) do
+        local target = data.raw.tile[target_name]
+        local target_north_expression = eon_aquilo_side_of_boundary(north_expression)
+        if target_north_expression then
+            target.autoplace = target.autoplace or {}
+            target.autoplace.probability_expression = target_north_expression
         end
     end
 end
 
-local function eon_add_collision_layer_to_tile(tile_name, layer_name)
-    local tile = data.raw.tile and data.raw.tile[tile_name]
-    if not tile then return end
+local function eon_disable_autoplace_probability(prototype_type, prototype_name)
+    local prototypes = data.raw[prototype_type]
+    if not prototypes then return end
 
-    tile.collision_mask = tile.collision_mask or { layers = {} }
-    tile.collision_mask.layers = tile.collision_mask.layers or {}
-    tile.collision_mask.layers[layer_name] = true
+    local prototype = prototypes[prototype_name]
+    if not prototype or not prototype.autoplace then return end
 
-    tile.collision_mask.layers.cliff = true
-    tile.check_collision_with_entities = true
+    prototype.autoplace.probability_expression = "-inf"
 end
 
-local function eon_add_cliff_tile_buildability_blocker(layer_name)
-    if not data.raw.cliff then return end
+local function eon_restrict_autoplace_to_tiles(prototype_type, prototype_name, tile_names)
+    local prototypes = data.raw[prototype_type]
+    if not prototypes then return end
 
-    for _, cliff in pairs(data.raw.cliff) do
-        cliff.tile_buildability_rules = cliff.tile_buildability_rules or {}
-        table.insert(cliff.tile_buildability_rules, {
-            area = cliff.collision_box or cliff.selection_box or { { -1, -1 }, { 1, 1 } },
-            colliding_tiles = { layers = { [layer_name] = true } },
-            remove_on_collision = true
-        })
+    local prototype = prototypes[prototype_name]
+    if not prototype or not prototype.autoplace then return end
+
+    prototype.autoplace.tile_restriction = tile_names
+end
+
+local function eon_extend_autoplace_tile_restriction(prototype_type, prototype_name, tile_names)
+    local prototypes = data.raw[prototype_type]
+    if not prototypes then return end
+
+    local prototype = prototypes[prototype_name]
+    if not prototype or not prototype.autoplace then return end
+
+    local seen = {}
+    local merged = {}
+
+    if prototype.autoplace.tile_restriction then
+        for _, tile_name in pairs(prototype.autoplace.tile_restriction) do
+            if not seen[tile_name] then
+                seen[tile_name] = true
+                table.insert(merged, tile_name)
+            end
+        end
     end
+
+    for _, tile_name in pairs(tile_names) do
+        if not seen[tile_name] then
+            seen[tile_name] = true
+            table.insert(merged, tile_name)
+        end
+    end
+
+    prototype.autoplace.tile_restriction = merged
+end
+
+local function eon_apply_aquilo_on_fulgora_ruin_rules()
+    if not eon_aquilo_on_fulgora then return end
+
+    for entity_name, _ in pairs(eon_fulgora_ruin_entity_names) do
+        eon_extend_autoplace_tile_restriction(
+            "simple-entity",
+            entity_name,
+            eon_fulgora_ruin_tile_restriction
+        )
+    end
+end
+
+local function eon_apply_aquilo_on_fulgora_iceberg_rules()
+    if not eon_aquilo_on_fulgora then return end
+
+    local iceberg_entity_multiplier =
+    "clamp(0.04 + ((eon_fulgora_aquilo_boundary - y) / 8000) * 0.76, 0.04, 0.80)"
+
+    local iceberg_decorative_multiplier =
+    "clamp(0.08 + ((eon_fulgora_aquilo_boundary - y) / 8000) * 1.20, 0.08, 1.20)"
+
+    local blocked_decoratives = {
+        "floating-iceberg-large",
+        "floating-iceberg-small",
+    }
+
+    for _, decorative_name in pairs(blocked_decoratives) do
+        eon_disable_autoplace_probability("optimized-decorative", decorative_name)
+    end
+
+    local snow_ice_tile_restriction = {
+        "snow-flat",
+        "snow-crests",
+        "snow-lumpy",
+        "snow-patchy",
+        "ice-rough",
+        "ice-smooth",
+        "brash-ice",
+    }
+
+    local lithium_iceberg_decoratives = {
+        "lithium-iceberg-medium",
+        "lithium-iceberg-small",
+        "lithium-iceberg-tiny",
+    }
+
+    for _, decorative_name in pairs(lithium_iceberg_decoratives) do
+        eon_restrict_autoplace_to_tiles("optimized-decorative", decorative_name, snow_ice_tile_restriction)
+        eon_scale_autoplace_probability("optimized-decorative", decorative_name, iceberg_decorative_multiplier)
+    end
+
+    local land_iceberg_entities = {
+        "lithium-iceberg-huge",
+        "lithium-iceberg-big",
+    }
+
+    for _, entity_name in pairs(land_iceberg_entities) do
+        eon_restrict_autoplace_to_tiles("simple-entity", entity_name, snow_ice_tile_restriction)
+        eon_scale_autoplace_probability("simple-entity", entity_name, iceberg_entity_multiplier)
+    end
+end
+
+local function eon_mask_fulgora_cliffs_off_aquilo_terrain()
+    local fulgora_map_gen = data.raw.planet["fulgora"]
+        and data.raw.planet["fulgora"].map_gen_settings
+    if not fulgora_map_gen then return end
+
+    fulgora_map_gen.property_expression_names = fulgora_map_gen.property_expression_names or {}
+
+    local source_cliffiness = fulgora_map_gen.property_expression_names.cliffiness or "cliffiness_fulgora"
+    if type(source_cliffiness) ~= "string" or source_cliffiness == "" then
+        source_cliffiness = "cliffiness_fulgora"
+    end
+
+    data:extend({
+        {
+            type = "noise-expression",
+            name = "eon_fulgora_cliffiness_no_aquilo",
+            expression = "eon_mask_off_fulgora_aquilo_territory(" .. source_cliffiness .. ")"
+        }
+    })
+
+    fulgora_map_gen.property_expression_names.cliffiness = "eon_fulgora_cliffiness_no_aquilo"
 end
 
 function terrain.mask_nauvis_territory(decorative, decorative_type)
@@ -211,7 +383,6 @@ data.raw.tile["water"].autoplace.probability_expression = "eon_updated_water + i
 data.raw.tile["deepwater"].autoplace.probability_expression =
 "eon_updated_deepwater + if(eon_gleba_region(-100), -inf, 0)"
 
--- START: Mask nauvis territory on all autoplace settings
 -- Remove nauvis trees from eon_vulcanus_terrain
 -- data.raw["noise-expression"]["trees_forest_path_cutout"].expression = "mask_off_vulcano_terrain(min(nauvis_bridge_paths, nauvis_hills_paths, forest_paths))"
 data.raw["noise-expression"]["trees_forest_path_cutout_faded"].expression =
@@ -281,7 +452,6 @@ terrain.mask_nauvis_territory("red-desert-2", "tile")
 terrain.mask_nauvis_territory("red-desert-3", "tile")
 -- terrain.mask_nauvis_territory("water", "tile")
 -- terrain.mask_nauvis_territory("deepwater", "tile")
--- END: Mask nauvis territory on all autoplace settings
 
 -- Remove nauvis cliffs from eon_vulcanus_terrain
 data.raw["noise-expression"]["cliffiness_nauvis"].expression = eon_nauvis_cliffiness_expression
@@ -336,7 +506,7 @@ data:extend({
         type = "noise-function",
         name = "eon_mask_fulgora_aquilo_territory",
         parameters = { "expression" },
-        expression = "if(y < 0, expression, -inf)"
+        expression = "if(y < eon_fulgora_aquilo_boundary, expression, -inf)"
     },
     {
         -- Inverse of the Fulgora moved-Aquilo territory.
@@ -360,8 +530,17 @@ local eon_inactive_aquilo_map_gen = data.raw.planet[eon_inactive_aquilo_planet_n
 local eon_aquilo_autoplace_controls = {
     "lithium_brine",
     "fluorine_vent",
-    "ammonia_ocean"
 }
+
+local eon_all_aquilo_autoplace_controls = {
+    "lithium_brine",
+    "fluorine_vent",
+    "ammonia_ocean",
+}
+
+if not eon_aquilo_on_fulgora then
+    table.insert(eon_aquilo_autoplace_controls, "ammonia_ocean")
+end
 
 local function eon_enable_aquilo_autoplace_controls(map_gen)
     if not map_gen then return end
@@ -376,12 +555,11 @@ end
 local function eon_disable_aquilo_autoplace_controls(map_gen)
     if not (map_gen and map_gen.autoplace_controls) then return end
 
-    for _, control_name in pairs(eon_aquilo_autoplace_controls) do
+    for _, control_name in pairs(eon_all_aquilo_autoplace_controls) do
         map_gen.autoplace_controls[control_name] = nil
     end
 end
 
--- START: Update map gen settings
 if eon_aquilo_map_gen then
     -- autoplace_controls
     eon_enable_aquilo_autoplace_controls(eon_aquilo_map_gen)
@@ -395,8 +573,10 @@ if eon_aquilo_map_gen then
     eon_aquilo_map_gen.autoplace_settings.tile.settings["ice-rough"] = {}
     eon_aquilo_map_gen.autoplace_settings.tile.settings["ice-smooth"] = {}
     eon_aquilo_map_gen.autoplace_settings.tile.settings["brash-ice"] = {}
-    eon_aquilo_map_gen.autoplace_settings.tile.settings["ammoniacal-ocean"] = {}
-    eon_aquilo_map_gen.autoplace_settings.tile.settings["ammoniacal-ocean-2"] = {}
+    if not eon_aquilo_on_fulgora then
+        eon_aquilo_map_gen.autoplace_settings.tile.settings["ammoniacal-ocean"] = {}
+        eon_aquilo_map_gen.autoplace_settings.tile.settings["ammoniacal-ocean-2"] = {}
+    end
 
     -- decorative settings
     eon_aquilo_map_gen.autoplace_settings.decorative.settings["lithium-iceberg-medium"] = {}
@@ -414,21 +594,11 @@ if eon_aquilo_map_gen then
     eon_aquilo_map_gen.autoplace_settings.entity.settings["lithium-iceberg-huge"] = {}
     eon_aquilo_map_gen.autoplace_settings.entity.settings["lithium-iceberg-big"] = {}
 end
--- END: Update map gen settings
 
 if eon_aquilo_on_fulgora then
-    -- START: Split Fulgora and Aquilo into mutually-exclusive biomes
-    -- Existing Fulgora tiles/decoratives/entities keep their normal generation, but are suppressed
-    -- wherever the moved Aquilo biome is allowed to generate.
     local fulgora_settings = data.raw.planet["fulgora"].map_gen_settings.autoplace_settings
 
     if fulgora_settings then
-        for tile_name, _ in pairs(fulgora_settings.tile.settings) do
-            if not eon_aquilo_tile_names[tile_name] then
-                eon_wrap_probability_expression(data.raw.tile[tile_name], "eon_mask_off_fulgora_aquilo_territory")
-            end
-        end
-
         for decorative_name, _ in pairs(fulgora_settings.decorative.settings) do
             if not eon_aquilo_decorative_names[decorative_name] then
                 eon_wrap_probability_expression(data.raw["optimized-decorative"][decorative_name],
@@ -437,22 +607,13 @@ if eon_aquilo_on_fulgora then
         end
     end
 
-    -- Mask Fulgora cliff generation out of the moved Aquilo biome before cliff richness/continuity are considered.
-    -- Fulgora cliffs are driven by the cliffiness_fulgora noise expression, so wrap that expression
-    -- with the same inverse-Aquilo territory mask used for native Fulgora autoplacements.
-    eon_wrap_noise_expression("cliffiness_fulgora", "eon_mask_off_fulgora_aquilo_territory")
-
-    -- Cliff generation can still succeed on solid Aquilo ice/snow tiles if the cliff noise
-    -- evaluates before tile winners are resolved. Add a tile-level blocker so any cliff
-    -- prototype is removed when its buildability area overlaps moved-Aquilo land ice/snow.
-    for tile_name, _ in pairs(eon_aquilo_cliff_blocking_tile_names) do
-        eon_add_collision_layer_to_tile(tile_name, "eon_aquilo_cliff_blocker")
-    end
-    eon_add_cliff_tile_buildability_blocker("eon_aquilo_cliff_blocker")
+    eon_mask_fulgora_cliffs_off_aquilo_terrain()
 
     if fulgora_settings then
         for entity_name, _ in pairs(fulgora_settings.entity.settings) do
-            if not eon_aquilo_entity_names[entity_name] then
+            if not eon_aquilo_entity_names[entity_name]
+                and not eon_fulgora_ruin_entity_names[entity_name]
+            then
                 if data.raw.resource[entity_name] then
                     eon_wrap_probability_expression(data.raw.resource[entity_name],
                         "eon_mask_off_fulgora_aquilo_territory")
@@ -463,13 +624,15 @@ if eon_aquilo_on_fulgora then
             end
         end
     end
-    -- END: Split Fulgora and Aquilo into mutually-exclusive biomes
 end
 
--- START: Mask aquilo territory on all autoplace settings
--- mask aquilo resources
-terrain.mask_aquilo_territory("lithium-brine", "resource")
-terrain.mask_aquilo_territory("fluorine-vent", "resource")
+if eon_aquilo_on_fulgora then
+    terrain.mask_fulgora_aquilo_territory("lithium-brine", "resource")
+    terrain.mask_fulgora_aquilo_territory("fluorine-vent", "resource")
+else
+    terrain.mask_aquilo_territory("lithium-brine", "resource")
+    terrain.mask_aquilo_territory("fluorine-vent", "resource")
+end
 
 -- mask aquilo tiles
 -- terrain.mask_aquilo_territory("snow-flat", "tile")
@@ -491,15 +654,27 @@ terrain.mask_aquilo_decorative_territory("aqulio-snowy-decal", "optimized-decora
 terrain.mask_aquilo_decorative_territory("snow-drift-decal", "optimized-decorative")
 
 -- mask aquilo entities
-terrain.mask_aquilo_territory("lithium-iceberg-huge", "simple-entity")
-terrain.mask_aquilo_territory("lithium-iceberg-big", "simple-entity")
--- END: Mask aquilo territory on all autoplace settings
+if eon_aquilo_on_fulgora then
+    terrain.mask_fulgora_aquilo_territory("lithium-iceberg-huge", "simple-entity")
+    terrain.mask_fulgora_aquilo_territory("lithium-iceberg-big", "simple-entity")
+else
+    terrain.mask_aquilo_territory("lithium-iceberg-huge", "simple-entity")
+    terrain.mask_aquilo_territory("lithium-iceberg-big", "simple-entity")
+end
 
--- START: Update noise expressions
-data.raw.tile["ammoniacal-ocean"].autoplace.probability_expression =
-    eon_ammonia_ocean_tile_mask .. "(" .. eon_ammonia_ocean_tile_expression .. " + 0.01 * (aux - 0.5))"
-data.raw.tile["ammoniacal-ocean-2"].autoplace.probability_expression =
-    eon_ammonia_ocean_tile_mask .. "(" .. eon_ammonia_ocean_tile_expression .. " - 0.01 * (aux - 0.5))"
+eon_apply_aquilo_on_fulgora_ruin_rules()
+eon_apply_aquilo_on_fulgora_iceberg_rules()
+
+if eon_aquilo_on_fulgora then
+    -- Aquilo-on-Fulgora remaps only Fulgora land tiles. Do not generate Aquilo ocean tiles here.
+    data.raw.tile["ammoniacal-ocean"].autoplace.probability_expression = "-inf"
+    data.raw.tile["ammoniacal-ocean-2"].autoplace.probability_expression = "-inf"
+else
+    data.raw.tile["ammoniacal-ocean"].autoplace.probability_expression =
+        eon_ammonia_ocean_tile_mask .. "(" .. eon_ammonia_ocean_tile_expression .. " + 0.01 * (aux - 0.5))"
+    data.raw.tile["ammoniacal-ocean-2"].autoplace.probability_expression =
+        eon_ammonia_ocean_tile_mask .. "(" .. eon_ammonia_ocean_tile_expression .. " - 0.01 * (aux - 0.5))"
+end
 
 data.raw.tile["snow-flat"].autoplace.probability_expression = "eon_mask_aquilo_territory(eon_aquilo_land)"
 data.raw.tile["ice-rough"].autoplace.probability_expression =
@@ -508,7 +683,19 @@ data.raw.tile["ice-smooth"].autoplace.probability_expression =
 "eon_mask_aquilo_territory(eon_aquilo_base(eon_aquilo_ammonia_depth + 1, 200))"
 data.raw.tile["brash-ice"].autoplace.probability_expression =
 "eon_mask_aquilo_territory(eon_aquilo_base(eon_aquilo_ammonia_depth + 0.5, 200))"
--- END: Update noise expressions
+
+if eon_aquilo_on_fulgora then
+    eon_apply_fulgora_to_aquilo_tile_remap({
+        ["fulgoran-dust"] = "snow-flat",
+        ["fulgoran-sand"] = "snow-patchy",
+        ["fulgoran-dunes"] = "snow-lumpy",
+        ["fulgoran-rock"] = "snow-flat",
+        ["fulgoran-paving"] = "ice-smooth",
+        ["fulgoran-machinery"] = "snow-crests",
+        ["fulgoran-conduit"] = "brash-ice",
+        ["fulgoran-walls"] = "snow-crests",
+    })
+end
 
 data:extend({
     {
@@ -517,18 +704,11 @@ data:extend({
         localised_description = nil,
         order = "z-ammonia",
         category = "resource",
+        hidden = eon_aquilo_on_fulgora,
         can_be_disabled = false
     },
 })
 
-if eon_aquilo_on_fulgora then
-    data:extend({
-        {
-            type = "collision-layer",
-            name = "eon_aquilo_cliff_blocker"
-        }
-    })
-end
 
 -- New noise expressions and noise functions
 data:extend({
@@ -545,11 +725,19 @@ data:extend({
         expression = "eon_aquilo_ammonia > -1",
     },
     {
-        -- Combined moved-Aquilo territory on Fulgora: land plus ammonia ocean/buffer.
-        -- Native Fulgora autoplacements are excluded from this whole area.
+        -- Boundary between the Aquilo-looking north and normal Fulgora south.
+        -- Positive/negative variation keeps the separator from being a straight horizontal line.
+        type = "noise-expression",
+        name = "eon_fulgora_aquilo_boundary",
+        expression =
+        "45 * sin(x / 260) + 25 * sin(x / 95 + 1.7) + 15 * sin(x / 38 + 0.4) + 45 * multioctave_noise{x = x, y = 0, persistence = 0.62, seed0 = map_seed, seed1 = 912342, octaves = 5, input_scale = 1 / 512, output_scale = 1, offset_x = 0, offset_y = 0}",
+    },
+    {
+        -- Combined moved-Aquilo territory on Fulgora.
+        -- Native Fulgora autoplacements are excluded on the Aquilo side of this boundary.
         type = "noise-expression",
         name = "eon_fulgora_aquilo_territory_mask",
-        expression = "max(eon_aquilo_land, eon_aquilo_ammonia) > -1",
+        expression = "y < eon_fulgora_aquilo_boundary",
     },
     {
         type = "noise-expression",
@@ -752,11 +940,11 @@ data:extend({
     },
 })
 
+
 --------------------------------------------------------------------------------
 -- MARK: Fix Gleba related map gen settings
 --------------------------------------------------------------------------------
 
--- START: Update map gen settings
 -- autoplace_controls
 data.raw.planet["nauvis"].map_gen_settings.autoplace_controls["gleba_plants"] = {}
 data.raw.planet["nauvis"].map_gen_settings.autoplace_controls["gleba_water"] = {}
@@ -889,9 +1077,7 @@ end
 -- entity settings
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["iron-stromatolite"] = {}
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["copper-stromatolite"] = {}
--- END: Update map gen settings
 
--- START: Mask gleba territory on all autoplace settings
 -- mask gleba tiles
 terrain.mask_gleba_territory("natural-yumako-soil", "tile")
 terrain.mask_gleba_territory("natural-jellynut-soil", "tile")
@@ -1032,13 +1218,11 @@ if not mods["Spaghetorio"] then
     terrain.mask_gleba_territory("honeycomb-fungus-1x1", "optimized-decorative")
     terrain.mask_gleba_territory("honeycomb-fungus-decayed", "optimized-decorative")
 end
--- END: Mask gleba territory on all autoplace settings
 
 -- Update autoplace controls
 data.raw["autoplace-control"]["gleba_plants"].can_be_disabled = true
 data.raw["autoplace-control"]["gleba_water"].can_be_disabled = true
 
--- START: Update noise expressions
 -- Mask gleba plants to gleba terrain
 data.raw["noise-expression"]["gleba_plants_noise"].expression = "eon_mask_gleba_territory(abs(multioctave_noise{x = x,\z
                                                                                                                 y = y,\z
@@ -1069,7 +1253,6 @@ data.raw["noise-expression"]["gleba_plants_noise_b"].expression =
                                                                                                                   seed1 = 250000,\z
                                                                                                                   octaves = 3,\z
                                                                                                                   input_scale = 1/6 * control:gleba_plants:frequency }))"
--- END: Update noise expressions
 
 -- New noise expressions and noise functions
 data.raw.tile["wetland-jellynut"].autoplace.probability_expression = "eon_jellynut_spots"
@@ -1147,7 +1330,7 @@ data:extend({
     {
         type = "noise-function",
         name = "eon_gleba_agriculture_spots",
-        -- WHY THE FUCK IS spot_radius_expression NOT DOING ANYTHING HERE???
+        -- WHY is spot_radius_expression NOT DOING ANYTHING HERE???
         parameters = { "seed", "spot_radius_expression" },
         expression = "eon_mask_gleba_territory(spot_noise{x = x + wobble_noise_x * 15,\z
                                                       y = y + wobble_noise_y * 15,\z
@@ -1193,7 +1376,6 @@ data:extend({
 -- MARK: Fix Vulcanus related map gen settings
 --------------------------------------------------------------------------------
 
--- START: Update map gen settings
 -- autoplace_controls
 data.raw.planet["nauvis"].map_gen_settings.autoplace_controls["vulcanus_volcanism"] = {}
 
@@ -1239,7 +1421,6 @@ data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["v
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["vulcanus-chimney-truncated"] = {}
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["huge-volcanic-rock"] = {}
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["big-volcanic-rock"] = {}
--- END: Update map gen settings
 
 -- Fix probability expressions for tiles and cliffs
 terrain.mask_vulcano_coverage("volcanic-ash-flats", "tile")
@@ -1265,7 +1446,6 @@ data.raw.tile["lava-hot"].autoplace.probability_expression = "eon_lava_hot_mount
 data.raw.cliff["crater-cliff"].autoplace.probability_expression = "eon_lava_hot_mountains_range"
 
 
--- START: Mask vulcanus territory on all autoplace settings
 -- Mask decoratives close to vulcano
 terrain.mask_vulcano_coverage("vulcanus-chimney", "simple-entity")
 terrain.mask_vulcano_coverage("vulcanus-chimney-faded", "simple-entity")
@@ -1301,7 +1481,6 @@ terrain.mask_vulcano_terrain("small-sulfur-rock", "optimized-decorative")
 terrain.mask_vulcano_terrain("tiny-sulfur-rock", "optimized-decorative")
 terrain.mask_vulcano_terrain("sulfur-rock-cluster", "optimized-decorative")
 terrain.mask_vulcano_terrain("vulcanus-lava-fire", "optimized-decorative")
--- END: Mask vulcanus territory on all autoplace settings
 
 -- New noise expressions and noise functions
 data:extend({
@@ -1461,6 +1640,5 @@ data:extend({
         expression = "if(eon_vulcanus_terrain, -inf, expression)"
     },
 })
--- END: Update noise expressions
 
 return terrain
