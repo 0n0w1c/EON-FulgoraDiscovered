@@ -1,5 +1,25 @@
 local data_util = require("data-util")
 
+local move_aquilo_to_fulgora =
+    settings.startup["eon-fd-aquilo-on-fulgora"] and
+    settings.startup["eon-fd-aquilo-on-fulgora"].value
+
+local function copy_nauvis_aquilo_connection_to_fulgora()
+    if not move_aquilo_to_fulgora then
+        return
+    end
+
+    local source_connection = data.raw["space-connection"]["fulgora-aquilo"]
+    local nauvis_fulgora = data.raw["space-connection"]["nauvis-fulgora"]
+
+    if not source_connection or not nauvis_fulgora then
+        return
+    end
+
+    nauvis_fulgora.asteroid_spawn_definitions =
+        table.deepcopy(source_connection.asteroid_spawn_definitions)
+end
+
 if data.raw.planet["aquilo"] then
     data.raw.planet["aquilo"].map_gen_settings = nil
     data.raw.planet["aquilo"].hidden = true
@@ -20,6 +40,8 @@ data_util.delete_prototype("space-connection", "nauvis-gleba")
 data_util.delete_prototype("space-connection", "vulcanus-gleba")
 data_util.delete_prototype("space-connection", "gleba-aquilo")
 data_util.delete_prototype("space-connection", "gleba-fulgora")
+copy_nauvis_aquilo_connection_to_fulgora()
+
 data_util.delete_prototype("space-connection", "fulgora-aquilo")
 
 local edge = data.raw["space-connection"]["aquilo-solar-system-edge"]
@@ -29,6 +51,24 @@ if edge then
 
     fulgora_edge.name = "fulgora-solar-system-edge"
     fulgora_edge.from = "fulgora"
+
+    fulgora_edge.icons = {
+        {
+            icon = "__space-age__/graphics/icons/planet-route.png"
+        },
+        {
+            icon = "__space-age__/graphics/icons/fulgora.png",
+            icon_size = 64,
+            scale = 0.333,
+            shift = { -6, -6 }
+        },
+        {
+            icon = "__space-age__/graphics/icons/solar-system-edge.png",
+            icon_size = 64,
+            scale = 0.333,
+            shift = { 6, 6 }
+        }
+    }
 
     data:extend({ fulgora_edge })
 

@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.4.7
+Date: 03.05.2026
+  Bugfixes:
+    - None
+  Changes:
+    - Aquilo on Fulgora: Fulgora adopts Aquilo surface properties while preserving the magnetic field
+    - Aquilo on Fulgora: The Nauvis-Fulgora space connection clones the Fulgora-Aquilo asteroid definitions
+---------------------------------------------------------------------------------------------------
 Version: 0.4.6
 Date: 03.05.2026
   Bugfixes:

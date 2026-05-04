@@ -15,7 +15,27 @@ if move_aquilo then
     end
 
     local fulgora = data.raw["planet"]["fulgora"]
+    local aquilo = data.raw["planet"]["aquilo"]
+
     if fulgora then
+        if aquilo then
+            local fulgora_magnetic_field = nil
+
+            if fulgora.surface_properties then
+                fulgora_magnetic_field = fulgora.surface_properties["magnetic-field"]
+            end
+
+            if aquilo.surface_properties then
+                fulgora.surface_properties = table.deepcopy(aquilo.surface_properties)
+
+                if fulgora_magnetic_field ~= nil then
+                    fulgora.surface_properties["magnetic-field"] = fulgora_magnetic_field
+                end
+            end
+
+            fulgora.gravity_pull = aquilo.gravity_pull
+        end
+
         fulgora.entities_require_heating = true
     end
 end
