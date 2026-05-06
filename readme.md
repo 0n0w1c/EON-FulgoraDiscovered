@@ -17,7 +17,10 @@ How much this matters depends on how the engineer chooses to play.
  - Northern biome is frigid, desolate terrain of icy ammoniacal seas and drifting icebergs.
  - Southern biome is moist, overgrown terrain filled with fungal growth and aggressive wildlife.
  - Equatorial biome is just right.
- - Volcanoes and lava flows can be found in any biome, creating hazardous territories.
+ - Volcanoes and lava flows can be found in any biome, creating hazardous territories.  
+
+Alternatively, enable the startup setting *Create the Aquilo biome on Fulgora*.  
+This enables the freezing mechanic on Fulgora and creates a full Vulcanus biome on Nauvis.  
 
 *Use the Map Generator Preview to choose a map seed with a nearby volcano.*
 
@@ -38,7 +41,7 @@ This will increase the amount of the map revealed in the Map Generator's Preview
 - Enable all planetary music and ambient sounds (default: disabled)
 - Pentapods react to pollution (default: disabled)
 - Foundry made with tungsten plate (default: disabled)
-- Calcite and tungsten spawn on Vulcanus terrain (default: disabled)
+- Restrict resources to their native biomes (default: disabled)
 - Create the Aquilo biome on Fulgora (default: disabled)
 
 *For an alternative experience, the enabling of startup settings is encouraged.*

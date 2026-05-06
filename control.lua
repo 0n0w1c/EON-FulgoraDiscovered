@@ -6,6 +6,30 @@ if eon_aquilo_on_fulgora then
     surface_names.fulgora = true
 end
 
+local aquilo_cliff_blocking_tile_names = {
+    "ammoniacal-ocean",
+    "ammoniacal-ocean-2",
+    "brash-ice",
+    "ice-rough",
+    "ice-smooth",
+    "snow-crests",
+    "snow-flat",
+    "snow-lumpy",
+    "snow-patchy"
+}
+
+local aquilo_cliff_blocking_tile_lookup = {
+    ["ammoniacal-ocean"] = true,
+    ["ammoniacal-ocean-2"] = true,
+    ["brash-ice"] = true,
+    ["ice-rough"] = true,
+    ["ice-smooth"] = true,
+    ["snow-crests"] = true,
+    ["snow-flat"] = true,
+    ["snow-lumpy"] = true,
+    ["snow-patchy"] = true
+}
+
 local terrain_cliff_rules = {
     {
         cliff_name = "cliff-gleba",
@@ -56,6 +80,9 @@ local terrain_cliff_rules = {
     {
         cliff_name = "cliff-vulcanus",
         tile_names = {
+            ["volcanic-soil-dark"] = true,
+            ["volcanic-soil-light"] = true,
+            ["volcanic-ash-soil"] = true,
             ["volcanic-ash-flats"] = true,
             ["volcanic-ash-light"] = true,
             ["volcanic-ash-dark"] = true,
@@ -65,6 +92,8 @@ local terrain_cliff_rules = {
             ["volcanic-cracks-hot"] = true,
             ["volcanic-folds"] = true,
             ["volcanic-folds-flat"] = true,
+            ["lava"] = true,
+            ["lava-hot"] = true,
             ["volcanic-folds-warm"] = true,
             ["volcanic-jagged-ground"] = true,
             ["volcanic-pumice-stones"] = true,
@@ -105,6 +134,36 @@ local function cliff_overlaps_tiles(cliff, tile_names)
     return false
 end
 
+
+local function cliff_overlaps_aquilo_tile(cliff)
+    local surface = cliff.surface
+    local box = cliff.bounding_box or cliff.selection_box
+
+    if box then
+        return surface.count_tiles_filtered({
+            area = box,
+            name = aquilo_cliff_blocking_tile_names,
+            limit = 1
+        }) > 0
+    end
+
+    local tile = surface.get_tile(cliff.position.x, cliff.position.y)
+    return tile and aquilo_cliff_blocking_tile_lookup[tile.name] == true
+end
+
+local function keep_fulgora_cliff_off_aquilo_tiles(cliff)
+    if not (cliff and cliff.valid) then return false end
+    if cliff.surface.name ~= "fulgora" then return true end
+    if cliff.name ~= "cliff-fulgora" then return true end
+
+    if cliff_overlaps_aquilo_tile(cliff) then
+        cliff.destroy({ raise_destroy = false })
+        return false
+    end
+
+    return true
+end
+
 local function target_cliff_rule_for_terrain(cliff)
     for _, rule in ipairs(terrain_cliff_rules) do
         if cliff_overlaps_tiles(cliff, rule.tile_names) then
@@ -130,7 +189,6 @@ local function create_cliff(surface, name, original_cliff_data)
         name = name,
         position = original_cliff_data.position,
         direction = original_cliff_data.direction,
-        orientation = original_cliff_data.orientation,
         force = original_cliff_data.force,
         create_build_effect_smoke = false,
         raise_built = false
@@ -152,10 +210,6 @@ local function replace_with_terrain_cliff(cliff)
     local target_rule = target_cliff_rule_for_terrain(cliff)
     if not target_rule then return end
 
-    if target_rule.destroy then
-        cliff.destroy({ raise_destroy = false })
-        return
-    end
 
     local target_cliff_name = target_rule.cliff_name
     if not target_cliff_name then return end
@@ -166,12 +220,13 @@ local function replace_with_terrain_cliff(cliff)
     local original_cliff_data = {
         position = { x = cliff.position.x, y = cliff.position.y },
         direction = cliff.direction,
-        orientation = cliff.orientation,
         cliff_orientation = cliff.cliff_orientation,
         force = cliff.force
     }
 
-    cliff.destroy({ raise_destroy = false })
+    if not cliff.destroy({ raise_destroy = false }) then
+        return
+    end
 
     local created_cliff = create_cliff(surface, target_cliff_name, original_cliff_data)
     if not (created_cliff and created_cliff.valid) then
@@ -186,7 +241,7 @@ local function process_area(surface, area)
     })
 
     for _, cliff in pairs(cliffs) do
-        if cliff.name ~= "crater-cliff" then
+        if keep_fulgora_cliff_off_aquilo_tiles(cliff) and cliff.valid and cliff.name ~= "crater-cliff" then
             replace_with_terrain_cliff(cliff)
         end
     end

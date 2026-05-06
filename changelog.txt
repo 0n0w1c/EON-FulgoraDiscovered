@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.5.0
+Date: 05.05.2026
+  Bugfixes:
+    - None
+  Changes:
+    - Create the Aquilo biome on Fulgora: Improved Vulcanus map generation on Nauvis
+    - Create the Aquilo biome on Fulgora: Improved Aquilo map generation on Fulgora
+---------------------------------------------------------------------------------------------------
 Version: 0.4.7
 Date: 03.05.2026
   Bugfixes:

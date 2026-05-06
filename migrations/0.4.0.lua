@@ -50,6 +50,9 @@ local terrain_cliff_rules = {
     {
         cliff_name = "cliff-vulcanus",
         tile_names = {
+            ["volcanic-soil-dark"] = true,
+            ["volcanic-soil-light"] = true,
+            ["volcanic-ash-soil"] = true,
             ["volcanic-ash-flats"] = true,
             ["volcanic-ash-light"] = true,
             ["volcanic-ash-dark"] = true,
@@ -59,6 +62,8 @@ local terrain_cliff_rules = {
             ["volcanic-cracks-hot"] = true,
             ["volcanic-folds"] = true,
             ["volcanic-folds-flat"] = true,
+            ["lava"] = true,
+            ["lava-hot"] = true,
             ["volcanic-folds-warm"] = true,
             ["volcanic-jagged-ground"] = true,
             ["volcanic-pumice-stones"] = true,
@@ -126,7 +131,6 @@ local function create_cliff(surface, name, original_cliff_data)
         name = name,
         position = original_cliff_data.position,
         direction = original_cliff_data.direction,
-        orientation = original_cliff_data.orientation,
         force = original_cliff_data.force,
         create_build_effect_smoke = false,
         raise_built = false
@@ -154,12 +158,13 @@ local function replace_with_terrain_cliff(cliff)
     local original_cliff_data = {
         position = { x = cliff.position.x, y = cliff.position.y },
         direction = cliff.direction,
-        orientation = cliff.orientation,
         cliff_orientation = cliff.cliff_orientation,
         force = cliff.force
     }
 
-    cliff.destroy({ raise_destroy = false })
+    if not cliff.destroy({ raise_destroy = false }) then
+        return
+    end
 
     local created_cliff = create_cliff(surface, target_cliff_name, original_cliff_data)
     if not (created_cliff and created_cliff.valid) then
