@@ -19,10 +19,12 @@ How much this matters depends on how the engineer chooses to play.
  - Equatorial biome is just right.
  - Volcanoes and lava flows can be found in any biome, creating hazardous territories.  
 
+*Use the Map Generator Preview to choose a map seed with a nearby volcano.*
+
 Alternatively, enable the startup setting *Create the Aquilo biome on Fulgora*.  
 This enables the freezing mechanic on Fulgora and creates a full Vulcanus biome on Nauvis.  
 
-*Use the Map Generator Preview to choose a map seed with a nearby volcano.*
+---
 
 Per the Factorio Wiki: `The rest` can be accessed by holding `CTRL + ALT` when clicking the `Settings` button in the pause menu (Esc).  
 This will cause a new button to appear, labeled "The rest".  
