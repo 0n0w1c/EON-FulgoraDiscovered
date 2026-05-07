@@ -1,6 +1,13 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.5.1
+Date: 07.05.2026
+  Bugfixes:
+    - None
+  Changes:
+    - Improved cliff generation in the Vulcanus and Gleba biomes (code supplied by NOiSE!)
+---------------------------------------------------------------------------------------------------
 Version: 0.5.0
-Date: 05.05.2026
+Date: 06.05.2026
   Bugfixes:
     - None
   Changes:

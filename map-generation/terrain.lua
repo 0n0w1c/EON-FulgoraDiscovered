@@ -47,6 +47,34 @@ local eon_vulcanus_terrain_expression = eon_aquilo_on_fulgora
     and "eon_vulcanus_region(0)"
     or "max(eon_vulcano_coverage, eon_updated_volcanic_folds_flat) > 0"
 
+local eon_gleba_continuous_cliffiness_expression = "clamp(quick_multioctave_noise{x = x,\z
+                                                       y = y,\z
+                                                       seed0 = map_seed,\z
+                                                       seed1 = 456,\z
+                                                       octaves = 2,\z
+                                                       input_scale = 1/128,\z
+                                                       output_scale = 1.5}, 0, 1)"
+
+local eon_vulcanus_cliffiness_expression = "clamp(quick_multioctave_noise{x = x,\z
+                                                  y = y,\z
+                                                  seed0 = map_seed,\z
+                                                  seed1 = 123,\z
+                                                  octaves = 4,\z
+                                                  input_scale = 1/48,\z
+                                                  output_scale = 1} * 1.4, 0, 1)"
+
+local eon_blended_cliffiness_expression = "if(eon_vulcanus_terrain,\z
+                                          eon_vulcanus_cliffiness * 2,\z
+                                          if(eon_gleba_mask,\z
+                                             eon_gleba_continuous_cliffiness,\z
+                                             cliffiness_nauvis * 0.8))"
+
+local eon_blended_cliff_elevation_expression = "if(eon_vulcanus_terrain,\z
+                                               elevation * 1.5,\z
+                                               if(eon_gleba_mask,\z
+                                                  gleba_elevation * 0.2,\z
+                                                  cliff_elevation_nauvis * 0.4))"
+
 local eon_aquilo_decorative_names = {
     ["lithium-iceberg-medium"] = true,
     ["lithium-iceberg-small"] = true,
@@ -155,7 +183,6 @@ end
 local function eon_apply_aquilo_on_fulgora_snow_decorative_rules()
     if not eon_aquilo_on_fulgora then return end
 
-    -- Allow only the white snow decals to use Fulgora land tiles that remain inside the moved biome.
     eon_extend_autoplace_tile_restriction("optimized-decorative",
         "aqulio-snowy-decal",
         eon_aquilo_snow_decorative_tile_names)
@@ -336,8 +363,26 @@ terrain.mask_nauvis_territory("red-desert-3", "tile")
 -- terrain.mask_nauvis_territory("water", "tile")
 -- terrain.mask_nauvis_territory("deepwater", "tile")
 
--- Remove nauvis cliffs from eon_vulcanus_terrain
+-- Remove Nauvis cliffs from non-Nauvis EON regions while preserving the
+-- existing EON Aquilo masking behaviour.  This named expression is then used
+-- by EON's blended cliff generation below.
 data.raw["noise-expression"]["cliffiness_nauvis"].expression = eon_nauvis_cliffiness_expression
+
+local function eon_apply_blended_nauvis_cliff_settings()
+    local nauvis = data.raw.planet and data.raw.planet["nauvis"]
+    if not (nauvis and nauvis.map_gen_settings) then return end
+
+    nauvis.map_gen_settings.property_expression_names = nauvis.map_gen_settings.property_expression_names or {}
+    nauvis.map_gen_settings.property_expression_names["cliffiness"] = "eon_blended_cliffiness"
+    nauvis.map_gen_settings.property_expression_names["cliff_elevation"] = "eon_blended_cliff_elevation"
+
+    local cliff_settings = nauvis.map_gen_settings.cliff_settings
+    if cliff_settings then
+        cliff_settings.cliff_smoothing = 0
+        cliff_settings.cliff_elevation_interval = 12
+        cliff_settings.richness = 1.0
+    end
+end
 
 data:extend({
     -- Noise expressions
@@ -352,6 +397,30 @@ data:extend({
         type = "noise-expression",
         name = "eon_updated_deepwater",
         expression = "eon_mask_nauvis_territory(eon_water_base(-2, 200))"
+    },
+    {
+        -- Long, continuous Gleba-region cliff ridges.
+        type = "noise-expression",
+        name = "eon_gleba_continuous_cliffiness",
+        expression = eon_gleba_continuous_cliffiness_expression
+    },
+    {
+        -- Vulcanus-region cliff noise for EON's Vulcanus terrain on Nauvis.
+        type = "noise-expression",
+        name = "eon_vulcanus_cliffiness",
+        expression = eon_vulcanus_cliffiness_expression
+    },
+    {
+        -- Blend cliff density by EON region.
+        type = "noise-expression",
+        name = "eon_blended_cliffiness",
+        expression = eon_blended_cliffiness_expression
+    },
+    {
+        -- Blend cliff elevation by EON region.
+        type = "noise-expression",
+        name = "eon_blended_cliff_elevation",
+        expression = eon_blended_cliff_elevation_expression
     },
     {
         -- region for nauvis resources to spawn
@@ -407,6 +476,8 @@ data:extend({
         expression = "if(eon_fulgora_aquilo_territory_mask, -inf, expression)"
     },
 })
+
+eon_apply_blended_nauvis_cliff_settings()
 
 --------------------------------------------------------------------------------
 -- MARK: Fix Aquilo related map gen settings
