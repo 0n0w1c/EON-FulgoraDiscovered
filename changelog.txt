@@ -1,8 +1,15 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.5.4
+Date: 08.05.2026
+  Bugfixes:
+    - None
+  Changes:
+    - Create the Aquilo biome on Fulgora: Added ammoniacal frost crystals carried by the wind
+---------------------------------------------------------------------------------------------------
 Version: 0.5.3
 Date: 08.05.2026
   Bugfixes:
-    - Enabled cliff correction when a cliff is removed
+    - Enabled cliff correction when a cliff is removed during map generation
   Changes:
     - None
 ---------------------------------------------------------------------------------------------------

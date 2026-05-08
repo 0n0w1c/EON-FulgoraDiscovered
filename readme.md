@@ -22,7 +22,7 @@ How much this matters depends on how the engineer chooses to play.
 *Use the Map Generator Preview to choose a map seed with a nearby volcano.*
 
 Alternatively, enable the startup setting *Create the Aquilo biome on Fulgora*.  
-This enables the freezing mechanic on Fulgora and creates a full Vulcanus biome on Nauvis.  
+(Enables the freezing mechanic on Fulgora and creates a full Vulcanus biome on Nauvis)  
 
 ---
 
@@ -34,7 +34,7 @@ This will cause a new button to appear, labeled "The rest".
   - Recommended: `128`  
 
 This will increase the amount of the map revealed in the Map Generator's Preview.  
-(Enables the viewing of some of the Aquilo and Gleba biomes on Nauvis)  
+(Enables the viewing of the north and south biomes on Nauvis)  
 
 ---
 

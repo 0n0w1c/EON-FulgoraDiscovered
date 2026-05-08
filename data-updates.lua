@@ -17,6 +17,11 @@ if move_aquilo then
     local fulgora = data.raw["planet"]["fulgora"]
     local aquilo = data.raw["planet"]["aquilo"]
 
+    if fulgora and aquilo then
+        fulgora.player_effects = table.deepcopy(aquilo.player_effects)
+        fulgora.ticks_between_player_effects = aquilo.ticks_between_player_effects
+    end
+
     if fulgora then
         if aquilo then
             local fulgora_magnetic_field = nil
