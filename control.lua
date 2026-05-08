@@ -126,15 +126,7 @@ local terrain_cliff_rules = {
     }
 }
 
-local function tile_matches(surface, position, tile_names)
-    local tile = surface.get_tile(position.x, position.y)
-    return tile and tile_names[tile.name] == true
-end
-
 local function cliff_scan_area(cliff)
-    -- Use an expanded fixed Nauvis-cliff-sized scan area instead of the visual bounding
-    -- box or prototype collision box.  This keeps biome detection stable for
-    -- all cliff orientations while still checking the tiles the cliff occupies.
     return {
         left_top = {
             x = cliff.position.x - 3,
@@ -146,33 +138,6 @@ local function cliff_scan_area(cliff)
         }
     }
 end
-
-local function cliff_overlaps_tiles(cliff, tile_names)
-    local surface = cliff.surface
-
-    if tile_matches(surface, cliff.position, tile_names) then
-        return true
-    end
-
-    local area = cliff_scan_area(cliff)
-    if not area then return false end
-
-    local left = math.floor(area.left_top.x)
-    local top = math.floor(area.left_top.y)
-    local right = math.ceil(area.right_bottom.x) - 1
-    local bottom = math.ceil(area.right_bottom.y) - 1
-
-    for x = left, right do
-        for y = top, bottom do
-            if tile_matches(surface, { x = x, y = y }, tile_names) then
-                return true
-            end
-        end
-    end
-
-    return false
-end
-
 
 local function cliff_overlaps_aquilo_tile(cliff)
     local surface = cliff.surface
@@ -240,10 +205,6 @@ local function scan_cliff_terrain(cliff)
 end
 
 local function target_cliff_rule_for_terrain(cliff)
-    -- Check every tile under a fixed 6x6 Nauvis-cliff-sized area. If a cliff
-    -- touches both an imported biome and Nauvis terrain, remove it rather than
-    -- converting it; this prevents mixed-biome seam cliffs. Otherwise Vulcanus
-    -- has priority over Gleba.
     local found = scan_cliff_terrain(cliff)
 
     if (found.vulcanus or found.gleba) and found.nauvis then
@@ -298,7 +259,7 @@ local function replace_with_terrain_cliff(cliff)
     if not target_rule then return end
 
     if target_rule == "destroy" then
-        cliff.destroy({ raise_destroy = false })
+        cliff.destroy({ do_cliff_correction = true, raise_destroy = false })
         return
     end
 
