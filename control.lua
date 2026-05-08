@@ -30,6 +30,29 @@ local aquilo_cliff_blocking_tile_lookup = {
     ["snow-patchy"] = true
 }
 
+
+local nauvis_tile_names = {
+    ["grass-1"] = true,
+    ["grass-2"] = true,
+    ["grass-3"] = true,
+    ["grass-4"] = true,
+    ["dry-dirt"] = true,
+    ["dirt-1"] = true,
+    ["dirt-2"] = true,
+    ["dirt-3"] = true,
+    ["dirt-4"] = true,
+    ["dirt-5"] = true,
+    ["dirt-6"] = true,
+    ["dirt-7"] = true,
+    ["sand-1"] = true,
+    ["sand-2"] = true,
+    ["sand-3"] = true,
+    ["red-desert-0"] = true,
+    ["red-desert-1"] = true,
+    ["red-desert-2"] = true,
+    ["red-desert-3"] = true
+}
+
 local terrain_cliff_rules = {
     {
         cliff_name = "cliff-gleba",
@@ -108,6 +131,22 @@ local function tile_matches(surface, position, tile_names)
     return tile and tile_names[tile.name] == true
 end
 
+local function cliff_scan_area(cliff)
+    -- Use an expanded fixed Nauvis-cliff-sized scan area instead of the visual bounding
+    -- box or prototype collision box.  This keeps biome detection stable for
+    -- all cliff orientations while still checking the tiles the cliff occupies.
+    return {
+        left_top = {
+            x = cliff.position.x - 3,
+            y = cliff.position.y - 3
+        },
+        right_bottom = {
+            x = cliff.position.x + 3,
+            y = cliff.position.y + 3
+        }
+    }
+end
+
 local function cliff_overlaps_tiles(cliff, tile_names)
     local surface = cliff.surface
 
@@ -115,13 +154,13 @@ local function cliff_overlaps_tiles(cliff, tile_names)
         return true
     end
 
-    local box = cliff.bounding_box or cliff.selection_box
-    if not box then return false end
+    local area = cliff_scan_area(cliff)
+    if not area then return false end
 
-    local left = math.floor(box.left_top.x)
-    local top = math.floor(box.left_top.y)
-    local right = math.ceil(box.right_bottom.x) - 1
-    local bottom = math.ceil(box.right_bottom.y) - 1
+    local left = math.floor(area.left_top.x)
+    local top = math.floor(area.left_top.y)
+    local right = math.ceil(area.right_bottom.x) - 1
+    local bottom = math.ceil(area.right_bottom.y) - 1
 
     for x = left, right do
         for y = top, bottom do
@@ -137,11 +176,11 @@ end
 
 local function cliff_overlaps_aquilo_tile(cliff)
     local surface = cliff.surface
-    local box = cliff.bounding_box or cliff.selection_box
+    local area = cliff_scan_area(cliff)
 
-    if box then
+    if area then
         return surface.count_tiles_filtered({
-            area = box,
+            area = area,
             name = aquilo_cliff_blocking_tile_names,
             limit = 1
         }) > 0
@@ -164,11 +203,59 @@ local function keep_fulgora_cliff_off_aquilo_tiles(cliff)
     return true
 end
 
-local function target_cliff_rule_for_terrain(cliff)
-    for _, rule in ipairs(terrain_cliff_rules) do
-        if cliff_overlaps_tiles(cliff, rule.tile_names) then
-            return rule
+local function scan_cliff_terrain(cliff)
+    local found = {
+        gleba = false,
+        vulcanus = false,
+        nauvis = false
+    }
+
+    local surface = cliff.surface
+    local area = cliff_scan_area(cliff)
+    local left = math.floor(area.left_top.x)
+    local top = math.floor(area.left_top.y)
+    local right = math.ceil(area.right_bottom.x) - 1
+    local bottom = math.ceil(area.right_bottom.y) - 1
+
+    local gleba_tile_names = terrain_cliff_rules[1].tile_names
+    local vulcanus_tile_names = terrain_cliff_rules[2].tile_names
+
+    for x = left, right do
+        for y = top, bottom do
+            local tile = surface.get_tile(x, y)
+            local tile_name = tile and tile.name
+            if tile_name then
+                if vulcanus_tile_names[tile_name] then
+                    found.vulcanus = true
+                elseif gleba_tile_names[tile_name] then
+                    found.gleba = true
+                elseif nauvis_tile_names[tile_name] then
+                    found.nauvis = true
+                end
+            end
         end
+    end
+
+    return found
+end
+
+local function target_cliff_rule_for_terrain(cliff)
+    -- Check every tile under a fixed 6x6 Nauvis-cliff-sized area. If a cliff
+    -- touches both an imported biome and Nauvis terrain, remove it rather than
+    -- converting it; this prevents mixed-biome seam cliffs. Otherwise Vulcanus
+    -- has priority over Gleba.
+    local found = scan_cliff_terrain(cliff)
+
+    if (found.vulcanus or found.gleba) and found.nauvis then
+        return "destroy"
+    end
+
+    if found.vulcanus then
+        return terrain_cliff_rules[2]
+    end
+
+    if found.gleba then
+        return terrain_cliff_rules[1]
     end
 
     return nil
@@ -210,6 +297,10 @@ local function replace_with_terrain_cliff(cliff)
     local target_rule = target_cliff_rule_for_terrain(cliff)
     if not target_rule then return end
 
+    if target_rule == "destroy" then
+        cliff.destroy({ raise_destroy = false })
+        return
+    end
 
     local target_cliff_name = target_rule.cliff_name
     if not target_cliff_name then return end

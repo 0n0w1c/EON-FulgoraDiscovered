@@ -39,6 +39,11 @@ local eon_nauvis_cliffiness_expression = eon_aquilo_on_fulgora
 local eon_gleba_region_expression =
 "eon_mask_off_vulcano_terrain(if(gleba_noise + gleba_intermediate_noise + gleba_small_noise + moisture_nauvis + south_offset > threshold, 1, 0))"
 
+-- Expand the effective Gleba territory slightly so fewer Nauvis tiles bleed
+-- through inside the intended Gleba biome.  eon_gleba_region uses lower
+-- thresholds as wider/softer region boundaries.
+local eon_gleba_mask_threshold = -10
+
 local eon_vulcanus_coverage_expression = eon_aquilo_on_fulgora
     and "eon_vulcanus_region(0)"
     or "max(eon_updated_volcanic_folds, eon_lava_mountains_range, eon_lava_hot_mountains_range) > 0"
@@ -1231,7 +1236,7 @@ data:extend({
     {
         type = "noise-expression",
         name = "eon_gleba_mask",
-        expression = "eon_gleba_region(0)"
+        expression = "eon_gleba_region(" .. eon_gleba_mask_threshold .. ")"
     },
     {
         type = "noise-expression",

@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.5.2
+Date: 08.05.2026
+  Bugfixes:
+    - Modified cliff conversion to remove cliffs near a biome boundary
+    - Expanded the Gleba mask to decrease the amount of Nauvis biome inside the Gleba biome
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.5.1
 Date: 07.05.2026
   Bugfixes:
