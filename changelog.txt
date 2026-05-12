@@ -2,7 +2,7 @@
 Version: 0.5.5
 Date: 12.05.2026
   Bugfixes:
-    - Lithium brine and Fluorine vents not spawning (bug introduced with 0.5.0)
+    - Lithium brine and Fluorine vents not spawning on Nauvis (bug introduced with 0.5.0)
     - Create the Aquilo biome on Fulgora: Assign autoplace controls for lithium brine and fluorine vents
     - Refactored: Nauvis and Fulgora share Aquilo biome generation
   Changes:
