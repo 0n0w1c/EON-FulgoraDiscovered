@@ -115,21 +115,17 @@ if guarded_resources_enabled then
     data.raw.planet["nauvis"].map_gen_settings.autoplace_controls["tungsten_ore"] = {}
 end
 
--- START: Fix Resource spawning
 data.raw["noise-expression"]["vulcanus_starting_calcite"].expression = "-inf"
 
 local nauvis_property_expression_names = data.raw.planet["nauvis"].map_gen_settings.property_expression_names
 
--- Keep the Vulcanus resources tied to the same base fields that drive their
--- visual indicators.  The wrappers only add the EON biome masks needed because
--- these Vulcanus resources are being generated on Nauvis.
 local calcite_probability_expression = mask_off_ammonia_ocean(mask_vulcanus_terrain(
     "(control:calcite:size > 0) * \z
     (1000 * ((1 + vulcanus_calcite_region) * random_penalty_between(0.9, 1, 1) - 1))"
 ))
 
 local calcite_richness_expression =
-    "if(eon_vulcanus_terrain, vulcanus_calcite_richness, 0)"
+"if(eon_vulcanus_terrain, vulcanus_calcite_richness, 0)"
 
 local sulfuric_acid_geyser_probability_expression = mask_off_ammonia_ocean(mask_vulcanus_terrain(
     "(control:sulfuric_acid_geyser:size > 0) * \z
@@ -138,7 +134,7 @@ local sulfuric_acid_geyser_probability_expression = mask_off_ammonia_ocean(mask_
 ))
 
 local sulfuric_acid_geyser_richness_expression =
-    "if(eon_vulcanus_terrain, vulcanus_sulfuric_acid_geyser_richness, 0)"
+"if(eon_vulcanus_terrain, vulcanus_sulfuric_acid_geyser_richness, 0)"
 
 data:extend({
     {
@@ -171,14 +167,14 @@ data.raw.resource["calcite"].autoplace.richness_expression = "eon_nauvis_vulcanu
 data.raw["noise-expression"]["vulcanus_starting_sulfur"].expression = "-inf"
 
 nauvis_property_expression_names["entity:sulfuric-acid-geyser:probability"] =
-    "eon_nauvis_vulcanus_sulfuric_acid_geyser_probability"
+"eon_nauvis_vulcanus_sulfuric_acid_geyser_probability"
 nauvis_property_expression_names["entity:sulfuric-acid-geyser:richness"] =
-    "eon_nauvis_vulcanus_sulfuric_acid_geyser_richness"
+"eon_nauvis_vulcanus_sulfuric_acid_geyser_richness"
 
 data.raw.resource["sulfuric-acid-geyser"].autoplace.probability_expression =
-    "eon_nauvis_vulcanus_sulfuric_acid_geyser_probability"
+"eon_nauvis_vulcanus_sulfuric_acid_geyser_probability"
 data.raw.resource["sulfuric-acid-geyser"].autoplace.richness_expression =
-    "eon_nauvis_vulcanus_sulfuric_acid_geyser_richness"
+"eon_nauvis_vulcanus_sulfuric_acid_geyser_richness"
 
 data.raw["noise-expression"]["vulcanus_starting_tungsten"].expression = "-inf"
 
@@ -188,15 +184,15 @@ configure_guarded_resource {
         data.raw.resource["tungsten-ore"].autoplace.richness_expression = "vulcanus_tungsten_ore_richness"
 
         data.raw["noise-expression"]["vulcanus_tungsten_ore_region"].expression =
-            "max(vulcanus_starting_tungsten, min(1 - vulcanus_starting_circle, vulcanus_place_non_metal_spots(789, 15, 2, vulcanus_tungsten_ore_size * min(1.2, vulcanus_ore_dist) * 25, control:tungsten_ore:frequency, vulcanus_mountains_resource_favorability)))"
+        "max(vulcanus_starting_tungsten, min(1 - vulcanus_starting_circle, vulcanus_place_non_metal_spots(789, 15, 2, vulcanus_tungsten_ore_size * min(1.2, vulcanus_ore_dist) * 25, control:tungsten_ore:frequency, vulcanus_mountains_resource_favorability)))"
     end,
     normal = function()
         data.raw["noise-expression"]["vulcanus_tungsten_ore_probability"].expression =
-            mask_off_ammonia_ocean("(control:tungsten_ore:size > 0) * (1000 * ((0.7 + vulcanus_tungsten_ore_region) * random_penalty_between(0.9, 1, 1) - 1))")
+            mask_off_ammonia_ocean(
+                "(control:tungsten_ore:size > 0) * (1000 * ((0.7 + vulcanus_tungsten_ore_region) * random_penalty_between(0.9, 1, 1) - 1))")
         terrain.mask_resource_territory("tungsten-ore", "resource")
     end
 }
--- END: Fix Resource spawning
 
 local function get_planet_entity_settings(planet_name)
     local planet = data.raw.planet[planet_name]
@@ -296,9 +292,6 @@ local function apply_simple_entity_biome_mask(entity_name, mask_name)
 end
 
 local function guarded_resource_expression_for_planet(resource_name, planet_name, default_expression)
-    -- These probabilities are adjusted by this mod immediately before the biome
-    -- alignment pass. Keep those adjusted expressions instead of reverting to the
-    -- base planet property-expression name.
     local use_current_expression = {
         ["calcite"] = true,
         ["sulfuric-acid-geyser"] = true,
@@ -347,8 +340,6 @@ local function apply_guarded_resource_biome_mask(resource_name, resource)
 
     local masked = {}
 
-    -- These are explicitly added to Nauvis by this mod so that they can generate
-    -- on the combined Nauvis surface. Their source biome is still Vulcanus.
     local eon_added_vulcanus_resources = {
         ["calcite"] = true,
         ["sulfuric-acid-geyser"] = true,
@@ -384,10 +375,6 @@ local function apply_guarded_resource_biome_mask(resource_name, resource)
         local default_richness = richness_expression_for_autoplace(resource)
         local gleba_richness = get_planet_richness_expression("gleba", "stone")
 
-        -- Gleba does not put its stone placement directly on the stone resource
-        -- prototype. It overrides entity:stone probability/richness through the
-        -- planet's property_expression_names. Because this mod generates Gleba on
-        -- Nauvis, Nauvis needs matching property-expression overrides too.
         set_or_extend_noise_expression(
             "eon_guarded_stone_probability",
             mask_off_ammonia_ocean(combine_masked_expressions(masked))
@@ -417,10 +404,6 @@ local function apply_guarded_resource_biome_mask(resource_name, resource)
         local default_richness = richness_expression_for_autoplace(resource)
         local vulcanus_richness = get_planet_richness_expression("vulcanus", "coal")
 
-        -- Vulcanus coal is also defined through planet property-expression
-        -- overrides. Add matching Nauvis overrides so the combined surface can
-        -- use Vulcanus coal placement inside the Vulcanus biome while preserving
-        -- Nauvis coal placement inside the Nauvis biome.
         set_or_extend_noise_expression(
             "eon_guarded_coal_probability",
             mask_off_ammonia_ocean(combine_masked_expressions(masked))
@@ -454,15 +437,12 @@ local function align_guarded_resources_to_biomes()
         end
     end
 
-    -- Gleba's ore-bearing stromatolites are simple-entities, not resources.
     apply_simple_entity_biome_mask("iron-stromatolite", "eon_mask_gleba_territory")
     apply_simple_entity_biome_mask("copper-stromatolite", "eon_mask_gleba_territory")
 end
 
 
 if guarded_resources_enabled then
-    -- Preserve calcite's base Vulcanus region so calcite stains and calcite
-    -- resources continue to indicate the same underlying field.
     set_resource_probability("calcite", "eon_nauvis_vulcanus_calcite_probability")
     data.raw.resource["calcite"].autoplace.richness_expression = "eon_nauvis_vulcanus_calcite_richness"
 
@@ -483,9 +463,9 @@ if guarded_resources_enabled then
     set_nauvis_entity_property_expression("sulfuric-acid-geyser", "richness",
         "eon_nauvis_vulcanus_sulfuric_acid_geyser_richness")
     data.raw.resource["sulfuric-acid-geyser"].autoplace.probability_expression =
-        "eon_nauvis_vulcanus_sulfuric_acid_geyser_probability"
+    "eon_nauvis_vulcanus_sulfuric_acid_geyser_probability"
     data.raw.resource["sulfuric-acid-geyser"].autoplace.richness_expression =
-        "eon_nauvis_vulcanus_sulfuric_acid_geyser_richness"
+    "eon_nauvis_vulcanus_sulfuric_acid_geyser_richness"
 end
 
 local nauvis_settings = data.raw.planet["nauvis"]
@@ -495,8 +475,14 @@ local nauvis_settings = data.raw.planet["nauvis"]
     and data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings
 
 if nauvis_settings then
+    local skip_ammonia_ocean_mask = {
+        ["lithium-brine"] = true,
+        ["fluorine-vent"] = true,
+    }
+
     for resource_name, resource in pairs(data.raw.resource) do
-        if nauvis_settings[resource_name]
+        if not skip_ammonia_ocean_mask[resource_name]
+            and nauvis_settings[resource_name]
             and resource.autoplace
             and type(resource.autoplace.probability_expression) == "string"
             and resource.autoplace.probability_expression ~= ""

@@ -10,7 +10,7 @@ local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
 
 local eon_aquilo_planet_name = eon_aquilo_on_fulgora and "fulgora" or "nauvis"
 
-local eon_aquilo_north_bias_y_offset = eon_aquilo_on_fulgora and 1000 or 0
+local eon_aquilo_north_bias_y_offset = 650
 
 local eon_aquilo_exclusion_mask = eon_aquilo_on_fulgora
     and "eon_identity"
@@ -39,9 +39,6 @@ local eon_nauvis_cliffiness_expression = eon_aquilo_on_fulgora
 local eon_gleba_region_expression =
 "eon_mask_off_vulcano_terrain(if(gleba_noise + gleba_intermediate_noise + gleba_small_noise + moisture_nauvis + south_offset > threshold, 1, 0))"
 
--- Expand the effective Gleba territory slightly so fewer Nauvis tiles bleed
--- through inside the intended Gleba biome.  eon_gleba_region uses lower
--- thresholds as wider/softer region boundaries.
 local eon_gleba_mask_threshold = -10
 
 local eon_vulcanus_coverage_expression = eon_aquilo_on_fulgora
@@ -368,9 +365,6 @@ terrain.mask_nauvis_territory("red-desert-3", "tile")
 -- terrain.mask_nauvis_territory("water", "tile")
 -- terrain.mask_nauvis_territory("deepwater", "tile")
 
--- Remove Nauvis cliffs from non-Nauvis EON regions while preserving the
--- existing EON Aquilo masking behaviour.  This named expression is then used
--- by EON's blended cliff generation below.
 data.raw["noise-expression"]["cliffiness_nauvis"].expression = eon_nauvis_cliffiness_expression
 
 local function eon_apply_blended_nauvis_cliff_settings()
@@ -504,6 +498,22 @@ local eon_all_aquilo_autoplace_controls = {
     "ammonia_ocean",
 }
 
+if data.raw.resource["lithium-brine"] and data.raw.resource["lithium-brine"].autoplace then
+    data.raw.resource["lithium-brine"].autoplace.control = "lithium_brine"
+end
+
+if data.raw.resource["fluorine-vent"] and data.raw.resource["fluorine-vent"].autoplace then
+    data.raw.resource["fluorine-vent"].autoplace.control = "fluorine_vent"
+end
+
+local function eon_set_entity_property_expression(planet_name, entity_name, property_name, expression_name)
+    local planet = data.raw.planet[planet_name]
+    if not planet or not planet.map_gen_settings then return end
+
+    planet.map_gen_settings.property_expression_names = planet.map_gen_settings.property_expression_names or {}
+    planet.map_gen_settings.property_expression_names["entity:" .. entity_name .. ":" .. property_name] = expression_name
+end
+
 table.insert(eon_aquilo_autoplace_controls, "ammonia_ocean")
 
 local function eon_enable_aquilo_autoplace_controls(map_gen)
@@ -596,6 +606,38 @@ end
 terrain.mask_aquilo_territory("lithium-brine", "resource")
 terrain.mask_aquilo_territory("fluorine-vent", "resource")
 
+if not eon_aquilo_on_fulgora then
+    if data.raw.resource["lithium-brine"] and data.raw.resource["lithium-brine"].autoplace then
+        eon_set_entity_property_expression(
+            "nauvis",
+            "lithium-brine",
+            "probability",
+            data.raw.resource["lithium-brine"].autoplace.probability_expression
+        )
+        eon_set_entity_property_expression(
+            "nauvis",
+            "lithium-brine",
+            "richness",
+            data.raw.resource["lithium-brine"].autoplace.richness_expression
+        )
+    end
+
+    if data.raw.resource["fluorine-vent"] and data.raw.resource["fluorine-vent"].autoplace then
+        eon_set_entity_property_expression(
+            "nauvis",
+            "fluorine-vent",
+            "probability",
+            data.raw.resource["fluorine-vent"].autoplace.probability_expression
+        )
+        eon_set_entity_property_expression(
+            "nauvis",
+            "fluorine-vent",
+            "richness",
+            data.raw.resource["fluorine-vent"].autoplace.richness_expression
+        )
+    end
+end
+
 -- mask aquilo tiles
 -- terrain.mask_aquilo_territory("snow-flat", "tile")
 terrain.mask_aquilo_territory("snow-crests", "tile")
@@ -619,6 +661,67 @@ terrain.mask_aquilo_snow_decorative_territory("snow-drift-decal", "optimized-dec
 terrain.mask_aquilo_territory("lithium-iceberg-huge", "simple-entity")
 terrain.mask_aquilo_territory("lithium-iceberg-big", "simple-entity")
 
+if not eon_aquilo_on_fulgora then
+    data:extend({
+        {
+            type = "noise-expression",
+            name = "eon_nauvis_aquilo_lithium_brine_spots",
+            expression =
+            "aquilo_spot_noise{seed = 567, count = 3, skip_offset = 1, region_size = 600 + 400 / control:lithium_brine:frequency, density = eon_aquilo_land > 0, radius = aquilo_spot_size * 1.2 * sqrt(control:lithium_brine:size), favorability = max(0, eon_aquilo_land)}"
+        },
+        {
+            type = "noise-expression",
+            name = "eon_nauvis_aquilo_lithium_brine_probability",
+            expression =
+            "eon_mask_aquilo_territory((control:lithium_brine:size > 0) * max(0, eon_nauvis_aquilo_lithium_brine_spots) * 0.012)"
+        },
+        {
+            type = "noise-expression",
+            name = "eon_nauvis_aquilo_lithium_brine_richness",
+            expression = "max(0, eon_nauvis_aquilo_lithium_brine_spots) * 720000 * control:lithium_brine:richness"
+        },
+        {
+            type = "noise-expression",
+            name = "eon_nauvis_aquilo_fluorine_vent_spots",
+            expression =
+            "aquilo_spot_noise{seed = 567, count = 2, skip_offset = 2, region_size = 600 + 400 / control:fluorine_vent:frequency, density = eon_aquilo_land > 0, radius = aquilo_spot_size * 1.5 * sqrt(control:fluorine_vent:size), favorability = max(0, eon_aquilo_land)}"
+        },
+        {
+            type = "noise-expression",
+            name = "eon_nauvis_aquilo_fluorine_vent_probability",
+            expression =
+            "eon_mask_aquilo_territory((control:fluorine_vent:size > 0) * max(0, eon_nauvis_aquilo_fluorine_vent_spots) * 0.008)"
+        },
+        {
+            type = "noise-expression",
+            name = "eon_nauvis_aquilo_fluorine_vent_richness",
+            expression = "max(0, eon_nauvis_aquilo_fluorine_vent_spots) * 520000 * control:fluorine_vent:richness"
+        }
+    })
+
+    if data.raw.resource["lithium-brine"] and data.raw.resource["lithium-brine"].autoplace then
+        data.raw.resource["lithium-brine"].autoplace.probability_expression =
+        "eon_nauvis_aquilo_lithium_brine_probability"
+        data.raw.resource["lithium-brine"].autoplace.richness_expression =
+        "eon_nauvis_aquilo_lithium_brine_richness"
+        eon_set_entity_property_expression("nauvis", "lithium-brine", "probability",
+            "eon_nauvis_aquilo_lithium_brine_probability")
+        eon_set_entity_property_expression("nauvis", "lithium-brine", "richness",
+            "eon_nauvis_aquilo_lithium_brine_richness")
+    end
+
+    if data.raw.resource["fluorine-vent"] and data.raw.resource["fluorine-vent"].autoplace then
+        data.raw.resource["fluorine-vent"].autoplace.probability_expression =
+        "eon_nauvis_aquilo_fluorine_vent_probability"
+        data.raw.resource["fluorine-vent"].autoplace.richness_expression =
+        "eon_nauvis_aquilo_fluorine_vent_richness"
+        eon_set_entity_property_expression("nauvis", "fluorine-vent", "probability",
+            "eon_nauvis_aquilo_fluorine_vent_probability")
+        eon_set_entity_property_expression("nauvis", "fluorine-vent", "richness",
+            "eon_nauvis_aquilo_fluorine_vent_richness")
+    end
+end
+
 eon_apply_aquilo_on_fulgora_snow_decorative_rules()
 
 data.raw.tile["ammoniacal-ocean"].autoplace.probability_expression =
@@ -629,10 +732,8 @@ data.raw.tile["ammoniacal-ocean-2"].autoplace.probability_expression =
 data.raw.tile["snow-flat"].autoplace.probability_expression = "eon_mask_aquilo_territory(eon_aquilo_land)"
 data.raw.tile["ice-rough"].autoplace.probability_expression =
 "eon_mask_aquilo_territory(eon_aquilo_base(eon_aquilo_ammonia_depth + 1.5, 200))"
-data.raw.tile["ice-smooth"].autoplace.probability_expression = eon_aquilo_on_fulgora
-    and
-    "eon_mask_aquilo_territory(max(eon_aquilo_base(eon_aquilo_ammonia_depth + 1, 200), eon_aquilo_fulgora_ammonia_transition))"
-    or "eon_mask_aquilo_territory(eon_aquilo_base(eon_aquilo_ammonia_depth + 1, 200))"
+data.raw.tile["ice-smooth"].autoplace.probability_expression =
+"eon_mask_aquilo_territory(max(eon_aquilo_base(eon_aquilo_ammonia_depth + 1, 200), eon_aquilo_fulgora_ammonia_transition))"
 data.raw.tile["brash-ice"].autoplace.probability_expression =
 "eon_mask_aquilo_territory(eon_aquilo_base(eon_aquilo_ammonia_depth + 0.5, 200))"
 
@@ -649,7 +750,6 @@ data:extend({
     },
 })
 
-
 -- New noise expressions and noise functions
 data:extend({
     {
@@ -665,10 +765,6 @@ data:extend({
         expression = "eon_aquilo_ammonia > -1",
     },
     {
-        -- Boundary between the Aquilo-looking north and normal Fulgora south.
-        -- Centered around y = 100 so the two biomes are roughly balanced while
-        -- keeping the landing area near y = 0 mostly native Fulgora.
-        -- Positive/negative variation keeps the separator from being a straight horizontal line.
         type = "noise-expression",
         name = "eon_fulgora_aquilo_boundary",
         expression =
@@ -695,22 +791,16 @@ data:extend({
         expression = eon_aquilo_exclusion_mask .. "(eon_aquilo_base(eon_aquilo_ammonia_depth, 200))"
     },
     {
-        -- Fulgora moved-Aquilo ocean core. Keeping the actual ocean two elevation units deeper
-        -- restores the ice/brash-ice transition band between ammonia ocean and land.
         type = "noise-expression",
         name = "eon_aquilo_ammonia_core",
         expression = eon_aquilo_exclusion_mask .. "(eon_aquilo_base(eon_aquilo_ammonia_depth - 2, 200))"
     },
     {
-        -- Fulgora-only ice-smooth band around the deeper ammonia-ocean core.
         type = "noise-expression",
         name = "eon_aquilo_fulgora_ammonia_transition",
-        expression = eon_aquilo_on_fulgora
-            and "if(eon_aquilo_ammonia > -1, if(eon_aquilo_ammonia_core > 0, -inf, 250), -inf)"
-            or "-inf"
+        expression = "if(eon_aquilo_ammonia > -1, if(eon_aquilo_ammonia_core > 0, -inf, 250), -inf)"
     },
     {
-        -- Fulgora-only exclusion region for deep oil ocean around Aquilo ocean edge.
         type = "noise-expression",
         name = "eon_aquilo_fulgora_ocean_edge",
         expression = eon_aquilo_on_fulgora
@@ -718,7 +808,6 @@ data:extend({
             or "false"
     },
     {
-        -- Fulgora-only placement mask for Aquilo snow decoratives.
         type = "noise-expression",
         name = "eon_aquilo_fulgora_snow_decorative_territory",
         expression = eon_aquilo_on_fulgora
@@ -739,21 +828,20 @@ data:extend({
         {
             elevation_magnitude = 20,
             wlc_amplitude = 2,
-            ammonia_level = "1.0 * log2(control:ammonia_ocean:size)",
+            ammonia_level = "10 * log2(control:ammonia_ocean:size)",
             wlc_elevation = "max(aquilo_main - ammonia_level * wlc_amplitude, starting_island, north_bias)",
             aquilo_main =
             "elevation_magnitude * (0.25 * eon_aquilo_detail + 3 * eon_aquilo_macro * starting_macro_multiplier)",
             -- if most of the world is flooded make sure starting areas still have land
             starting_island = "aquilo_main + elevation_magnitude * (2.5 - distance * segmentation_multiplier / 200)",
             starting_macro_multiplier = "clamp(distance * eon_aquilo_segmentation_multiplier / 2000, 0, 1)",
-            north_bias = "aquilo_main + elevation_magnitude * (2 + (y - " ..
-                eon_aquilo_north_bias_y_offset .. ") * segmentation_multiplier / 500)",
+            north_bias = "aquilo_main + elevation_magnitude * (2.4 + (y - " ..
+                eon_aquilo_north_bias_y_offset .. ") * segmentation_multiplier / 380)",
         }
     },
     {
         type = "noise-expression",
         name = "eon_factorio_base_aquilo_elevation",
-        --intended_property = "elevation",
         expression = "lerp(blended, maxed, 0.4)",
         local_expressions = {
             maxed               = "max(formation_clumped, formation_broken)",
@@ -802,7 +890,7 @@ data:extend({
     },
     {
         type = "noise-expression",
-        name = "eon_aquilo_detail", -- the small scale details with variable persistance for a mix of smooth and jagged coastline
+        name = "eon_aquilo_detail",
         expression = "variable_persistence_multioctave_noise{x = x,\z
                                                          y = y,\z
                                                          seed0 = map_seed + 1,\z
@@ -816,7 +904,7 @@ data:extend({
     {
         type = "noise-expression",
         name = "eon_aquilo_segmentation_multiplier",
-        expression = "1.0 * control:ammonia_ocean:frequency"
+        expression = "0.5 * control:ammonia_ocean:frequency"
     },
     {
         type = "noise-expression",
@@ -1384,8 +1472,6 @@ else
 end
 
 -- decorative settings
--- Reuse the documented Vulcanus decorative/entity autoplacements and gate them below
--- with EON's Vulcanus biome mask.
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["v-brown-carpet-grass"] = {}
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["v-green-hairy-grass"] = {}
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["v-brown-hairy-grass"] = {}
@@ -1428,10 +1514,7 @@ data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["b
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["ashland-lichen-tree"] = {}
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["ashland-lichen-tree-flaming"] = {}
 
--- Fix probability expressions for tiles and cliffs
 if eon_aquilo_on_fulgora then
-    -- Use the documented/base Vulcanus tile probability expressions and only add EON's north-region mask.
-    -- Do not reuse the EON custom volcano spot expressions here; those are for the legacy single-volcano patch.
     local eon_vulcanus_tile_probability_expressions = {
         ["volcanic-soil-dark"] = "volcanic_soil_dark_range",
         ["volcanic-soil-light"] = "volcanic_soil_light_range",
@@ -1497,9 +1580,7 @@ terrain.mask_vulcano_coverage("big-volcanic-rock", "simple-entity")
 terrain.mask_vulcano_terrain("ashland-lichen-tree", "tree")
 terrain.mask_vulcano_terrain("ashland-lichen-tree-flaming", "tree")
 
--- Mask decoratives to Vulcanus terrain. These are the base Vulcanus autoplacements
--- enabled above; when Aquilo is moved to Fulgora, eon_vulcanus_terrain is the
--- broad north Vulcanus biome mask.
+-- Mask decoratives to Vulcanus terrain.
 terrain.mask_vulcano_terrain("v-brown-carpet-grass", "optimized-decorative")
 terrain.mask_vulcano_terrain("v-green-hairy-grass", "optimized-decorative")
 terrain.mask_vulcano_terrain("v-brown-hairy-grass", "optimized-decorative")
