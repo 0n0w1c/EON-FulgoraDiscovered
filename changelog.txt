@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.5.6
+Date: 12.05.2026
+  Bugfixes:
+    - Refactored the noise expression contribution of the Ammonia ocean autoplace control for size
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.5.5
 Date: 12.05.2026
   Bugfixes:

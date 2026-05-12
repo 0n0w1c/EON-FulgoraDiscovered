@@ -828,7 +828,7 @@ data:extend({
         {
             elevation_magnitude = 20,
             wlc_amplitude = 2,
-            ammonia_level = "10 * log2(control:ammonia_ocean:size)",
+            ammonia_level = "2 * pow(log2(1 + control:ammonia_ocean:size), 1.3)",
             wlc_elevation = "max(aquilo_main - ammonia_level * wlc_amplitude, starting_island, north_bias)",
             aquilo_main =
             "elevation_magnitude * (0.25 * eon_aquilo_detail + 3 * eon_aquilo_macro * starting_macro_multiplier)",
