@@ -5,7 +5,7 @@
 local terrain = require("map-generation.terrain")
 
 --------------------------------------------------------------------------------
--- MARK: Remove Nauvis enemies aka biters, spitters and spawners from surface that does not belong to nauvis
+-- Remove Nauvis enemies aka biters, spitters and spawners from surface that does not belong to nauvis
 --------------------------------------------------------------------------------
 
 data:extend({
@@ -55,7 +55,28 @@ data.raw["turret"]["behemoth-worm-turret"].autoplace.probability_expression =
 "eon_mask_nauvis_territory(behemoth_worm_turret)"
 
 --------------------------------------------------------------------------------
--- MARK: Add Vulcanus enemies aka demolishers
+-- Add support for Armoured Biters
+--------------------------------------------------------------------------------
+
+local armoured_biter_spawner = data.raw["unit-spawner"] and data.raw["unit-spawner"]["armoured-biter-spawner"]
+if armoured_biter_spawner
+    and armoured_biter_spawner.autoplace
+    and armoured_biter_spawner.autoplace.probability_expression
+then
+    data:extend({
+        {
+            type = "noise-expression",
+            name = "armoured_biter_spawner",
+            expression = armoured_biter_spawner.autoplace.probability_expression
+        },
+    })
+
+    armoured_biter_spawner.autoplace.probability_expression =
+    "eon_mask_nauvis_territory(armoured_biter_spawner)"
+end
+
+--------------------------------------------------------------------------------
+-- Add Vulcanus enemies aka demolishers
 --------------------------------------------------------------------------------
 
 local eon_nauvis_territory_settings = table.deepcopy(data.raw["planet"]["vulcanus"].map_gen_settings.territory_settings)
@@ -77,10 +98,10 @@ end
 data.raw["noise-expression"]["demolisher_starting_area"].expression = "if(eon_vulcano_coverage > 0.2, 0, 1)"
 
 data.raw["noise-expression"]["demolisher_variation_expression"].expression =
-    "floor(clamp(distance / (50 * 32) - 0.25, 0, 4)) + (-99 * no_enemies_mode)"
+"floor(clamp(distance / (50 * 32) - 0.25, 0, 4)) + (-99 * no_enemies_mode)"
 
 --------------------------------------------------------------------------------
--- MARK: Add Gleba enemies aka strafer, stompers and wriggler pentapods
+-- Add Gleba enemies aka strafer, stompers and wriggler pentapods
 --------------------------------------------------------------------------------
 
 data.raw["planet"]["nauvis"].map_gen_settings.autoplace_controls["gleba_enemy_base"] = {}
