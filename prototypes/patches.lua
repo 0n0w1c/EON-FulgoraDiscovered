@@ -131,62 +131,144 @@ if calcite then
 end
 
 -- ---------------------------------------------------------------------------
--- Fix: Gleba units react to pollution
+-- Fix: EON uses pollution, not spores
 -- ---------------------------------------------------------------------------
-local pollution_setting = settings.startup["eon-fd-gleba-enemies-react-to-pollution"]
-if pollution_setting and pollution_setting.value then
-    local function move_spores_to_pollution(absorptions)
-        if not absorptions then return end
-        if absorptions.spores == nil then return end
+local function eon_copy_pollutant_value(value)
+    if type(value) == "table" then
+        return table.deepcopy(value)
+    end
+    return value
+end
 
-        if absorptions.pollution == nil then
-            absorptions.pollution = absorptions.spores
-            absorptions.spores = nil
+local function eon_move_spores_to_pollution(pollutants)
+    if type(pollutants) ~= "table" or pollutants.spores == nil then return end
+
+    if pollutants.pollution == nil then
+        pollutants.pollution = eon_copy_pollutant_value(pollutants.spores)
+    end
+    pollutants.spores = nil
+end
+
+local function eon_convert_energy_source_pollutants(energy_source)
+    if type(energy_source) ~= "table" then return end
+    eon_move_spores_to_pollution(energy_source.emissions_per_minute)
+    eon_move_spores_to_pollution(energy_source.emissions_per_second)
+end
+
+for _, prototype_type in pairs({
+    "unit",
+    "spider-unit",
+    "unit-spawner",
+    "turret",
+    "tree",
+    "plant",
+    "agricultural-tower",
+    "assembling-machine",
+    "furnace",
+    "mining-drill",
+    "boiler",
+    "generator",
+    "reactor",
+    "rocket-silo",
+    "lab",
+}) do
+    for _, proto in pairs(data.raw[prototype_type] or {}) do
+        eon_move_spores_to_pollution(proto.absorptions_to_join_attack)
+        eon_move_spores_to_pollution(proto.absorptions_per_second)
+        eon_move_spores_to_pollution(proto.emissions_per_second)
+        eon_move_spores_to_pollution(proto.harvest_emissions)
+        eon_convert_energy_source_pollutants(proto.energy_source)
+    end
+end
+
+if data.raw["unit-spawner"] and data.raw["unit-spawner"]["gleba-spawner-small"] then
+    data.raw["unit-spawner"]["gleba-spawner-small"].collision_mask = nil
+end
+
+if data.raw["unit-spawner"] and data.raw["unit-spawner"]["gleba-spawner"] then
+    data.raw["unit-spawner"]["gleba-spawner"].collision_mask = nil
+end
+
+if data.raw["plant"] and data.raw["plant"]["jellystem"] then
+    data.raw["plant"]["jellystem"].harvest_emissions = { pollution = 15 }
+end
+
+if data.raw["plant"] and data.raw["plant"]["yumako-tree"] then
+    data.raw["plant"]["yumako-tree"].harvest_emissions = { pollution = 15 }
+end
+
+if data.raw["agricultural-tower"] and data.raw["agricultural-tower"]["agricultural-camp"] then
+    local tower = data.raw["agricultural-tower"]["agricultural-camp"]
+    tower.energy_source = tower.energy_source or {}
+    tower.energy_source.emissions_per_minute = { pollution = 4 }
+end
+
+if data.raw["agricultural-tower"] and data.raw["agricultural-tower"]["agricultural-tower"] then
+    local tower = data.raw["agricultural-tower"]["agricultural-tower"]
+    tower.energy_source = tower.energy_source or {}
+    tower.energy_source.emissions_per_minute = { pollution = 4 }
+end
+
+-- ---------------------------------------------------------------------------
+-- Fix: Electric Flying Enemies / Fulgoran Enemies pollution response
+-- ---------------------------------------------------------------------------
+if mods["Electric_flying_enemies"] then
+    local function eon_copy_table_or_value(value)
+        if type(value) == "table" then
+            return table.deepcopy(value)
+        end
+        return value
+    end
+
+    local biter_spawner = data.raw["unit-spawner"] and data.raw["unit-spawner"]["biter-spawner"]
+    local biter_spawner_absorption = biter_spawner and biter_spawner.absorptions_per_second
+
+    for _, spawner_name in ipairs({
+        "flying-electric-unit-spawner",
+        "walker-electric-unit-spawner",
+    }) do
+        local spawner = data.raw["unit-spawner"] and data.raw["unit-spawner"][spawner_name]
+        if spawner and biter_spawner_absorption then
+            spawner.absorptions_per_second = eon_copy_table_or_value(biter_spawner_absorption)
+        elseif spawner then
+            spawner.absorptions_per_second = { pollution = { absolute = 20, proportional = 0.01 } }
+        end
+        if spawner and spawner.absorptions_per_second then
+            eon_move_spores_to_pollution(spawner.absorptions_per_second)
         end
     end
 
-    for _, proto in pairs(data.raw["unit"] or {}) do
-        move_spores_to_pollution(proto.absorptions_to_join_attack)
+    local eon_unit_pollution_sources = {
+        [1] = "small-biter",
+        [2] = "medium-biter",
+        [3] = "big-biter",
+        [4] = "behemoth-biter",
+        [5] = "behemoth-biter",
+    }
+
+    local function eon_get_nauvis_unit_absorption(level)
+        local source_name = eon_unit_pollution_sources[level]
+        local source = source_name and data.raw["unit"] and data.raw["unit"][source_name]
+        if source and source.absorptions_to_join_attack then
+            return eon_copy_table_or_value(source.absorptions_to_join_attack)
+        end
+
+        local fallback_pollution = ({ 4, 20, 80, 400, 400 })[level]
+        return { pollution = fallback_pollution or 400 }
     end
 
-    for _, proto in pairs(data.raw["spider-unit"] or {}) do
-        move_spores_to_pollution(proto.absorptions_to_join_attack)
-    end
-
-    for _, proto in pairs(data.raw["unit-spawner"] or {}) do
-        move_spores_to_pollution(proto.absorptions_per_second)
-    end
-
-    if data.raw["unit-spawner"] and data.raw["unit-spawner"]["gleba-spawner-small"] then
-        data.raw["unit-spawner"]["gleba-spawner-small"].collision_mask = nil
-    end
-
-    if data.raw["unit-spawner"] and data.raw["unit-spawner"]["gleba-spawner"] then
-        data.raw["unit-spawner"]["gleba-spawner"].collision_mask = nil
-    end
-
-    if data.raw["plant"] and data.raw["plant"]["jellystem"] then
-        data.raw["plant"]["jellystem"].harvest_emissions = {
-            pollution = 15,
-        }
-    end
-
-    if data.raw["plant"] and data.raw["plant"]["yumako-tree"] then
-        data.raw["plant"]["yumako-tree"].harvest_emissions = {
-            pollution = 15,
-        }
-    end
-
-    if data.raw["agricultural-tower"] and data.raw["agricultural-tower"]["agricultural-camp"] then
-        data.raw["agricultural-tower"]["agricultural-camp"].energy_source.emissions_per_minute = {
-            pollution = 4,
-        }
-    end
-
-    if data.raw["agricultural-tower"] and data.raw["agricultural-tower"]["agricultural-tower"] then
-        data.raw["agricultural-tower"]["agricultural-tower"].energy_source.emissions_per_minute = {
-            pollution = 4,
-        }
+    for level = 1, 5 do
+        local absorption = eon_get_nauvis_unit_absorption(level)
+        for _, unit_name in ipairs({
+            "flying-electric-unit-" .. level,
+            "walking-electric-unit-" .. level,
+        }) do
+            local unit = data.raw["unit"] and data.raw["unit"][unit_name]
+            if unit then
+                unit.absorptions_to_join_attack = eon_copy_table_or_value(absorption)
+                eon_move_spores_to_pollution(unit.absorptions_to_join_attack)
+            end
+        end
     end
 end
 

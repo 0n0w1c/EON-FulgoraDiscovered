@@ -66,7 +66,11 @@ For biome customization, try [Craft Deco](https://mods.factorio.com/mod/craft-de
 ---
 
 #### Supported
+
 [Armoured Biters](https://mods.factorio.com/mod/ArmouredBiters)
+[Explosive Biters](https://mods.factorio.com/mod/Explosive_biters)
+[Frost Biters](https://mods.factorio.com/mod/Cold_biters)
+[Fulgoran Enemies](https://mods.factorio.com/mod/Electric_flying_enemies)
 
 ---
 
