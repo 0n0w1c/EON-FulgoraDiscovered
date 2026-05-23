@@ -65,6 +65,11 @@ For biome customization, try [Craft Deco](https://mods.factorio.com/mod/craft-de
 
 ---
 
+#### Supported
+[Armoured Biters](https://mods.factorio.com/mod/ArmouredBiters)
+
+---
+
 #### Credits
 
 Forked from [Everything on Nauvis](https://mods.factorio.com/mod/EverythingOnNauvis) by [Spaghetti2364](https://mods.factorio.com/user/Spaghetti2364)

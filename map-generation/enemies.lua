@@ -58,21 +58,23 @@ data.raw["turret"]["behemoth-worm-turret"].autoplace.probability_expression =
 -- Add support for Armoured Biters
 --------------------------------------------------------------------------------
 
-local armoured_biter_spawner = data.raw["unit-spawner"] and data.raw["unit-spawner"]["armoured-biter-spawner"]
-if armoured_biter_spawner
-    and armoured_biter_spawner.autoplace
-    and armoured_biter_spawner.autoplace.probability_expression
-then
-    data:extend({
-        {
-            type = "noise-expression",
-            name = "armoured_biter_spawner",
-            expression = armoured_biter_spawner.autoplace.probability_expression
-        },
-    })
+if mods["ArmouredBiters"] then
+    local armoured_biter_spawner = data.raw["unit-spawner"] and data.raw["unit-spawner"]["armoured-biter-spawner"]
+    if armoured_biter_spawner
+        and armoured_biter_spawner.autoplace
+        and armoured_biter_spawner.autoplace.probability_expression
+    then
+        data:extend({
+            {
+                type = "noise-expression",
+                name = "armoured_biter_spawner",
+                expression = armoured_biter_spawner.autoplace.probability_expression
+            },
+        })
 
-    armoured_biter_spawner.autoplace.probability_expression =
-    "eon_mask_nauvis_territory(armoured_biter_spawner)"
+        armoured_biter_spawner.autoplace.probability_expression =
+        "eon_mask_nauvis_territory(armoured_biter_spawner)"
+    end
 end
 
 --------------------------------------------------------------------------------
