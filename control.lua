@@ -299,10 +299,72 @@ local function process_area(surface, area)
     end
 end
 
+
 script.on_event(defines.events.on_chunk_generated, function(event)
     local surface = event.surface
     if not (surface and surface.valid) then return end
     if not surface_names[surface.name] then return end
 
     process_area(surface, event.area)
+end)
+
+
+--------------------------------------------------------------------------------
+-- Existing-save repair for Explosive Biters
+--------------------------------------------------------------------------------
+
+local explosive_biter_autoplace_entities = {
+    "explosive-biter-spawner",
+    "small-explosive-worm-turret",
+    "medium-explosive-worm-turret",
+    "big-explosive-worm-turret",
+    "behemoth-explosive-worm-turret",
+    "leviathan-explosive-worm-turret",
+    "mother-explosive-worm-turret"
+}
+
+local function eon_copy_autoplace_control(control)
+    if not control then return {} end
+
+    local copy = {}
+    for key, value in pairs(control) do
+        copy[key] = value
+    end
+    return copy
+end
+
+local function eon_enable_explosive_biters_on_existing_nauvis()
+    if not script.active_mods["Explosive_biters"] then return end
+
+    local surface = game.surfaces["nauvis"]
+    if not surface then return end
+
+    local map_gen_settings = surface.map_gen_settings
+    map_gen_settings.autoplace_controls = map_gen_settings.autoplace_controls or {}
+
+    if not map_gen_settings.autoplace_controls["hot_enemy_base"] then
+        map_gen_settings.autoplace_controls["hot_enemy_base"] =
+            eon_copy_autoplace_control(map_gen_settings.autoplace_controls["enemy-base"])
+    end
+
+    map_gen_settings.autoplace_settings = map_gen_settings.autoplace_settings or {}
+    map_gen_settings.autoplace_settings.entity = map_gen_settings.autoplace_settings.entity or { settings = {} }
+    map_gen_settings.autoplace_settings.entity.settings = map_gen_settings.autoplace_settings.entity.settings or {}
+
+    for _, entity_name in pairs(explosive_biter_autoplace_entities) do
+        if prototypes.entity[entity_name] and prototypes.entity[entity_name].autoplace_specification then
+            map_gen_settings.autoplace_settings.entity.settings[entity_name] =
+                map_gen_settings.autoplace_settings.entity.settings[entity_name] or {}
+        end
+    end
+
+    surface.map_gen_settings = map_gen_settings
+end
+
+script.on_init(function()
+    eon_enable_explosive_biters_on_existing_nauvis()
+end)
+
+script.on_configuration_changed(function()
+    eon_enable_explosive_biters_on_existing_nauvis()
 end)

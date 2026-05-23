@@ -74,17 +74,32 @@ end
 --------------------------------------------------------------------------------
 
 if mods["Explosive_biters"] then
+    local function eon_explosive_probability_expression(expression)
+        -- Match Cold Biters' approach: use the mod's own enemy autoplace
+        -- function/control consistently, even when Explosive Biters' own
+        -- startup setting is not set to Vulcanus.
+        --
+        -- This must be idempotent: if Explosive Biters already generated an
+        -- eb_enemy_autoplace_base(...) expression, do not turn it into
+        -- eb_eb_enemy_autoplace_base(...).
+        expression = string.gsub(expression, "^enemy_autoplace_base%(", "eb_enemy_autoplace_base(")
+        expression = string.gsub(expression, "([^%w_])enemy_autoplace_base%(", "%1eb_enemy_autoplace_base(")
+        return expression
+    end
+
     local function eon_mask_explosive_autoplace(prototype_type, prototype_name, expression_name)
         local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
         if prototype
             and prototype.autoplace
             and prototype.autoplace.probability_expression
         then
+            prototype.autoplace.control = "hot_enemy_base"
+
             data:extend({
                 {
                     type = "noise-expression",
                     name = expression_name,
-                    expression = prototype.autoplace.probability_expression
+                    expression = eon_explosive_probability_expression(prototype.autoplace.probability_expression)
                 },
             })
 

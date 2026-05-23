@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.7.2
+Date: 23.05.2026
+  Bugfixes:
+    - None
+  Changes:
+    - Explosive Biters can be added to an existing save (will be spawned in new chunks)
+---------------------------------------------------------------------------------------------------
 Version: 0.7.1
 Date: 23.05.2026
   Bugfixes:
