@@ -1,6 +1,8 @@
 local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
     and settings.startup["eon-fd-aquilo-on-fulgora"].value
 
+---Mask off aquilo for nauvis.
+---@param expression any
 local function eon_mask_off_aquilo_for_nauvis(expression)
     if eon_aquilo_on_fulgora then
         return expression
@@ -8,9 +10,6 @@ local function eon_mask_off_aquilo_for_nauvis(expression)
     return "eon_mask_off_aquilo_territory(" .. expression .. ")"
 end
 
--- ---------------------------------------------------------------------------
--- Fix: Remove lava and ammoniacal solution tiles from the atomic rocket effects
--- ---------------------------------------------------------------------------
 local projectile = data.raw["projectile"] and data.raw["projectile"]["atomic-rocket"]
 if projectile
     and projectile.action
@@ -32,18 +31,12 @@ then
     projectile.action.action_delivery.target_effects = filtered
 end
 
--- ---------------------------------------------------------------------------
--- Fix: Remove fish from Aquilo and Vulcanus terrain
--- ---------------------------------------------------------------------------
 local fish = data.raw["fish"] and data.raw["fish"]["fish"]
 if fish and fish.autoplace and fish.autoplace.probability_expression then
     fish.autoplace.probability_expression =
         eon_mask_off_aquilo_for_nauvis("eon_mask_off_vulcano_terrain(" .. fish.autoplace.probability_expression .. ")")
 end
 
--- ---------------------------------------------------------------------------
--- Fix: Remove dead-grey-trunk from Vulcanus and Gleba terrain
--- ---------------------------------------------------------------------------
 local dead_tree = data.raw["tree"] and data.raw["tree"]["dead-grey-trunk"]
 if dead_tree and dead_tree.autoplace and dead_tree.autoplace.probability_expression then
     local expr = dead_tree.autoplace.probability_expression
@@ -51,9 +44,6 @@ if dead_tree and dead_tree.autoplace and dead_tree.autoplace.probability_express
         eon_mask_off_aquilo_for_nauvis("eon_mask_off_gleba_territory(eon_mask_off_vulcano_terrain(" .. expr .. "))")
 end
 
--- ---------------------------------------------------------------------------
--- Fix: Add ashland trees to Vulcanus terrain
--- ---------------------------------------------------------------------------
 data:extend({
     {
         type = "noise-expression",
@@ -62,6 +52,9 @@ data:extend({
     },
 })
 
+---Spawn tree in vulcanus.
+---@param tree_name string
+---@param multiplier number
 local function spawn_tree_in_vulcanus(tree_name, multiplier)
     local tree = data.raw["tree"] and data.raw["tree"][tree_name]
     if not (tree and tree.autoplace) then return end
@@ -87,9 +80,10 @@ then
     data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["ashland-lichen-tree-flaming"] = {}
 end
 
--- ---------------------------------------------------------------------------
--- Fix: Scale down the number of Vulcanus simple entities spawned
--- ---------------------------------------------------------------------------
+---Scale entity autoplace.
+---@param type_name string
+---@param entity_name string
+---@param factor number
 local function scale_entity_autoplace(type_name, entity_name, factor)
     local proto = data.raw[type_name] and data.raw[type_name][entity_name]
     if proto and proto.autoplace and proto.autoplace.probability_expression then
@@ -106,9 +100,6 @@ scale_entity_autoplace("simple-entity", "vulcanus-chimney-truncated", 0.2)
 scale_entity_autoplace("simple-entity", "huge-volcanic-rock", 0.4)
 scale_entity_autoplace("simple-entity", "big-volcanic-rock", 0.4)
 
--- ---------------------------------------------------------------------------
--- Fix: Add lubricant as a prerequisite for the foundry technology
--- ---------------------------------------------------------------------------
 local foundry = data.raw["technology"] and data.raw["technology"]["foundry"]
 if foundry and foundry.prerequisites then
     local found = false
@@ -122,17 +113,13 @@ if foundry and foundry.prerequisites then
     if not found then table.insert(foundry.prerequisites, "lubricant") end
 end
 
--- ---------------------------------------------------------------------------
--- Fix: Remove calcite resource category
--- ---------------------------------------------------------------------------
 local calcite = data.raw["resource"] and data.raw["resource"]["calcite"]
 if calcite then
     calcite.category = nil
 end
 
--- ---------------------------------------------------------------------------
--- Fix: EON uses pollution, not spores
--- ---------------------------------------------------------------------------
+---Copy pollutant value.
+---@param value table
 local function eon_copy_pollutant_value(value)
     if type(value) == "table" then
         return table.deepcopy(value)
@@ -140,6 +127,8 @@ local function eon_copy_pollutant_value(value)
     return value
 end
 
+---Move spores to pollution.
+---@param pollutants table
 local function eon_move_spores_to_pollution(pollutants)
     if type(pollutants) ~= "table" or pollutants.spores == nil then return end
 
@@ -149,6 +138,8 @@ local function eon_move_spores_to_pollution(pollutants)
     pollutants.spores = nil
 end
 
+---Convert energy source pollutants.
+---@param energy_source table
 local function eon_convert_energy_source_pollutants(energy_source)
     if type(energy_source) ~= "table" then return end
     eon_move_spores_to_pollution(energy_source.emissions_per_minute)
@@ -209,10 +200,9 @@ if data.raw["agricultural-tower"] and data.raw["agricultural-tower"]["agricultur
     tower.energy_source.emissions_per_minute = { pollution = 4 }
 end
 
--- ---------------------------------------------------------------------------
--- Fix: Electric Flying Enemies / Fulgoran Enemies pollution response
--- ---------------------------------------------------------------------------
 if mods["Electric_flying_enemies"] then
+    ---Copy table or value.
+    ---@param value table
     local function eon_copy_table_or_value(value)
         if type(value) == "table" then
             return table.deepcopy(value)
@@ -246,6 +236,9 @@ if mods["Electric_flying_enemies"] then
         [5] = "behemoth-biter",
     }
 
+    ---Get nauvis unit absorption.
+
+    ---@param level number
     local function eon_get_nauvis_unit_absorption(level)
         local source_name = eon_unit_pollution_sources[level]
         local source = source_name and data.raw["unit"] and data.raw["unit"][source_name]
@@ -272,9 +265,6 @@ if mods["Electric_flying_enemies"] then
     end
 end
 
--- ---------------------------------------------------------------------------
--- Fix: Use tungsten-plate
--- ---------------------------------------------------------------------------
 local use_tungsten_setting = settings.startup["eon-fd-use-tungsten-plate"]
 if use_tungsten_setting and use_tungsten_setting.value then
     local demolisher_corpses = {

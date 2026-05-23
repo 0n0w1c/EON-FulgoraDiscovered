@@ -4,9 +4,8 @@ require("prototypes.planet-sounds")
 
 require("prototypes.patches")
 
--- ---------------------------------------------------------------------------
--- Enable Fulgora pollution only when enemy spawners are generated there
--- ---------------------------------------------------------------------------
+---Planet has unit spawner autoplace.
+---@param planet_name string
 local function eon_planet_has_unit_spawner_autoplace(planet_name)
     local planet = data.raw.planet and data.raw.planet[planet_name]
     local entity_settings = planet

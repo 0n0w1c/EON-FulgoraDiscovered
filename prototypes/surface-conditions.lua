@@ -2,6 +2,8 @@ if not mods["space-age"] then return end
 
 local ore_ganizer = mods["ore-ganizer"]
 
+---Keep surface conditions.
+---@param name string
 local function eon_keep_surface_conditions(name)
     if ore_ganizer and name and string.sub(name, 1, 4) == "rmd-" then
         return true

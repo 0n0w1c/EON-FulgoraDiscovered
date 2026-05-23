@@ -1,35 +1,42 @@
---------------------------------------------------------------------------------
--- Fixes map generation for resources
---------------------------------------------------------------------------------
 local terrain = require("map-generation.terrain")
 
 local guarded_resources_enabled = settings.startup["eon-fd-guarded-resources"]
     and settings.startup["eon-fd-guarded-resources"].value
 
+---Mask off ammonia ocean.
+---@param expression any
 local function mask_off_ammonia_ocean(expression)
     return "eon_mask_off_ammonia_ocean(" .. expression .. ")"
 end
 
+---Mask vulcanus terrain.
+---@param expression any
 local function mask_vulcanus_terrain(expression)
     return "eon_mask_vulcano_terrain(" .. expression .. ")"
 end
 
+---Mask vulcanus coverage.
+---@param expression any
 local function mask_vulcanus_coverage(expression)
     return "eon_mask_vulcano_coverage(" .. expression .. ")"
 end
 
-local function mask_resource_territory_expression(expression)
-    return "eon_mask_resource_territory(" .. expression .. ")"
-end
-
+---Set resource probability.
+---@param resource_name string
+---@param expression any
 local function set_resource_probability(resource_name, expression)
     data.raw.resource[resource_name].autoplace.probability_expression = expression
 end
 
+---Set guarded resource probability.
+---@param resource_name string
+---@param expression any
 local function set_guarded_resource_probability(resource_name, expression)
     set_resource_probability(resource_name, mask_off_ammonia_ocean(mask_vulcanus_coverage(expression)))
 end
 
+---Configure guarded resource.
+---@param config table
 local function configure_guarded_resource(config)
     if guarded_resources_enabled then
         config.guarded()
@@ -38,9 +45,6 @@ local function configure_guarded_resource(config)
     end
 end
 
---------------------------------------------------------------------------------
--- MARK: Fix Nauvis resources
---------------------------------------------------------------------------------
 
 terrain.mask_resource_territory("iron-ore", "resource")
 terrain.mask_resource_territory("copper-ore", "resource")
@@ -49,19 +53,15 @@ terrain.mask_resource_territory("coal", "resource")
 terrain.mask_resource_territory("uranium-ore", "resource")
 terrain.mask_resource_territory("crude-oil", "resource")
 
---------------------------------------------------------------------------------
--- MARK: Remove Aquilo resources
---------------------------------------------------------------------------------
 
 data.raw["noise-expression"]["aquilo_crude_oil_spots"].expression = "0"
 data.raw.planet["aquilo"].map_gen_settings.autoplace_controls = {}
 
---------------------------------------------------------------------------------
--- MARK: Gleba
---------------------------------------------------------------------------------
 
 data.raw["autoplace-control"]["gleba_plants"].localised_description = nil
 
+---Enable planet resource autoplace controls.
+---@param planet_name string
 local function enable_planet_resource_autoplace_controls(planet_name)
     local source_planet = data.raw.planet[planet_name]
     local nauvis = data.raw.planet["nauvis"]
@@ -89,9 +89,6 @@ if guarded_resources_enabled then
     enable_planet_resource_autoplace_controls("vulcanus")
 end
 
---------------------------------------------------------------------------------
--- MARK: Add Vulcanus resources to Nauvis
---------------------------------------------------------------------------------
 
 table.insert(data.raw["simple-entity"]["big-volcanic-rock"].minable.results,
     { type = "item", name = "calcite", amount_min = 2, amount_max = 8 })
@@ -179,6 +176,7 @@ data.raw.resource["sulfuric-acid-geyser"].autoplace.richness_expression =
 data.raw["noise-expression"]["vulcanus_starting_tungsten"].expression = "-inf"
 
 configure_guarded_resource {
+    ---Guarded .
     guarded = function()
         set_guarded_resource_probability("tungsten-ore", "1000 * vulcanus_tungsten_ore_probability")
         data.raw.resource["tungsten-ore"].autoplace.richness_expression = "vulcanus_tungsten_ore_richness"
@@ -186,6 +184,7 @@ configure_guarded_resource {
         data.raw["noise-expression"]["vulcanus_tungsten_ore_region"].expression =
         "max(vulcanus_starting_tungsten, min(1 - vulcanus_starting_circle, vulcanus_place_non_metal_spots(789, 15, 2, vulcanus_tungsten_ore_size * min(1.2, vulcanus_ore_dist) * 25, control:tungsten_ore:frequency, vulcanus_mountains_resource_favorability)))"
     end,
+    ---Normal .
     normal = function()
         data.raw["noise-expression"]["vulcanus_tungsten_ore_probability"].expression =
             mask_off_ammonia_ocean(
@@ -194,6 +193,8 @@ configure_guarded_resource {
     end
 }
 
+---Get planet entity settings.
+---@param planet_name string
 local function get_planet_entity_settings(planet_name)
     local planet = data.raw.planet[planet_name]
     if not planet or not planet.map_gen_settings then return nil end
@@ -204,6 +205,8 @@ local function get_planet_entity_settings(planet_name)
     return autoplace_settings.entity.settings
 end
 
+---Get expression for autoplace.
+---@param proto table
 local function expression_for_autoplace(proto)
     if not proto.autoplace then return nil end
 
@@ -220,6 +223,8 @@ local function expression_for_autoplace(proto)
     return nil
 end
 
+---Richness expression for autoplace.
+---@param proto table
 local function richness_expression_for_autoplace(proto)
     if not proto.autoplace then return nil end
 
@@ -236,6 +241,9 @@ local function richness_expression_for_autoplace(proto)
     return nil
 end
 
+---Get planet richness expression.
+---@param planet_name string
+---@param entity_name string
 local function get_planet_richness_expression(planet_name, entity_name)
     local planet = data.raw.planet[planet_name]
     if not planet or not planet.map_gen_settings then return nil end
@@ -251,6 +259,9 @@ local function get_planet_richness_expression(planet_name, entity_name)
     return nil
 end
 
+---Get planet probability expression.
+---@param planet_name string
+---@param entity_name string
 local function get_planet_probability_expression(planet_name, entity_name)
     local planet = data.raw.planet[planet_name]
     if not planet or not planet.map_gen_settings then return nil end
@@ -266,10 +277,15 @@ local function get_planet_probability_expression(planet_name, entity_name)
     return nil
 end
 
+---Mask expression.
+---@param expression any
+---@param mask_name string
 local function mask_expression(expression, mask_name)
     return mask_name .. "(" .. expression .. ")"
 end
 
+---Combine masked expressions.
+---@param masked table
 local function combine_masked_expressions(masked)
     if #masked == 0 then return nil end
     if #masked == 1 then return masked[1] end
@@ -277,10 +293,17 @@ local function combine_masked_expressions(masked)
     return "max(" .. table.concat(masked, ", ") .. ")"
 end
 
+---Add masked expression.
+---@param masked table
+---@param expression any
+---@param mask_name string
 local function add_masked_expression(masked, expression, mask_name)
     table.insert(masked, mask_expression(expression, mask_name))
 end
 
+---Apply simple entity biome mask.
+---@param entity_name string
+---@param mask_name string
 local function apply_simple_entity_biome_mask(entity_name, mask_name)
     local proto = data.raw["simple-entity"] and data.raw["simple-entity"][entity_name]
     if not proto or not proto.autoplace then return end
@@ -291,6 +314,10 @@ local function apply_simple_entity_biome_mask(entity_name, mask_name)
     proto.autoplace.probability_expression = mask_expression(expression, mask_name)
 end
 
+---Guarded resource expression for planet.
+---@param resource_name string
+---@param planet_name string
+---@param default_expression any
 local function guarded_resource_expression_for_planet(resource_name, planet_name, default_expression)
     local use_current_expression = {
         ["calcite"] = true,
@@ -306,6 +333,9 @@ local function guarded_resource_expression_for_planet(resource_name, planet_name
     return default_expression
 end
 
+---Set or extend noise expression.
+---@param name string
+---@param expression any
 local function set_or_extend_noise_expression(name, expression)
     local existing = data.raw["noise-expression"] and data.raw["noise-expression"][name]
 
@@ -322,6 +352,10 @@ local function set_or_extend_noise_expression(name, expression)
     end
 end
 
+---Set nauvis entity property expression.
+---@param entity_name string
+---@param property_name string
+---@param expression_name string
 local function set_nauvis_entity_property_expression(entity_name, property_name, expression_name)
     local nauvis = data.raw.planet["nauvis"]
     if not nauvis or not nauvis.map_gen_settings then return end
@@ -330,6 +364,9 @@ local function set_nauvis_entity_property_expression(entity_name, property_name,
     nauvis.map_gen_settings.property_expression_names["entity:" .. entity_name .. ":" .. property_name] = expression_name
 end
 
+---Apply guarded resource biome mask.
+---@param resource_name string
+---@param resource table
 local function apply_guarded_resource_biome_mask(resource_name, resource)
     local nauvis_settings = get_planet_entity_settings("nauvis") or {}
     local gleba_settings = get_planet_entity_settings("gleba") or {}
@@ -430,6 +467,7 @@ local function apply_guarded_resource_biome_mask(resource_name, resource)
     end
 end
 
+---Align guarded resources to biomes.
 local function align_guarded_resources_to_biomes()
     for resource_name, resource in pairs(data.raw.resource or {}) do
         if resource.autoplace then
@@ -440,7 +478,6 @@ local function align_guarded_resources_to_biomes()
     apply_simple_entity_biome_mask("iron-stromatolite", "eon_mask_gleba_territory")
     apply_simple_entity_biome_mask("copper-stromatolite", "eon_mask_gleba_territory")
 end
-
 
 if guarded_resources_enabled then
     set_resource_probability("calcite", "eon_nauvis_vulcanus_calcite_probability")

@@ -1,3 +1,7 @@
+local data_util = require("data-util")
+
+---Copy table.
+---@param value table
 local function eon_copy_table(value)
     if type(value) == "table" then
         return table.deepcopy(value)
@@ -5,6 +9,10 @@ local function eon_copy_table(value)
     return value
 end
 
+---Set tile absorption.
+---@param tile_name string
+---@param source_tile_name string
+---@param fallback_rate any
 local function eon_set_tile_absorption(tile_name, source_tile_name, fallback_rate)
     local tile = data.raw.tile and data.raw.tile[tile_name]
     if not tile then return end
@@ -24,27 +32,24 @@ local function eon_set_tile_absorption(tile_name, source_tile_name, fallback_rat
     end
 end
 
+---Set tile group absorption.
+---@param tile_names? string[]
+---@param source_tile_name string
+---@param fallback_rate any
 local function eon_set_tile_group_absorption(tile_names, source_tile_name, fallback_rate)
     for _, tile_name in pairs(tile_names) do
         eon_set_tile_absorption(tile_name, source_tile_name, fallback_rate)
     end
 end
 
-local eon_water_like_tiles = {
-    "wetland-yumako",
-    "wetland-jellynut",
-    "wetland-blue-slime",
-    "wetland-light-green-slime",
-    "wetland-green-slime",
-    "wetland-light-dead-skin",
-    "wetland-dead-skin",
-    "wetland-pink-tentacle",
-    "wetland-red-tentacle",
-    "lava",
-    "oil-ocean-shallow",
-    "brash-ice",
+local eon_water_like_tiles = data_util.tiles_for_sprite_usage_surfaces({ "gleba", "vulcanus", "fulgora", "aquilo" }, {
     "ammoniacal-ocean",
-}
+}, {
+    ["gleba-deep-lake"] = true,
+    ["lava-hot"] = true,
+    ["oil-ocean-deep"] = true,
+    ["ammoniacal-ocean-2"] = true,
+})
 
 local eon_deepwater_like_tiles = {
     "gleba-deep-lake",
@@ -53,76 +58,34 @@ local eon_deepwater_like_tiles = {
     "ammoniacal-ocean-2",
 }
 
-local eon_grass_like_tiles = {
-    "natural-yumako-soil",
-    "natural-jellynut-soil",
-    "lowland-brown-blubber",
-    "lowland-olive-blubber",
-    "lowland-olive-blubber-2",
-    "lowland-olive-blubber-3",
-    "lowland-pale-green",
-    "lowland-cream-cauliflower",
-    "lowland-cream-cauliflower-2",
-    "lowland-dead-skin",
-    "lowland-dead-skin-2",
-    "lowland-cream-red",
-    "lowland-red-vein",
-    "lowland-red-vein-2",
-    "lowland-red-vein-3",
-    "lowland-red-vein-4",
-    "lowland-red-vein-dead",
-    "lowland-red-infection",
-    "midland-turquoise-bark",
-    "midland-turquoise-bark-2",
-    "midland-cracked-lichen",
-    "midland-cracked-lichen-dull",
-    "midland-cracked-lichen-dark",
-    "midland-yellow-crust",
-    "midland-yellow-crust-2",
-    "midland-yellow-crust-3",
-    "midland-yellow-crust-4",
-    "highland-dark-rock",
-    "highland-dark-rock-2",
-    "highland-yellow-rock",
-    "pit-rock",
-}
+local eon_grass_like_tiles = data_util.tiles_for_sprite_usage_surface("gleba", nil, {
+    ["gleba-deep-lake"] = true,
+    ["wetland-yumako"] = true,
+    ["wetland-jellynut"] = true,
+    ["wetland-blue-slime"] = true,
+    ["wetland-light-green-slime"] = true,
+    ["wetland-green-slime"] = true,
+    ["wetland-light-dead-skin"] = true,
+    ["wetland-dead-skin"] = true,
+    ["wetland-pink-tentacle"] = true,
+    ["wetland-red-tentacle"] = true,
+})
 
-local eon_sand_like_tiles = {
-    "fulgoran-rock",
-    "fulgoran-dust",
-    "fulgoran-sand",
-    "fulgoran-dunes",
-    "fulgoran-walls",
-    "fulgoran-paving",
-    "fulgoran-conduit",
-    "fulgoran-machinery",
-    "volcanic-ash-flats",
-    "volcanic-ash-light",
-    "volcanic-ash-dark",
-    "volcanic-cracks",
-    "volcanic-cracks-warm",
-    "volcanic-folds",
-    "volcanic-folds-flat",
-    "volcanic-folds-warm",
-    "volcanic-pumice-stones",
-    "volcanic-cracks-hot",
-    "volcanic-jagged-ground",
-    "volcanic-smooth-stone",
-    "volcanic-smooth-stone-warm",
-    "volcanic-ash-cracks",
-    "snow-flat",
-    "snow-crests",
-    "snow-lumpy",
-    "snow-patchy",
-    "ice-rough",
-    "ice-smooth",
-}
+local eon_sand_like_tiles = data_util.tiles_for_sprite_usage_surfaces({ "fulgora", "vulcanus", "aquilo" }, nil, {
+    ["lava"] = true,
+    ["lava-hot"] = true,
+    ["oil-ocean-shallow"] = true,
+    ["oil-ocean-deep"] = true,
+    ["brash-ice"] = true,
+})
 
 eon_set_tile_group_absorption(eon_water_like_tiles, "water", 0.000005)
 eon_set_tile_group_absorption(eon_deepwater_like_tiles, "deepwater", 0.000005)
 eon_set_tile_group_absorption(eon_grass_like_tiles, "grass-1", 0.0000075)
 eon_set_tile_group_absorption(eon_sand_like_tiles, "sand-1", 0.000005)
 
+---Move spores to pollution.
+---@param table_value any
 local function eon_move_spores_to_pollution(table_value)
     if type(table_value) ~= "table" or table_value.spores == nil then return end
     if table_value.pollution == nil then
@@ -135,6 +98,8 @@ for _, tile in pairs(data.raw.tile or {}) do
     eon_move_spores_to_pollution(tile.absorptions_per_second)
 end
 
+---First existing tree.
+---@param names string[]
 local function eon_first_existing_tree(names)
     for _, name in pairs(names) do
         local tree = data.raw.tree and data.raw.tree[name]
@@ -143,6 +108,9 @@ local function eon_first_existing_tree(names)
     return nil
 end
 
+---Copy tree pollution absorption.
+---@param tree_name string
+---@param source_tree any
 local function eon_copy_tree_pollution_absorption(tree_name, source_tree)
     local tree = data.raw.tree and data.raw.tree[tree_name]
     if not tree then return end
@@ -186,6 +154,9 @@ end
 local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
     and settings.startup["eon-fd-aquilo-on-fulgora"].value
 
+---Remove value from list.
+---@param list table
+---@param value table
 local function eon_remove_value_from_list(list, value)
     if type(list) ~= "table" then return end
     for i = #list, 1, -1 do
@@ -195,6 +166,8 @@ local function eon_remove_value_from_list(list, value)
     end
 end
 
+---Handle transition targets out of map.
+---@param transition table
 local function eon_transition_targets_out_of_map(transition)
     if type(transition) ~= "table" or type(transition.to_tiles) ~= "table" then return false end
 
@@ -208,6 +181,8 @@ local function eon_transition_targets_out_of_map(transition)
     return has_out_of_map and has_empty_space
 end
 
+---Remove oil ocean from out of map transition.
+---@param tile_name string
 local function eon_remove_oil_ocean_from_out_of_map_transition(tile_name)
     local tile = data.raw.tile and data.raw.tile[tile_name]
     if not tile or type(tile.transitions) ~= "table" then return end
@@ -220,19 +195,12 @@ local function eon_remove_oil_ocean_from_out_of_map_transition(tile_name)
 end
 
 if eon_aquilo_on_fulgora then
-    for _, tile_name in pairs({
-        "snow-flat",
-        "snow-crests",
-        "snow-lumpy",
-        "snow-patchy",
-        "ice-rough",
-        "ice-smooth",
-        "brash-ice",
-    }) do
+    for _, tile_name in pairs(data_util.tiles_for_sprite_usage_surface("aquilo")) do
         eon_remove_oil_ocean_from_out_of_map_transition(tile_name)
     end
 end
 
+---Copy lava transition masks to lava hot.
 local function eon_copy_lava_transition_masks_to_lava_hot()
     local lava = data.raw.tile and data.raw.tile["lava"]
     local lava_hot = data.raw.tile and data.raw.tile["lava-hot"]
@@ -251,6 +219,9 @@ if eon_aquilo_on_fulgora then
     eon_copy_lava_transition_masks_to_lava_hot()
 end
 
+---Check list contains.
+---@param list table
+---@param value table
 local function eon_list_contains(list, value)
     if type(list) ~= "table" then return false end
     for _, item in pairs(list) do
@@ -259,6 +230,9 @@ local function eon_list_contains(list, value)
     return false
 end
 
+---Handle transition targets any.
+---@param transition table
+---@param tile_names? string[]
 local function eon_transition_targets_any(transition, tile_names)
     if type(transition) ~= "table" or type(transition.to_tiles) ~= "table" then return false end
 
@@ -271,6 +245,8 @@ local function eon_transition_targets_any(transition, tile_names)
     return false
 end
 
+---Handle transition signature.
+---@param transition table
 local function eon_transition_signature(transition)
     if type(transition) ~= "table" or type(transition.to_tiles) ~= "table" then return nil end
 
@@ -283,6 +259,7 @@ local function eon_transition_signature(transition)
     return tostring(transition.transition_group or "") .. ":" .. table.concat(names, ",")
 end
 
+---Copy lava water transition style to lava hot cracks.
 local function eon_copy_lava_water_transition_style_to_lava_hot_cracks()
     local lava = data.raw.tile and data.raw.tile["lava"]
     local lava_hot = data.raw.tile and data.raw.tile["lava-hot"]

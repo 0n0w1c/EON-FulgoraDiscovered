@@ -36,7 +36,7 @@ data:extend({
         walking_sound = base_sounds.ore,
         driving_sound = stone_driving_sound,
         minable = {
-            mining_particle = "stone-particle", -- TODO: Add particle - There is an actual calcite-particle-1.png in space-age\graphics\particle\calcite-particle
+            mining_particle = "stone-particle",
             mining_time = 1,
             result = "calcite",
         },
@@ -77,7 +77,7 @@ data:extend({
     },
     {
         type = "autoplace-control",
-        name = "tungsten_ore", -- This needs to have an underscore since the base game has it like that. This autoplace control replaces the existing in the game
+        name = "tungsten_ore",
         localised_name = { "", "[entity=tungsten-ore] ", { "entity-name.tungsten-ore" } },
         richness = true,
         order = "b-c",
@@ -94,7 +94,7 @@ data:extend({
         walking_sound = base_sounds.ore,
         driving_sound = stone_driving_sound,
         minable = {
-            mining_particle = "stone-particle", -- TODO: Add particle - There is an actual tungsten-ore-particle-1.png in space-age\graphics\particle\tungsten-ore-particle
+            mining_particle = "stone-particle",
             mining_time = 5,
             result = "tungsten-ore",
         },

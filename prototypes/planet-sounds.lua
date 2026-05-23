@@ -1,12 +1,16 @@
 local sounds_enabled = settings.startup["eon-fd-planet-sounds"].value
 if not sounds_enabled then return end
 
+---Ensure array.
+---@param v any
 local function ensure_array(v)
     if v == nil then return {} end
     if v[1] ~= nil then return v end
     return { v }
 end
 
+---Check whether to skip skip sound.
+---@param entry table
 local function should_skip_sound(entry)
     if not entry or not entry.sound then
         return false
@@ -33,6 +37,9 @@ local function should_skip_sound(entry)
     return false
 end
 
+---Append list.
+---@param dst table
+---@param src table
 local function append_list(dst, src)
     for i = 1, #src do
         local entry = src[i]
@@ -43,6 +50,9 @@ local function append_list(dst, src)
     end
 end
 
+---Merge persistent sounds.
+---@param target_planet_name string
+---@param source_planet_name string
 local function merge_persistent_sounds(target_planet_name, source_planet_name)
     local target = data.raw.planet[target_planet_name]
     if not target then return end
@@ -66,13 +76,15 @@ local function merge_persistent_sounds(target_planet_name, source_planet_name)
     append_list(target_pas.semi_persistent, ensure_array(src_pas.semi_persistent))
 end
 
+---Clone planet music.
+---@param source_planet_name string
+---@param target_planet_name string
 local function clone_planet_music(source_planet_name, target_planet_name)
     local clones = {}
     local ambient_sounds = data.raw["ambient-sound"] or {}
 
     for _, sound in pairs(ambient_sounds) do
         if sound.planet == source_planet_name then
-            -- skip hero tracks: only one allowed per planet
             if sound.track_type ~= "hero-track" then
                 local copy = table.deepcopy(sound)
                 copy.name = sound.name .. "-on-" .. target_planet_name

@@ -4,6 +4,7 @@ local move_aquilo_to_fulgora =
     settings.startup["eon-fd-aquilo-on-fulgora"] and
     settings.startup["eon-fd-aquilo-on-fulgora"].value
 
+---Copy nauvis aquilo connection to fulgora.
 local function copy_nauvis_aquilo_connection_to_fulgora()
     if not move_aquilo_to_fulgora then
         return
@@ -75,43 +76,12 @@ if edge then
     data_util.delete_prototype("space-connection", "aquilo-solar-system-edge")
 end
 
---data.raw["space-connection"]["aquilo-solar-system-edge"].from = "fulgora"
---data_util.delete_prototype("space-connection", "aquilo-solar-system-edge")
-
--- remove space age menu simulations that break
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_solar_power_construction = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_lab = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_burner_city = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_mining_defense = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_forest_fire = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_oil_pumpjacks = nil  -- Safe simulations
 data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_oil_refinery = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_early_smelting = nil -- This one crashes after it finishes
+data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_early_smelting = nil
 data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_train_station = nil
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_logistic_robots = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_nuclear_power = nil  -- Safe simulations
 data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_train_junction = nil
 data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_artillery = nil
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_biter_base_spidertron = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_biter_base_artillery = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_biter_base_laser_defense = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_biter_base_player_attack = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_biter_base_steamrolled = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_chase_player = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_big_defense = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_brutal_defeat = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_spider_ponds = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_uranium_processing = nil  -- Safe simulations
 
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_ship_rails = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_river_bridge = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_t_section = nil  -- Safe simulations
-
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_biolab = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_tank_building = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_power_up = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_bus = nil  -- Safe simulations
--- data.raw["utility-constants"]["default"].main_menu_simulations.platform_science = nil  -- Safe simulations
 data.raw["utility-constants"]["default"].main_menu_simulations.platform_moving = nil
 data.raw["utility-constants"]["default"].main_menu_simulations.platform_messy_nuclear = nil
 data.raw["utility-constants"]["default"].main_menu_simulations.vulcanus_lava_forge = nil
@@ -127,12 +97,10 @@ data.raw["utility-constants"]["default"].main_menu_simulations.aquilo_send_help 
 data.raw["utility-constants"]["default"].main_menu_simulations.aquilo_starter = nil
 data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_rocket_factory = nil
 
--- delete technologies
 data_util.hide_prototype("technology", "planet-discovery-aquilo")
 data_util.hide_prototype("technology", "planet-discovery-gleba")
 data_util.hide_prototype("technology", "planet-discovery-vulcanus")
 
--- hide unused controls
 data.raw["autoplace-control"]["aquilo_crude_oil"].hidden = true
 data.raw["autoplace-control"]["gleba_stone"].hidden = true
 data.raw["autoplace-control"]["gleba_cliff"].hidden = true

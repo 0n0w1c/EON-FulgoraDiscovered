@@ -45,9 +45,6 @@ data.raw["turret"]["big-worm-turret"].autoplace.probability_expression = "eon_ma
 data.raw["turret"]["behemoth-worm-turret"].autoplace.probability_expression =
 "eon_mask_nauvis_territory(behemoth_worm_turret)"
 
---------------------------------------------------------------------------------
--- Add support for Armoured Biters
---------------------------------------------------------------------------------
 
 if mods["ArmouredBiters"] then
     local armoured_biter_spawner = data.raw["unit-spawner"] and data.raw["unit-spawner"]["armoured-biter-spawner"]
@@ -69,24 +66,19 @@ if mods["ArmouredBiters"] then
 end
 
 
---------------------------------------------------------------------------------
--- Add support for Explosive Biters
---------------------------------------------------------------------------------
-
 if mods["Explosive_biters"] then
+    ---Explosive probability expression.
+    ---@param expression any
     local function eon_explosive_probability_expression(expression)
-        -- Match Cold Biters' approach: use the mod's own enemy autoplace
-        -- function/control consistently, even when Explosive Biters' own
-        -- startup setting is not set to Vulcanus.
-        --
-        -- This must be idempotent: if Explosive Biters already generated an
-        -- eb_enemy_autoplace_base(...) expression, do not turn it into
-        -- eb_eb_enemy_autoplace_base(...).
         expression = string.gsub(expression, "^enemy_autoplace_base%(", "eb_enemy_autoplace_base(")
         expression = string.gsub(expression, "([^%w_])enemy_autoplace_base%(", "%1eb_enemy_autoplace_base(")
         return expression
     end
 
+    ---Mask explosive autoplace.
+    ---@param prototype_type string
+    ---@param prototype_name string
+    ---@param expression_name string
     local function eon_mask_explosive_autoplace(prototype_type, prototype_name, expression_name)
         local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
         if prototype
@@ -125,14 +117,15 @@ if mods["Explosive_biters"] then
     eon_mask_explosive_autoplace("turret", "mother-explosive-worm-turret", "mother_explosive_worm_turret")
 end
 
---------------------------------------------------------------------------------
--- Add support for Cold Biters
---------------------------------------------------------------------------------
 
 if mods["Cold_biters"] then
     local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
         and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
 
+    ---Mask cold autoplace.
+    ---@param prototype_type string
+    ---@param prototype_name string
+    ---@param expression_name string
     local function eon_mask_cold_autoplace(prototype_type, prototype_name, expression_name)
         local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
         if prototype
@@ -181,15 +174,16 @@ if mods["Cold_biters"] then
     eon_mask_cold_autoplace("turret", "mother-cold-worm-turret", "eon_mother_cold_worm_turret")
 end
 
---------------------------------------------------------------------------------
--- Add support for Electric Flying Enemies / Fulgoran Enemies
---------------------------------------------------------------------------------
 
 if mods["Electric_flying_enemies"]
     and mods["Cold_biters"]
     and settings.startup["eon-fd-aquilo-on-fulgora"]
     and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
 then
+    ---Mask electric off aquilo.
+    ---@param prototype_type string
+    ---@param prototype_name string
+    ---@param expression_name string
     local function eon_mask_electric_off_aquilo(prototype_type, prototype_name, expression_name)
         local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
         if prototype
@@ -215,9 +209,6 @@ then
         "eon_walker_electric_unit_spawner_off_aquilo")
 end
 
---------------------------------------------------------------------------------
--- Add Vulcanus enemies aka demolishers
---------------------------------------------------------------------------------
 
 local eon_nauvis_territory_settings = table.deepcopy(data.raw["planet"]["vulcanus"].map_gen_settings.territory_settings)
 data.raw["planet"]["nauvis"].map_gen_settings.territory_settings = eon_nauvis_territory_settings
@@ -240,15 +231,8 @@ data.raw["noise-expression"]["demolisher_starting_area"].expression = "if(eon_vu
 data.raw["noise-expression"]["demolisher_variation_expression"].expression =
 "floor(clamp(distance / (50 * 32) - 0.25, 0, 4)) + (-99 * no_enemies_mode)"
 
---------------------------------------------------------------------------------
--- Add Gleba enemies aka strafer, stompers and wriggler pentapods
---------------------------------------------------------------------------------
 
 data.raw["planet"]["nauvis"].map_gen_settings.autoplace_controls["gleba_enemy_base"] = {}
-
--- ---------------------------------------------------------------------------
--- Gleba enemy tuning constants
--- ---------------------------------------------------------------------------
 
 local gleba_enemy_frequency = "var('control:gleba_enemy_base:frequency')"
 local gleba_enemy_size = "sqrt(var('control:gleba_enemy_base:size'))"
@@ -258,14 +242,21 @@ local fertile_cap = 0.00015
 local fertile_scale = 2000
 local green_penalty = 12000
 
+---Min expr.
+---@param a any
+---@param b any
 local function min_expr(a, b)
     return "min(" .. a .. ", " .. b .. ")"
 end
 
+---Max expr.
+---@param ... any
 local function max_expr(...)
     return "max(" .. table.concat({ ... }, ", ") .. ")"
 end
 
+---Gleba enemy mask.
+---@param expr any
 local function gleba_enemy_mask(expr)
     return gleba_enemy_frequency ..
         " * eon_mask_gleba_territory((" ..
