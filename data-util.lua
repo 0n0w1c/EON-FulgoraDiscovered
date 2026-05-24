@@ -139,6 +139,15 @@ function data_util.generate_eon_name(name)
     return "eon_" .. string.gsub(name, "-", "_")
 end
 
+---Check whether the backup EON noise-expression exists for a prototype.
+---@param prototype_name string
+---@return boolean
+function data_util.has_eon_noise_expression(prototype_name)
+    local noise_expressions = data.raw["noise-expression"]
+    return noise_expressions ~= nil
+        and noise_expressions[data_util.generate_eon_name(prototype_name)] ~= nil
+end
+
 ---Check whether a tile participates in map generation.
 ---@param tile_name string
 ---@return boolean
@@ -237,7 +246,13 @@ function data_util.apply_mask_group(args)
     for _, prototype_name in ipairs(prototype_names) do
         local prototype = prototypes[prototype_name]
         if prototype and prototype.autoplace then
-            mask(prototype_name, prototype_type)
+            if data_util.has_eon_noise_expression(prototype_name) then
+                mask(prototype_name, prototype_type)
+            else
+                log("EON-FulgoraDiscovered: skipped masking " ..
+                    prototype_type .. "/" .. prototype_name ..
+                    " because backup noise expression " .. data_util.generate_eon_name(prototype_name) .. " does not exist")
+            end
         end
     end
 end
