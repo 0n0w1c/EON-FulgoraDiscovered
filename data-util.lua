@@ -224,27 +224,6 @@ function data_util.generated_nauvis_tiles(extra_names, excluded_names)
     return result
 end
 
----Return true when the prototype has a matching EON backup noise expression.
----@param prototype_name string
----@return boolean
-function data_util.has_eon_noise_expression(prototype_name)
-    local noise_expressions = data.raw["noise-expression"]
-    if not noise_expressions then return false end
-
-    return noise_expressions[data_util.generate_eon_name(prototype_name)] ~= nil
-end
-
----Log that a prototype was not masked because its backup expression is missing.
----@param prototype_type string
----@param prototype_name string
-function data_util.log_skipped_missing_eon_noise_expression(prototype_type, prototype_name)
-    log("EON-FulgoraDiscovered: skipped masking " ..
-        prototype_type .. "/" .. prototype_name ..
-        " because backup noise expression " ..
-        data_util.generate_eon_name(prototype_name) ..
-        " does not exist")
-end
-
 ---Apply a mask to generated prototypes.
 ---@param args { names: EONPrototypeList, prototype_type: string, mask: fun(name: string, prototype_type: string) }
 function data_util.apply_mask_group(args)
@@ -258,11 +237,7 @@ function data_util.apply_mask_group(args)
     for _, prototype_name in ipairs(prototype_names) do
         local prototype = prototypes[prototype_name]
         if prototype and prototype.autoplace then
-            if data_util.has_eon_noise_expression(prototype_name) then
-                mask(prototype_name, prototype_type)
-            else
-                data_util.log_skipped_missing_eon_noise_expression(prototype_type, prototype_name)
-            end
+            mask(prototype_name, prototype_type)
         end
     end
 end
@@ -285,6 +260,51 @@ function data_util.generated_tiles_by_surface()
     }
 end
 
+local eon_known_worldgen_planets = { "fulgora", "gleba", "vulcanus", "aquilo" }
+
+local eon_known_worldgen_planet_names = {
+    nauvis = true,
+    fulgora = true,
+    gleba = true,
+    vulcanus = true,
+    aquilo = true,
+}
+
+---Check whether a prototype belongs to a non-vanilla/modded planet.
+---@param prototype table
+---@return boolean
+local function prototype_matches_modded_worldgen_planet(prototype)
+    local simulation = prototype.factoriopedia_simulation
+    if simulation and simulation.planet and not eon_known_worldgen_planet_names[simulation.planet] then
+        return true
+    end
+
+    local expression = prototype.autoplace and prototype.autoplace.probability_expression
+    if expression then
+        expression = tostring(expression)
+        for planet_name in pairs(data.raw.planet or {}) do
+            if not eon_known_worldgen_planet_names[planet_name] then
+                if string.find(expression, planet_name .. "_", 1, true) or string.find(expression, planet_name .. "-", 1, true) then
+                    return true
+                end
+            end
+        end
+    end
+
+    local restrictions = prototype.autoplace and prototype.autoplace.tile_restriction
+    if restrictions then
+        for _, tile_name in ipairs(restrictions) do
+            local tile = data.raw.tile and data.raw.tile[tile_name]
+            local surface_name = tile and tile.sprite_usage_surface
+            if surface_name and not eon_known_worldgen_planet_names[surface_name] then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
 ---Collect generated prototypes whose autoplace expression contains keywords.
 ---@param prototype_type string
 ---@param keywords EONPrototypeList
@@ -294,6 +314,8 @@ end
 function data_util.prototypes_for_autoplace_probability_keywords(prototype_type, keywords, extra_names, excluded_names)
     return cached_prototype_group("autoplace-probability-keyword", prototype_type, keywords, extra_names, excluded_names,
         function(_, prototype)
+            if prototype_matches_modded_worldgen_planet(prototype) then return false end
+
             local expression = prototype.autoplace and prototype.autoplace.probability_expression
             if not expression then return false end
             expression = tostring(expression)
@@ -305,8 +327,6 @@ function data_util.prototypes_for_autoplace_probability_keywords(prototype_type,
             return false
         end)
 end
-
-local eon_known_worldgen_planets = { "fulgora", "gleba", "vulcanus", "aquilo" }
 
 ---Prototype matches worldgen planet.
 ---@param prototype table
@@ -353,6 +373,7 @@ end
 function data_util.prototypes_for_worldgen_planet(prototype_type, planet_name, extra_names, excluded_names)
     return cached_prototype_group("worldgen-planet", prototype_type, { planet_name }, extra_names, excluded_names,
         function(_, prototype)
+            if prototype_matches_modded_worldgen_planet(prototype) then return false end
             return prototype_matches_worldgen_planet(prototype, planet_name)
         end)
 end
@@ -366,6 +387,7 @@ function data_util.prototypes_for_nauvis_worldgen(prototype_type, extra_names, e
     return cached_prototype_group("nauvis-worldgen", prototype_type, { "nauvis" }, extra_names, excluded_names,
         function(_, prototype)
             if not prototype.autoplace then return false end
+            if prototype_matches_modded_worldgen_planet(prototype) then return false end
 
             for _, planet_name in ipairs(eon_known_worldgen_planets) do
                 if prototype_matches_worldgen_planet(prototype, planet_name) then
