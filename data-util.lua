@@ -224,6 +224,27 @@ function data_util.generated_nauvis_tiles(extra_names, excluded_names)
     return result
 end
 
+---Return true when the prototype has a matching EON backup noise expression.
+---@param prototype_name string
+---@return boolean
+function data_util.has_eon_noise_expression(prototype_name)
+    local noise_expressions = data.raw["noise-expression"]
+    if not noise_expressions then return false end
+
+    return noise_expressions[data_util.generate_eon_name(prototype_name)] ~= nil
+end
+
+---Log that a prototype was not masked because its backup expression is missing.
+---@param prototype_type string
+---@param prototype_name string
+function data_util.log_skipped_missing_eon_noise_expression(prototype_type, prototype_name)
+    log("EON-FulgoraDiscovered: skipped masking " ..
+        prototype_type .. "/" .. prototype_name ..
+        " because backup noise expression " ..
+        data_util.generate_eon_name(prototype_name) ..
+        " does not exist")
+end
+
 ---Apply a mask to generated prototypes.
 ---@param args { names: EONPrototypeList, prototype_type: string, mask: fun(name: string, prototype_type: string) }
 function data_util.apply_mask_group(args)
@@ -237,7 +258,11 @@ function data_util.apply_mask_group(args)
     for _, prototype_name in ipairs(prototype_names) do
         local prototype = prototypes[prototype_name]
         if prototype and prototype.autoplace then
-            mask(prototype_name, prototype_type)
+            if data_util.has_eon_noise_expression(prototype_name) then
+                mask(prototype_name, prototype_type)
+            else
+                data_util.log_skipped_missing_eon_noise_expression(prototype_type, prototype_name)
+            end
         end
     end
 end

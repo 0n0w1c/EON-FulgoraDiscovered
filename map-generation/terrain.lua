@@ -289,7 +289,11 @@ local function eon_mask_prototypes(prototype_type, prototype_names, mask_functio
     for _, prototype_name in ipairs(prototype_names or {}) do
         local prototype = prototypes[prototype_name]
         if prototype and prototype.autoplace then
-            mask_function(prototype_name, prototype_type)
+            if data_util.has_eon_noise_expression(prototype_name) then
+                mask_function(prototype_name, prototype_type)
+            else
+                data_util.log_skipped_missing_eon_noise_expression(prototype_type, prototype_name)
+            end
         end
     end
 end
