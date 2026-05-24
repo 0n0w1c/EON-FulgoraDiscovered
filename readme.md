@@ -70,7 +70,7 @@ For biome customization, try [Craft Deco](https://mods.factorio.com/mod/craft-de
 [Armoured Biters](https://mods.factorio.com/mod/ArmouredBiters) - Spawn in Nauvis biome
 [Explosive Biters](https://mods.factorio.com/mod/Explosive_biters) - Spawn in Vulcanus biome
 [Frost Biters](https://mods.factorio.com/mod/Cold_biters) - Spawn in Aquilo biome
-[Fulgoran Enemies](https://mods.factorio.com/mod/Electric_flying_enemies) - Spawn in Fulgoran biome
+[Fulgoran Enemies](https://mods.factorio.com/mod/Electric_flying_enemies) - Spawn in Fulgora biome
 
 ---
 
