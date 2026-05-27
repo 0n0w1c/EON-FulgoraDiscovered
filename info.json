@@ -1,6 +1,6 @@
 {
     "name": "EON-FulgoraDiscovered",
-    "version": "0.8.3",
+    "version": "0.9.0",
     "title": "EverythingOnNauvis - Fulgora Discovered!",
     "description": "Everything On Nauvis, until Fulgora is discovered",
     "author": "0n0w1c",
@@ -13,6 +13,7 @@
         "? ArmouredBiters",
         "? Explosive_biters",
         "? Cold_biters",
+        "? craft-deco-2",
         "? Electric_flying_enemies",
         "! alien-biomes",
         "! Engineersvsenvironmentalist-redux",

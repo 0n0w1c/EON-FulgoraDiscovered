@@ -2,12 +2,10 @@ local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
     and settings.startup["eon-fd-aquilo-on-fulgora"].value
 
 local surface_names = { nauvis = true }
-
 if eon_aquilo_on_fulgora then
     surface_names.fulgora = true
 end
 
----@type EONPrototypeList
 local aquilo_cliff_blocking_tile_names = {
     "ammoniacal-ocean",
     "ammoniacal-ocean-2",
@@ -20,7 +18,19 @@ local aquilo_cliff_blocking_tile_names = {
     "snow-patchy"
 }
 
----@type EONPrototypeSet
+local aquilo_cliff_blocking_tile_lookup = {
+    ["ammoniacal-ocean"] = true,
+    ["ammoniacal-ocean-2"] = true,
+    ["brash-ice"] = true,
+    ["ice-rough"] = true,
+    ["ice-smooth"] = true,
+    ["snow-crests"] = true,
+    ["snow-flat"] = true,
+    ["snow-lumpy"] = true,
+    ["snow-patchy"] = true
+}
+
+
 local nauvis_tile_names = {
     ["grass-1"] = true,
     ["grass-2"] = true,
@@ -43,7 +53,6 @@ local nauvis_tile_names = {
     ["red-desert-3"] = true
 }
 
----@type { cliff_name: string, tile_names: EONPrototypeSet }[]
 local terrain_cliff_rules = {
     {
         cliff_name = "cliff-gleba",
@@ -117,8 +126,7 @@ local terrain_cliff_rules = {
     }
 }
 
----Build the tile scan area around a cliff.
----@param cliff table
+---@param cliff LuaEntity
 ---@return table
 local function cliff_scan_area(cliff)
     return {
@@ -133,36 +141,49 @@ local function cliff_scan_area(cliff)
     }
 end
 
----Return whether a cliff overlaps Aquilo blocking tiles.
----@param cliff table
+---@param cliff LuaEntity
 ---@return boolean
 local function cliff_overlaps_aquilo_tile(cliff)
-    return cliff.surface.count_tiles_filtered({
-        area = cliff_scan_area(cliff),
-        name = aquilo_cliff_blocking_tile_names,
-        limit = 1
-    }) > 0
+    local surface = cliff.surface
+    local area = cliff_scan_area(cliff)
+
+    if area then
+        return surface.count_tiles_filtered({
+            area = area,
+            name = aquilo_cliff_blocking_tile_names,
+            limit = 1
+        }) > 0
+    end
+
+    local tile = surface.get_tile(cliff.position.x, cliff.position.y)
+    return tile and aquilo_cliff_blocking_tile_lookup[tile.name] == true
 end
 
----Remove Fulgora cliffs that overlap Aquilo tiles.
----@param cliff table
+---@param cliff LuaEntity
 ---@return boolean
-local function keep_fulgora_cliff_off_aquilo_tiles(cliff)
+local function keep_cliff_off_aquilo_tiles(cliff)
     if not (cliff and cliff.valid) then return false end
-    if cliff.surface.name ~= "fulgora" then return true end
-    if cliff.name ~= "cliff-fulgora" then return true end
+    if cliff.name == "crater-cliff" then return true end
 
-    if cliff_overlaps_aquilo_tile(cliff) then
-        cliff.destroy({ raise_destroy = false })
+    local surface_name = cliff.surface.name
+    local should_remove = false
+
+    if eon_aquilo_on_fulgora then
+        should_remove = surface_name == "fulgora" and cliff.name == "cliff-fulgora"
+    else
+        should_remove = surface_name == "nauvis"
+    end
+
+    if should_remove and cliff_overlaps_aquilo_tile(cliff) then
+        cliff.destroy({ do_cliff_correction = true, raise_destroy = false })
         return false
     end
 
     return true
 end
 
----Scan nearby terrain categories around a cliff.
 ---@param cliff table
----@return table
+---@return any
 local function scan_cliff_terrain(cliff)
     local found = {
         gleba = false,
@@ -199,9 +220,8 @@ local function scan_cliff_terrain(cliff)
     return found
 end
 
----Get target cliff rule for terrain.
 ---@param cliff table
----@return table|string|nil
+---@return any
 local function target_cliff_rule_for_terrain(cliff)
     local found = scan_cliff_terrain(cliff)
 
@@ -220,9 +240,9 @@ local function target_cliff_rule_for_terrain(cliff)
     return nil
 end
 
----Rotate cliff to orientation.
 ---@param cliff table
----@param target_orientation table
+---@param target_orientation string
+---@return nil
 local function rotate_cliff_to_orientation(cliff, target_orientation)
     if not (cliff and cliff.valid and target_orientation) then return end
 
@@ -233,11 +253,10 @@ local function rotate_cliff_to_orientation(cliff, target_orientation)
     end
 end
 
----Create a cliff from saved cliff data.
 ---@param surface table
 ---@param name string
----@param original_cliff_data table
----@return table|nil
+---@param original_cliff_data any
+---@return any
 local function create_cliff(surface, name, original_cliff_data)
     local create_params = {
         name = name,
@@ -258,8 +277,8 @@ local function create_cliff(surface, name, original_cliff_data)
     return nil
 end
 
----Replace with terrain cliff.
 ---@param cliff table
+---@return nil
 local function replace_with_terrain_cliff(cliff)
     if not (cliff and cliff.valid) then return end
 
@@ -294,21 +313,22 @@ local function replace_with_terrain_cliff(cliff)
     end
 end
 
----Process area.
 ---@param surface table
 ---@param area table
+---@return nil
 local function process_area(surface, area)
     local cliffs = surface.find_entities_filtered({
         area = area,
         type = "cliff"
     })
 
-    for _, cliff in ipairs(cliffs) do
-        if keep_fulgora_cliff_off_aquilo_tiles(cliff) and cliff.valid and cliff.name ~= "crater-cliff" then
+    for _, cliff in pairs(cliffs) do
+        if keep_cliff_off_aquilo_tiles(cliff) and cliff.valid and cliff.name ~= "crater-cliff" then
             replace_with_terrain_cliff(cliff)
         end
     end
 end
+
 
 script.on_event(defines.events.on_chunk_generated, function(event)
     local surface = event.surface
@@ -317,6 +337,7 @@ script.on_event(defines.events.on_chunk_generated, function(event)
 
     process_area(surface, event.area)
 end)
+
 
 
 local explosive_biter_autoplace_entities = {
@@ -329,11 +350,8 @@ local explosive_biter_autoplace_entities = {
     "mother-explosive-worm-turret"
 }
 
----@alias EONAutoplaceControl table
-
----Copy autoplace control.
----@param control EONAutoplaceControl|nil
----@return EONAutoplaceControl
+---@param control table|nil
+---@return table
 local function eon_copy_autoplace_control(control)
     if not control then return {} end
 
@@ -344,7 +362,7 @@ local function eon_copy_autoplace_control(control)
     return copy
 end
 
----Enable explosive biters on existing nauvis.
+---@return nil
 local function eon_enable_explosive_biters_on_existing_nauvis()
     if not script.active_mods["Explosive_biters"] then return end
 
@@ -363,7 +381,7 @@ local function eon_enable_explosive_biters_on_existing_nauvis()
     map_gen_settings.autoplace_settings.entity = map_gen_settings.autoplace_settings.entity or { settings = {} }
     map_gen_settings.autoplace_settings.entity.settings = map_gen_settings.autoplace_settings.entity.settings or {}
 
-    for _, entity_name in ipairs(explosive_biter_autoplace_entities) do
+    for _, entity_name in pairs(explosive_biter_autoplace_entities) do
         if prototypes.entity[entity_name] and prototypes.entity[entity_name].autoplace_specification then
             map_gen_settings.autoplace_settings.entity.settings[entity_name] =
                 map_gen_settings.autoplace_settings.entity.settings[entity_name] or {}

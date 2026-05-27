@@ -66,32 +66,36 @@ if mods["ArmouredBiters"] then
 end
 
 
+
 if mods["Explosive_biters"] then
-    ---Explosive probability expression.
-    ---@param expression any
+    ---@param expression string
+    ---@return string
     local function eon_explosive_probability_expression(expression)
         expression = string.gsub(expression, "^enemy_autoplace_base%(", "eb_enemy_autoplace_base(")
         expression = string.gsub(expression, "([^%w_])enemy_autoplace_base%(", "%1eb_enemy_autoplace_base(")
         return expression
     end
 
-    ---Mask explosive autoplace.
-    ---@param prototype_type string
+    ---@param prototype_type any
     ---@param prototype_name string
     ---@param expression_name string
+    ---@return nil
     local function eon_mask_explosive_autoplace(prototype_type, prototype_name, expression_name)
         local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
         if prototype
             and prototype.autoplace
             and prototype.autoplace.probability_expression
         then
+            local probability_expression = prototype.autoplace.probability_expression
+            if type(probability_expression) ~= "string" then return end
+
             prototype.autoplace.control = "hot_enemy_base"
 
             data:extend({
                 {
                     type = "noise-expression",
                     name = expression_name,
-                    expression = eon_explosive_probability_expression(prototype.autoplace.probability_expression)
+                    expression = eon_explosive_probability_expression(probability_expression)
                 },
             })
 
@@ -122,10 +126,10 @@ if mods["Cold_biters"] then
     local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
         and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
 
-    ---Mask cold autoplace.
-    ---@param prototype_type string
+    ---@param prototype_type any
     ---@param prototype_name string
     ---@param expression_name string
+    ---@return nil
     local function eon_mask_cold_autoplace(prototype_type, prototype_name, expression_name)
         local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
         if prototype
@@ -180,10 +184,10 @@ if mods["Electric_flying_enemies"]
     and settings.startup["eon-fd-aquilo-on-fulgora"]
     and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
 then
-    ---Mask electric off aquilo.
-    ---@param prototype_type string
+    ---@param prototype_type any
     ---@param prototype_name string
     ---@param expression_name string
+    ---@return nil
     local function eon_mask_electric_off_aquilo(prototype_type, prototype_name, expression_name)
         local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
         if prototype
@@ -234,6 +238,7 @@ data.raw["noise-expression"]["demolisher_variation_expression"].expression =
 
 data.raw["planet"]["nauvis"].map_gen_settings.autoplace_controls["gleba_enemy_base"] = {}
 
+
 local gleba_enemy_frequency = "var('control:gleba_enemy_base:frequency')"
 local gleba_enemy_size = "sqrt(var('control:gleba_enemy_base:size'))"
 
@@ -242,21 +247,21 @@ local fertile_cap = 0.00015
 local fertile_scale = 2000
 local green_penalty = 12000
 
----Min expr.
 ---@param a any
 ---@param b any
+---@return any
 local function min_expr(a, b)
     return "min(" .. a .. ", " .. b .. ")"
 end
 
----Max expr.
----@param ... any
+---@vararg any
+---@return any
 local function max_expr(...)
     return "max(" .. table.concat({ ... }, ", ") .. ")"
 end
 
----Gleba enemy mask.
 ---@param expr any
+---@return any
 local function gleba_enemy_mask(expr)
     return gleba_enemy_frequency ..
         " * eon_mask_gleba_territory((" ..

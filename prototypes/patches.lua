@@ -1,8 +1,8 @@
 local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
     and settings.startup["eon-fd-aquilo-on-fulgora"].value
 
----Mask off aquilo for nauvis.
----@param expression any
+---@param expression string
+---@return any
 local function eon_mask_off_aquilo_for_nauvis(expression)
     if eon_aquilo_on_fulgora then
         return expression
@@ -44,46 +44,10 @@ if dead_tree and dead_tree.autoplace and dead_tree.autoplace.probability_express
         eon_mask_off_aquilo_for_nauvis("eon_mask_off_gleba_territory(eon_mask_off_vulcano_terrain(" .. expr .. "))")
 end
 
-data:extend({
-    {
-        type = "noise-expression",
-        name = "eon_vulcanus_ashland_tree_density",
-        expression = "clamp(0.02 + 0.8 * tree_small_noise, 0, 1)"
-    },
-})
-
----Spawn tree in vulcanus.
----@param tree_name string
----@param multiplier number
-local function spawn_tree_in_vulcanus(tree_name, multiplier)
-    local tree = data.raw["tree"] and data.raw["tree"][tree_name]
-    if not (tree and tree.autoplace) then return end
-
-    multiplier = multiplier or 1
-
-    tree.autoplace.probability_expression =
-        "eon_mask_vulcano_terrain(" ..
-        (multiplier == 1 and "eon_vulcanus_ashland_tree_density"
-            or (multiplier .. " * eon_vulcanus_ashland_tree_density")) ..
-        ")"
-end
-
-spawn_tree_in_vulcanus("ashland-lichen-tree", 0.05)
-spawn_tree_in_vulcanus("ashland-lichen-tree-flaming", 0.02)
-
-if data.raw.planet and data.raw.planet["nauvis"] and data.raw.planet["nauvis"].map_gen_settings
-    and data.raw.planet["nauvis"].map_gen_settings.autoplace_settings
-    and data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity
-    and data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings
-then
-    data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["ashland-lichen-tree"] = {}
-    data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["ashland-lichen-tree-flaming"] = {}
-end
-
----Scale entity autoplace.
 ---@param type_name string
 ---@param entity_name string
 ---@param factor number
+---@return nil
 local function scale_entity_autoplace(type_name, entity_name, factor)
     local proto = data.raw[type_name] and data.raw[type_name][entity_name]
     if proto and proto.autoplace and proto.autoplace.probability_expression then
@@ -118,8 +82,8 @@ if calcite then
     calcite.category = nil
 end
 
----Copy pollutant value.
----@param value table
+---@param value string
+---@return any
 local function eon_copy_pollutant_value(value)
     if type(value) == "table" then
         return table.deepcopy(value)
@@ -127,8 +91,8 @@ local function eon_copy_pollutant_value(value)
     return value
 end
 
----Move spores to pollution.
 ---@param pollutants table
+---@return nil
 local function eon_move_spores_to_pollution(pollutants)
     if type(pollutants) ~= "table" or pollutants.spores == nil then return end
 
@@ -138,8 +102,8 @@ local function eon_move_spores_to_pollution(pollutants)
     pollutants.spores = nil
 end
 
----Convert energy source pollutants.
 ---@param energy_source table
+---@return nil
 local function eon_convert_energy_source_pollutants(energy_source)
     if type(energy_source) ~= "table" then return end
     eon_move_spores_to_pollution(energy_source.emissions_per_minute)
@@ -201,8 +165,8 @@ if data.raw["agricultural-tower"] and data.raw["agricultural-tower"]["agricultur
 end
 
 if mods["Electric_flying_enemies"] then
-    ---Copy table or value.
-    ---@param value table
+    ---@param value any
+    ---@return any
     local function eon_copy_table_or_value(value)
         if type(value) == "table" then
             return table.deepcopy(value)
@@ -236,9 +200,8 @@ if mods["Electric_flying_enemies"] then
         [5] = "behemoth-biter",
     }
 
-    ---Get nauvis unit absorption.
-
     ---@param level number
+    ---@return any
     local function eon_get_nauvis_unit_absorption(level)
         local source_name = eon_unit_pollution_sources[level]
         local source = source_name and data.raw["unit"] and data.raw["unit"][source_name]

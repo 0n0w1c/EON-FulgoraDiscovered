@@ -1,15 +1,13 @@
 local data_util = require("data-util")
 
 local terrain = {}
-local eon_generated_tiles = data_util.generated_tiles_by_surface()
-local eon_generated_worldgen = data_util.generated_worldgen_prototypes_by_surface()
 
 local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
     and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
 
 local eon_aquilo_planet_name = eon_aquilo_on_fulgora and "fulgora" or "nauvis"
 
-local eon_aquilo_north_bias_y_offset = 650
+local eon_aquilo_north_bias_y_offset = eon_aquilo_on_fulgora and 650 or -250
 
 local eon_aquilo_exclusion_mask = eon_aquilo_on_fulgora
     and "eon_identity"
@@ -22,6 +20,10 @@ local eon_ammonia_ocean_tile_expression = eon_aquilo_on_fulgora
     or "eon_aquilo_ammonia"
 
 local eon_aquilo_decorative_mask = "eon_mask_aquilo_territory"
+
+local eon_vulcanus_off_aquilo_mask = eon_aquilo_on_fulgora
+    and "eon_identity"
+    or "eon_mask_off_aquilo_territory"
 
 local eon_aquilo_snow_decorative_mask = eon_aquilo_on_fulgora
     and "eon_identity"
@@ -39,6 +41,7 @@ local eon_gleba_region_expression =
 "eon_mask_off_vulcano_terrain(if(gleba_noise + gleba_intermediate_noise + gleba_small_noise + moisture_nauvis + south_offset > threshold, 1, 0))"
 
 local eon_gleba_mask_threshold = -10
+local eon_gleba_south_bias_y_offset = eon_aquilo_on_fulgora and 1000 or 1500
 
 local eon_vulcanus_coverage_expression = eon_aquilo_on_fulgora
     and "eon_vulcanus_region(0)"
@@ -47,6 +50,26 @@ local eon_vulcanus_coverage_expression = eon_aquilo_on_fulgora
 local eon_vulcanus_terrain_expression = eon_aquilo_on_fulgora
     and "eon_vulcanus_region(0)"
     or "max(eon_vulcano_coverage, eon_updated_volcanic_folds_flat) > 0"
+
+---@return string
+local function eon_vulcanus_tree_expression_for_nauvis()
+    local expression = data.raw["noise-expression"]
+        and data.raw["noise-expression"]["vulcanus_tree"]
+        and data.raw["noise-expression"]["vulcanus_tree"].expression
+
+    if type(expression) ~= "string" or expression == "" then
+        expression = "min(10 * (vulcanus_ashlands_biome - 0.9)," ..
+            "-1.5 + 1.5 * moisture + 0.5 * (moisture > 0.9) - " ..
+            "0.5 * aux + 0.5 * vulcanus_decorative_knockout)"
+    end
+
+    expression = string.gsub(expression, "%f[%w_]moisture%f[^%w_]", "vulcanus_moisture")
+    expression = string.gsub(expression, "%f[%w_]aux%f[^%w_]", "vulcanus_aux")
+
+    return expression
+end
+
+local eon_vulcanus_tree_on_nauvis_expression = eon_vulcanus_tree_expression_for_nauvis()
 
 local eon_gleba_continuous_cliffiness_expression = "clamp(quick_multioctave_noise{x = x,\z
                                                        y = y,\z
@@ -76,67 +99,58 @@ local eon_blended_cliff_elevation_expression = "if(eon_vulcanus_terrain,\z
                                                   gleba_elevation * 0.2,\z
                                                   cliff_elevation_nauvis * 0.4))"
 
-local eon_aquilo_decorative_list = {
-    "lithium-iceberg-medium",
-    "lithium-iceberg-small",
-    "lithium-iceberg-tiny",
-    "floating-iceberg-large",
-    "floating-iceberg-small",
-    "aqulio-ice-decal-blue",
-    "aqulio-snowy-decal",
-    "snow-drift-decal",
+local eon_aquilo_decorative_names = {
+    ["lithium-iceberg-medium"] = true,
+    ["lithium-iceberg-small"] = true,
+    ["lithium-iceberg-tiny"] = true,
+    ["floating-iceberg-large"] = true,
+    ["floating-iceberg-small"] = true,
+    ["aqulio-ice-decal-blue"] = true,
+    ["aqulio-snowy-decal"] = true,
+    ["snow-drift-decal"] = true,
 }
 
-local eon_aquilo_resource_list = {
-    "lithium-brine",
-    "fluorine-vent",
+local eon_aquilo_entity_names = {
+    ["lithium-brine"] = true,
+    ["fluorine-vent"] = true,
+    ["lithium-iceberg-huge"] = true,
+    ["lithium-iceberg-big"] = true,
 }
 
-local eon_aquilo_simple_entity_list = {
-    "lithium-iceberg-huge",
-    "lithium-iceberg-big",
-}
-
-local eon_aquilo_decorative_names = {}
-for _, decorative_name in ipairs(eon_aquilo_decorative_list) do
-    eon_aquilo_decorative_names[decorative_name] = true
-end
-
-local eon_aquilo_entity_names = {}
-for _, entity_name in ipairs(eon_aquilo_resource_list) do
-    eon_aquilo_entity_names[entity_name] = true
-end
-for _, entity_name in ipairs(eon_aquilo_simple_entity_list) do
-    eon_aquilo_entity_names[entity_name] = true
-end
-
----@alias EONPrototypeName string
----@alias EONPrototypeList EONPrototypeName[]
----@alias EONPrototypeSet table<EONPrototypeName, boolean>
----@alias EONMapGen table
-
----@type EONPrototypeList
-local eon_aquilo_tile_names = data_util.tiles_for_sprite_usage_surface("aquilo", {
-    "ammoniacal-ocean",
-    "ammoniacal-ocean-2",
-})
-
----@type EONPrototypeSet
-local eon_aquilo_tile_name_set = {}
-for _, tile_name in ipairs(eon_aquilo_tile_names) do
-    eon_aquilo_tile_name_set[tile_name] = true
-end
-
-local eon_aquilo_snow_decorative_tile_names = data_util.tiles_for_sprite_usage_surfaces({ "aquilo", "fulgora" }, nil, {
+local eon_aquilo_tile_names = {
+    ["snow-flat"] = true,
+    ["snow-crests"] = true,
+    ["snow-lumpy"] = true,
+    ["snow-patchy"] = true,
+    ["ice-rough"] = true,
+    ["ice-smooth"] = true,
+    ["brash-ice"] = true,
     ["ammoniacal-ocean"] = true,
     ["ammoniacal-ocean-2"] = true,
-    ["oil-ocean-shallow"] = true,
-    ["oil-ocean-deep"] = true,
-})
+}
 
----Wrap probability expression.
----@param prototype table|nil
+local eon_aquilo_snow_decorative_tile_names = {
+    "snow-flat",
+    "snow-crests",
+    "snow-lumpy",
+    "snow-patchy",
+    "ice-rough",
+    "ice-smooth",
+    "fulgoran-rock",
+    "fulgoran-dust",
+    "fulgoran-sand",
+    "fulgoran-dunes",
+    "fulgoran-walls",
+    "fulgoran-paving",
+    "fulgoran-conduit",
+    "fulgoran-machinery",
+}
+
+local eon_noise_expr_string
+
+---@param prototype table
 ---@param wrapper string
+---@return nil
 local function eon_wrap_probability_expression(prototype, wrapper)
     if not prototype or not prototype.autoplace then return end
     local expression = prototype.autoplace.probability_expression
@@ -147,18 +161,18 @@ local function eon_wrap_probability_expression(prototype, wrapper)
     end
 end
 
----Mask fulgora oil ocean off aquilo ocean edge.
+---@return nil
 local function eon_mask_fulgora_oil_ocean_off_aquilo_ocean_edge()
-    for _, tile_name in ipairs({ "oil-ocean-deep", "oil-ocean-shallow" }) do
+    for _, tile_name in pairs({ "oil-ocean-deep", "oil-ocean-shallow" }) do
         local tile = data.raw.tile and data.raw.tile[tile_name]
         eon_wrap_probability_expression(tile, "eon_mask_off_aquilo_ocean_edge")
     end
 end
 
----Restrict autoplace to tiles.
----@param prototype_type string
+---@param prototype_type any
 ---@param prototype_name string
----@param tile_names? EONPrototypeList
+---@param tile_names string[]
+---@return nil
 local function eon_restrict_autoplace_to_tiles(prototype_type, prototype_name, tile_names)
     local prototypes = data.raw[prototype_type]
     if not prototypes then return end
@@ -169,10 +183,10 @@ local function eon_restrict_autoplace_to_tiles(prototype_type, prototype_name, t
     prototype.autoplace.tile_restriction = tile_names
 end
 
----Extend autoplace tile restriction.
----@param prototype_type string
+---@param prototype_type any
 ---@param prototype_name string
----@param tile_names? EONPrototypeList
+---@param tile_names string[]
+---@return nil
 local function eon_extend_autoplace_tile_restriction(prototype_type, prototype_name, tile_names)
     local prototypes = data.raw[prototype_type]
     if not prototypes then return end
@@ -180,14 +194,11 @@ local function eon_extend_autoplace_tile_restriction(prototype_type, prototype_n
     local prototype = prototypes[prototype_name]
     if not prototype or not prototype.autoplace then return end
 
-    ---@type EONPrototypeSet
     local seen = {}
-
-    ---@type EONPrototypeList
     local merged = {}
 
     if prototype.autoplace.tile_restriction then
-        for _, tile_name in ipairs(prototype.autoplace.tile_restriction) do
+        for _, tile_name in pairs(prototype.autoplace.tile_restriction) do
             if not seen[tile_name] then
                 seen[tile_name] = true
                 table.insert(merged, tile_name)
@@ -195,7 +206,7 @@ local function eon_extend_autoplace_tile_restriction(prototype_type, prototype_n
         end
     end
 
-    for _, tile_name in ipairs(tile_names or {}) do
+    for _, tile_name in ipairs(tile_names) do
         if not seen[tile_name] then
             seen[tile_name] = true
             table.insert(merged, tile_name)
@@ -205,248 +216,150 @@ local function eon_extend_autoplace_tile_restriction(prototype_type, prototype_n
     prototype.autoplace.tile_restriction = merged
 end
 
----Apply aquilo on fulgora snow decorative rules.
+---@return nil
 local function eon_apply_aquilo_on_fulgora_snow_decorative_rules()
     if not eon_aquilo_on_fulgora then return end
 
     eon_extend_autoplace_tile_restriction("optimized-decorative",
         "aqulio-snowy-decal",
         eon_aquilo_snow_decorative_tile_names)
+
     eon_restrict_autoplace_to_tiles("optimized-decorative",
         "snow-drift-decal",
         eon_aquilo_snow_decorative_tile_names)
 end
 
-local eon_autoplace_setting_prototype_types = {
-    tile = "tile",
-    decorative = "optimized-decorative",
-    entity = "simple-entity",
-}
-
----Register generated prototypes in a planet autoplace settings bucket.
----@param planet_name string
----@param setting_type "tile"|"decorative"|"entity"
----@param prototype_names? EONPrototypeList
----@param prototype_type_override? string
-local function eon_register_planet_autoplace_settings(planet_name, setting_type, prototype_names, prototype_type_override)
-    local planet = data.raw.planet and data.raw.planet[planet_name]
-    local map_gen_settings = planet and planet.map_gen_settings
-    local autoplace_settings = map_gen_settings and map_gen_settings.autoplace_settings
-    local setting_bucket = autoplace_settings and autoplace_settings[setting_type]
-    local settings = setting_bucket and setting_bucket.settings
-    local prototype_type = prototype_type_override or eon_autoplace_setting_prototype_types[setting_type]
-    local prototypes = prototype_type and data.raw[prototype_type]
-
-    if not (settings and prototypes) then return end
-
-    for _, prototype_name in ipairs(prototype_names or {}) do
-        local prototype = prototypes[prototype_name]
-        if prototype and prototype.autoplace then
-            settings[prototype_name] = settings[prototype_name] or {}
-        end
-    end
-end
-
----Register generated Gleba prototypes on Nauvis.
-local function eon_register_gleba_map_gen_on_nauvis()
-    local nauvis = data.raw.planet and data.raw.planet["nauvis"]
-    local map_gen_settings = nauvis and nauvis.map_gen_settings
-    if not map_gen_settings then return end
-
-    map_gen_settings.autoplace_controls["gleba_plants"] = {}
-    map_gen_settings.autoplace_controls["gleba_water"] = {}
-
-    eon_register_planet_autoplace_settings("nauvis", "tile", eon_generated_tiles.gleba)
-    eon_register_planet_autoplace_settings("nauvis", "decorative", eon_generated_worldgen.gleba.decoratives)
-    eon_register_planet_autoplace_settings("nauvis", "entity", eon_generated_worldgen.gleba.entities)
-    eon_register_planet_autoplace_settings("nauvis", "entity", eon_generated_worldgen.gleba.trees, "tree")
-    eon_register_planet_autoplace_settings("nauvis", "entity", eon_generated_worldgen.gleba.plants, "plant")
-end
-
----Register generated Vulcanus prototypes on Nauvis.
----@param tile_names EONPrototypeList
-local function eon_register_vulcanus_map_gen_on_nauvis(tile_names)
-    local nauvis = data.raw.planet and data.raw.planet["nauvis"]
-    local map_gen_settings = nauvis and nauvis.map_gen_settings
-    if not map_gen_settings then return end
-
-    map_gen_settings.autoplace_controls["vulcanus_volcanism"] = {}
-
-    eon_register_planet_autoplace_settings("nauvis", "tile", tile_names)
-    eon_register_planet_autoplace_settings("nauvis", "decorative", eon_generated_worldgen.vulcanus.decoratives)
-    eon_register_planet_autoplace_settings("nauvis", "entity", eon_generated_worldgen.vulcanus.entities)
-    eon_register_planet_autoplace_settings("nauvis", "entity", eon_generated_worldgen.vulcanus.trees, "tree")
-end
-
----Mask prototypes.
----@param prototype_type string
----@param prototype_names? EONPrototypeList
----@param mask_function fun(name:string, prototype_type:string)
-local function eon_mask_prototypes(prototype_type, prototype_names, mask_function)
-    local prototypes = data.raw[prototype_type]
-    if not prototypes then return end
-
-    for _, prototype_name in ipairs(prototype_names or {}) do
-        local prototype = prototypes[prototype_name]
-        if prototype and prototype.autoplace then
-            if data_util.has_eon_noise_expression(prototype_name) then
-                mask_function(prototype_name, prototype_type)
-            else
-                log("EON-FulgoraDiscovered: skipped masking " ..
-                    prototype_type .. "/" .. prototype_name ..
-                    " because backup noise expression " .. data_util.generate_eon_name(prototype_name) .. " does not exist")
-            end
-        end
-    end
-end
-
----Mask tiles.
----@param tile_names? EONPrototypeList
----@param mask_function fun(name:string, prototype_type:string)
-local function eon_mask_tiles(tile_names, mask_function)
-    eon_mask_prototypes("tile", tile_names, mask_function)
-end
-
----Mask generated surface tiles.
----@param surface_name string
----@param mask_function fun(name:string, prototype_type:string)
----@param excluded_names? table<string, boolean>
----@param extra_names? EONPrototypeList
-local function eon_mask_generated_surface_tiles(surface_name, mask_function, excluded_names, extra_names)
-    eon_mask_tiles(data_util.tiles_for_sprite_usage_surface(surface_name, extra_names, excluded_names), mask_function)
-end
-
----Mask a prototype into Nauvis territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_nauvis_territory(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_nauvis_territory(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype out of Nauvis territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_off_nauvis_territory(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_off_nauvis_territory(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a resource into valid Nauvis resource territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_resource_territory(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_resource_territory(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype into Aquilo territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_aquilo_territory(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_aquilo_territory(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype out of Aquilo territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_off_aquilo_territory(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_off_aquilo_territory(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype into Aquilo-on-Fulgora territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_fulgora_aquilo_territory(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_fulgora_aquilo_territory(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype out of Aquilo-on-Fulgora territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_off_fulgora_aquilo_territory(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_off_fulgora_aquilo_territory(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype into ammonia ocean territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_ammonia_ocean(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_ammonia_ocean(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a decorative into Aquilo territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_aquilo_decorative_territory(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = eon_aquilo_decorative_mask .. "(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a snow decorative into Aquilo territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_aquilo_snow_decorative_territory(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = eon_aquilo_snow_decorative_mask .. "(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype out of ammonia ocean territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_off_ammonia_ocean(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_off_ammonia_ocean(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype into Gleba territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_gleba_territory(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_gleba_territory(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype out of Gleba territory.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_off_gleba_territory(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_off_gleba_territory(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype into broad Vulcanus coverage.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_vulcano_coverage(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_vulcano_coverage(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype out of broad Vulcanus coverage.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_off_vulcano_coverage(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_off_vulcano_coverage(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype into Vulcanus terrain.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_vulcano_terrain(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_vulcano_terrain(" ..
         data_util.generate_eon_name(decorative) .. ")"
 end
 
----Mask a prototype out of Vulcanus terrain.
 ---@param decorative string
 ---@param decorative_type string
+---@return nil
 function terrain.mask_off_vulcano_terrain(decorative, decorative_type)
     data.raw[decorative_type][decorative].autoplace.probability_expression = "eon_mask_off_vulcano_terrain(" ..
         data_util.generate_eon_name(decorative) .. ")"
@@ -468,39 +381,69 @@ data.raw.tile["deepwater"].autoplace.probability_expression =
 data.raw["noise-expression"]["trees_forest_path_cutout_faded"].expression =
 "eon_mask_nauvis_territory(trees_forest_path_cutout * 0.3 + tree_small_noise * 0.1)"
 
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.nauvis.decoratives,
-    prototype_type = "optimized-decorative",
-    mask = terrain.mask_nauvis_territory,
-}
+terrain.mask_nauvis_territory("cracked-mud-decal", "optimized-decorative")
+terrain.mask_nauvis_territory("dark-mud-decal", "optimized-decorative")
+terrain.mask_nauvis_territory("lichen-decal", "optimized-decorative")
+terrain.mask_nauvis_territory("light-mud-decal", "optimized-decorative")
+terrain.mask_nauvis_territory("small-rock", "optimized-decorative")
+terrain.mask_nauvis_territory("small-sand-rock", "optimized-decorative")
+terrain.mask_nauvis_territory("tiny-rock", "optimized-decorative")
 
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.nauvis.entities,
-    prototype_type = "simple-entity",
-    mask = terrain.mask_nauvis_territory,
-}
+terrain.mask_nauvis_territory("big-rock", "simple-entity")
+terrain.mask_nauvis_territory("big-sand-rock", "simple-entity")
+terrain.mask_nauvis_territory("brown-asterisk", "optimized-decorative")
+terrain.mask_nauvis_territory("brown-asterisk-mini", "optimized-decorative")
+terrain.mask_nauvis_territory("brown-carpet-grass", "optimized-decorative")
+terrain.mask_nauvis_territory("brown-fluff", "optimized-decorative")
+terrain.mask_nauvis_territory("brown-fluff-dry", "optimized-decorative")
+terrain.mask_nauvis_territory("brown-hairy-grass", "optimized-decorative")
+terrain.mask_nauvis_territory("garballo", "optimized-decorative")
+terrain.mask_nauvis_territory("garballo-mini-dry", "optimized-decorative")
+terrain.mask_nauvis_territory("green-asterisk", "optimized-decorative")
+terrain.mask_nauvis_territory("green-asterisk-mini", "optimized-decorative")
+terrain.mask_nauvis_territory("green-bush-mini", "optimized-decorative")
+terrain.mask_nauvis_territory("green-carpet-grass", "optimized-decorative")
+terrain.mask_nauvis_territory("green-croton", "optimized-decorative")
+terrain.mask_nauvis_territory("green-desert-bush", "optimized-decorative")
+terrain.mask_nauvis_territory("green-hairy-grass", "optimized-decorative")
+terrain.mask_nauvis_territory("green-pita", "optimized-decorative")
+terrain.mask_nauvis_territory("green-pita-mini", "optimized-decorative")
+terrain.mask_nauvis_territory("green-small-grass", "optimized-decorative")
+terrain.mask_nauvis_territory("huge-rock", "simple-entity")
+terrain.mask_nauvis_territory("medium-rock", "optimized-decorative")
+terrain.mask_nauvis_territory("medium-sand-rock", "optimized-decorative")
+terrain.mask_nauvis_territory("red-asterisk", "optimized-decorative")
+terrain.mask_nauvis_territory("red-croton", "optimized-decorative")
+terrain.mask_nauvis_territory("red-desert-bush", "optimized-decorative")
+terrain.mask_nauvis_territory("red-desert-decal", "optimized-decorative")
+terrain.mask_nauvis_territory("red-pita", "optimized-decorative")
+terrain.mask_nauvis_territory("sand-decal", "optimized-decorative")
+terrain.mask_nauvis_territory("sand-dune-decal", "optimized-decorative")
+terrain.mask_nauvis_territory("white-desert-bush", "optimized-decorative")
 
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.nauvis.trees,
-    prototype_type = "tree",
-    mask = terrain.mask_nauvis_territory,
-}
-
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.nauvis.plants,
-    prototype_type = "plant",
-    mask = terrain.mask_nauvis_territory,
-}
-
-data_util.apply_mask_group {
-    names = eon_generated_tiles.nauvis,
-    prototype_type = "tile",
-    mask = terrain.mask_nauvis_territory,
-}
+terrain.mask_nauvis_territory("grass-1", "tile")
+terrain.mask_nauvis_territory("grass-2", "tile")
+terrain.mask_nauvis_territory("grass-3", "tile")
+terrain.mask_nauvis_territory("grass-4", "tile")
+terrain.mask_nauvis_territory("dry-dirt", "tile")
+terrain.mask_nauvis_territory("dirt-1", "tile")
+terrain.mask_nauvis_territory("dirt-2", "tile")
+terrain.mask_nauvis_territory("dirt-3", "tile")
+terrain.mask_nauvis_territory("dirt-4", "tile")
+terrain.mask_nauvis_territory("dirt-5", "tile")
+terrain.mask_nauvis_territory("dirt-6", "tile")
+terrain.mask_nauvis_territory("dirt-7", "tile")
+terrain.mask_nauvis_territory("sand-1", "tile")
+terrain.mask_nauvis_territory("sand-2", "tile")
+terrain.mask_nauvis_territory("sand-3", "tile")
+terrain.mask_nauvis_territory("red-desert-0", "tile")
+terrain.mask_nauvis_territory("red-desert-1", "tile")
+terrain.mask_nauvis_territory("red-desert-2", "tile")
+terrain.mask_nauvis_territory("red-desert-3", "tile")
 
 data.raw["noise-expression"]["cliffiness_nauvis"].expression = eon_nauvis_cliffiness_expression
 
----Apply blended nauvis cliff settings.
+---@return nil
 local function eon_apply_blended_nauvis_cliff_settings()
     local nauvis = data.raw.planet and data.raw.planet["nauvis"]
     if not (nauvis and nauvis.map_gen_settings) then return end
@@ -595,13 +538,8 @@ data:extend({
 eon_apply_blended_nauvis_cliff_settings()
 
 
----@type EONMapGen|nil
-local eon_aquilo_map_gen = data.raw.planet[eon_aquilo_planet_name]
-    and data.raw.planet[eon_aquilo_planet_name].map_gen_settings
-
+local eon_aquilo_map_gen = data.raw.planet[eon_aquilo_planet_name].map_gen_settings
 local eon_inactive_aquilo_planet_name = eon_aquilo_on_fulgora and "nauvis" or "fulgora"
-
----@type EONMapGen|nil
 local eon_inactive_aquilo_map_gen = data.raw.planet[eon_inactive_aquilo_planet_name]
     and data.raw.planet[eon_inactive_aquilo_planet_name].map_gen_settings
 
@@ -624,55 +562,91 @@ if data.raw.resource["fluorine-vent"] and data.raw.resource["fluorine-vent"].aut
     data.raw.resource["fluorine-vent"].autoplace.control = "fluorine_vent"
 end
 
----@alias EONNoiseExpression string|number|boolean
-
----Set entity property expression.
 ---@param planet_name string
 ---@param entity_name string
 ---@param property_name string
----@param expression EONNoiseExpression
-local function eon_set_entity_property_expression(planet_name, entity_name, property_name, expression)
+---@param expression_name string
+---@return nil
+local function eon_set_entity_property_expression(planet_name, entity_name, property_name, expression_name)
     local planet = data.raw.planet[planet_name]
     if not planet or not planet.map_gen_settings then return end
 
     planet.map_gen_settings.property_expression_names = planet.map_gen_settings.property_expression_names or {}
-    planet.map_gen_settings.property_expression_names["entity:" .. entity_name .. ":" .. property_name] = expression
+    planet.map_gen_settings.property_expression_names["entity:" .. entity_name .. ":" .. property_name] = expression_name
 end
 
 table.insert(eon_aquilo_autoplace_controls, "ammonia_ocean")
 
----Enable aquilo autoplace controls.
----@param map_gen EONMapGen|nil
+---@param map_gen any
+---@return nil
 local function eon_enable_aquilo_autoplace_controls(map_gen)
     if not map_gen then return end
 
     map_gen.autoplace_controls = map_gen.autoplace_controls or {}
 
-    for _, control_name in ipairs(eon_aquilo_autoplace_controls) do
+    for _, control_name in pairs(eon_aquilo_autoplace_controls) do
         map_gen.autoplace_controls[control_name] = {}
     end
 end
 
----Disable aquilo autoplace controls.
----@param map_gen EONMapGen|nil
+---@param planet_name string
+---@param resource_name string
+---@param property_name string
+---@param expression any
+---@return nil
+local function eon_set_resource_property_expression_if_string(
+    planet_name,
+    resource_name,
+    property_name,
+    expression
+)
+    if type(expression) ~= "string" then return end
+
+    eon_set_entity_property_expression(
+        planet_name,
+        resource_name,
+        property_name,
+        expression
+    )
+end
+
+---@param map_gen any
+---@return nil
 local function eon_disable_aquilo_autoplace_controls(map_gen)
     if not (map_gen and map_gen.autoplace_controls) then return end
 
-    for _, control_name in ipairs(eon_all_aquilo_autoplace_controls) do
+    for _, control_name in pairs(eon_all_aquilo_autoplace_controls) do
         map_gen.autoplace_controls[control_name] = nil
     end
 end
 
 if eon_aquilo_map_gen then
     eon_enable_aquilo_autoplace_controls(eon_aquilo_map_gen)
-    if eon_inactive_aquilo_map_gen then
-        eon_disable_aquilo_autoplace_controls(eon_inactive_aquilo_map_gen)
-    end
+    eon_disable_aquilo_autoplace_controls(eon_inactive_aquilo_map_gen)
 
-    eon_register_planet_autoplace_settings(eon_aquilo_planet_name, "tile", eon_aquilo_tile_names)
-    eon_register_planet_autoplace_settings(eon_aquilo_planet_name, "decorative", eon_aquilo_decorative_list)
-    eon_register_planet_autoplace_settings(eon_aquilo_planet_name, "entity", eon_aquilo_resource_list, "resource")
-    eon_register_planet_autoplace_settings(eon_aquilo_planet_name, "entity", eon_aquilo_simple_entity_list)
+    eon_aquilo_map_gen.autoplace_settings.tile.settings["snow-flat"] = {}
+    eon_aquilo_map_gen.autoplace_settings.tile.settings["snow-crests"] = {}
+    eon_aquilo_map_gen.autoplace_settings.tile.settings["snow-lumpy"] = {}
+    eon_aquilo_map_gen.autoplace_settings.tile.settings["snow-patchy"] = {}
+    eon_aquilo_map_gen.autoplace_settings.tile.settings["ice-rough"] = {}
+    eon_aquilo_map_gen.autoplace_settings.tile.settings["ice-smooth"] = {}
+    eon_aquilo_map_gen.autoplace_settings.tile.settings["brash-ice"] = {}
+    eon_aquilo_map_gen.autoplace_settings.tile.settings["ammoniacal-ocean"] = {}
+    eon_aquilo_map_gen.autoplace_settings.tile.settings["ammoniacal-ocean-2"] = {}
+
+    eon_aquilo_map_gen.autoplace_settings.decorative.settings["lithium-iceberg-medium"] = {}
+    eon_aquilo_map_gen.autoplace_settings.decorative.settings["lithium-iceberg-small"] = {}
+    eon_aquilo_map_gen.autoplace_settings.decorative.settings["lithium-iceberg-tiny"] = {}
+    eon_aquilo_map_gen.autoplace_settings.decorative.settings["floating-iceberg-large"] = {}
+    eon_aquilo_map_gen.autoplace_settings.decorative.settings["floating-iceberg-small"] = {}
+    eon_aquilo_map_gen.autoplace_settings.decorative.settings["aqulio-ice-decal-blue"] = {}
+    eon_aquilo_map_gen.autoplace_settings.decorative.settings["aqulio-snowy-decal"] = {}
+    eon_aquilo_map_gen.autoplace_settings.decorative.settings["snow-drift-decal"] = {}
+
+    eon_aquilo_map_gen.autoplace_settings.entity.settings["lithium-brine"] = {}
+    eon_aquilo_map_gen.autoplace_settings.entity.settings["fluorine-vent"] = {}
+    eon_aquilo_map_gen.autoplace_settings.entity.settings["lithium-iceberg-huge"] = {}
+    eon_aquilo_map_gen.autoplace_settings.entity.settings["lithium-iceberg-big"] = {}
 end
 
 if eon_aquilo_on_fulgora then
@@ -680,7 +654,7 @@ if eon_aquilo_on_fulgora then
 
     if fulgora_settings then
         for tile_name, _ in pairs(fulgora_settings.tile.settings) do
-            if not eon_aquilo_tile_name_set[tile_name] and data.raw.tile[tile_name] then
+            if not eon_aquilo_tile_names[tile_name] and data.raw.tile[tile_name] then
                 eon_wrap_probability_expression(data.raw.tile[tile_name],
                     "eon_mask_off_aquilo_territory")
             end
@@ -715,67 +689,54 @@ terrain.mask_aquilo_territory("lithium-brine", "resource")
 terrain.mask_aquilo_territory("fluorine-vent", "resource")
 
 if not eon_aquilo_on_fulgora then
-    if data.raw.resource["lithium-brine"] and data.raw.resource["lithium-brine"].autoplace then
-        eon_set_entity_property_expression(
+    local lithium_brine = data.raw.resource["lithium-brine"]
+    if lithium_brine and lithium_brine.autoplace then
+        eon_set_resource_property_expression_if_string(
             "nauvis",
             "lithium-brine",
             "probability",
-            data.raw.resource["lithium-brine"].autoplace.probability_expression
+            lithium_brine.autoplace.probability_expression
         )
-        eon_set_entity_property_expression(
+        eon_set_resource_property_expression_if_string(
             "nauvis",
             "lithium-brine",
             "richness",
-            data.raw.resource["lithium-brine"].autoplace.richness_expression
+            lithium_brine.autoplace.richness_expression
         )
     end
 
-    if data.raw.resource["fluorine-vent"] and data.raw.resource["fluorine-vent"].autoplace then
-        eon_set_entity_property_expression(
+    local fluorine_vent = data.raw.resource["fluorine-vent"]
+    if fluorine_vent and fluorine_vent.autoplace then
+        eon_set_resource_property_expression_if_string(
             "nauvis",
             "fluorine-vent",
             "probability",
-            data.raw.resource["fluorine-vent"].autoplace.probability_expression
+            fluorine_vent.autoplace.probability_expression
         )
-        eon_set_entity_property_expression(
+        eon_set_resource_property_expression_if_string(
             "nauvis",
             "fluorine-vent",
             "richness",
-            data.raw.resource["fluorine-vent"].autoplace.richness_expression
+            fluorine_vent.autoplace.richness_expression
         )
     end
 end
 
-eon_mask_generated_surface_tiles("aquilo", terrain.mask_aquilo_territory, {
-    ["ammoniacal-ocean"] = true,
-    ["ammoniacal-ocean-2"] = true,
-    ["snow-flat"] = true,
-    ["ice-rough"] = true,
-    ["ice-smooth"] = true,
-    ["brash-ice"] = true,
-})
+terrain.mask_aquilo_territory("snow-crests", "tile")
+terrain.mask_aquilo_territory("snow-lumpy", "tile")
+terrain.mask_aquilo_territory("snow-patchy", "tile")
 
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.aquilo.decoratives,
-    prototype_type = "optimized-decorative",
-    mask = terrain.mask_aquilo_decorative_territory,
-}
+terrain.mask_aquilo_decorative_territory("lithium-iceberg-medium", "optimized-decorative")
+terrain.mask_aquilo_decorative_territory("lithium-iceberg-small", "optimized-decorative")
+terrain.mask_aquilo_decorative_territory("lithium-iceberg-tiny", "optimized-decorative")
+terrain.mask_aquilo_decorative_territory("floating-iceberg-large", "optimized-decorative")
+terrain.mask_aquilo_decorative_territory("floating-iceberg-small", "optimized-decorative")
+terrain.mask_aquilo_decorative_territory("aqulio-ice-decal-blue", "optimized-decorative")
+terrain.mask_aquilo_snow_decorative_territory("aqulio-snowy-decal", "optimized-decorative")
+terrain.mask_aquilo_snow_decorative_territory("snow-drift-decal", "optimized-decorative")
 
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.aquilo.entities,
-    prototype_type = "simple-entity",
-    mask = terrain.mask_aquilo_territory,
-}
-
-eon_mask_prototypes("optimized-decorative", {
-    "floating-iceberg-large",
-    "floating-iceberg-small",
-}, terrain.mask_aquilo_decorative_territory)
-
-eon_mask_prototypes("optimized-decorative", {
-    "aqulio-snowy-decal",
-    "snow-drift-decal",
-}, terrain.mask_aquilo_snow_decorative_territory)
+terrain.mask_aquilo_territory("lithium-iceberg-huge", "simple-entity")
+terrain.mask_aquilo_territory("lithium-iceberg-big", "simple-entity")
 
 if not eon_aquilo_on_fulgora then
     data:extend({
@@ -850,8 +811,11 @@ data.raw.tile["ice-rough"].autoplace.probability_expression =
 "eon_mask_aquilo_territory(eon_aquilo_base(eon_aquilo_ammonia_depth + 1.5, 200))"
 data.raw.tile["ice-smooth"].autoplace.probability_expression =
 "eon_mask_aquilo_territory(max(eon_aquilo_base(eon_aquilo_ammonia_depth + 1, 200), eon_aquilo_fulgora_ammonia_transition))"
-data.raw.tile["brash-ice"].autoplace.probability_expression =
-"eon_mask_aquilo_territory(eon_aquilo_base(eon_aquilo_ammonia_depth + 0.5, 200))"
+data.raw.tile["brash-ice"].autoplace.probability_expression = eon_aquilo_on_fulgora
+    and "eon_mask_aquilo_territory(eon_aquilo_base(eon_aquilo_ammonia_depth + 0.5, 200))"
+    or
+    "eon_mask_aquilo_territory(max(eon_aquilo_base(eon_aquilo_ammonia_depth + 0.5, 200), eon_aquilo_nauvis_ammonia_ocean_edge))"
+
 
 data:extend({
     {
@@ -861,7 +825,7 @@ data:extend({
         order = "z-ammonia",
         category = "resource",
         hidden = false,
-        can_be_disabled = false
+        can_be_disabled = false,
     },
 })
 
@@ -909,6 +873,13 @@ data:extend({
     },
     {
         type = "noise-expression",
+        name = "eon_aquilo_nauvis_ammonia_ocean_edge",
+        expression = eon_aquilo_on_fulgora
+            and "-inf"
+            or "if(eon_aquilo_ammonia > -1, if(eon_aquilo_ammonia_core > 0, -inf, 250), -inf)"
+    },
+    {
+        type = "noise-expression",
         name = "eon_aquilo_fulgora_ammonia_transition",
         expression = "if(eon_aquilo_ammonia > -1, if(eon_aquilo_ammonia_core > 0, -inf, 250), -inf)"
     },
@@ -940,7 +911,7 @@ data:extend({
         {
             elevation_magnitude = 20,
             wlc_amplitude = 2,
-            ammonia_level = "2 * pow(log2(1 + control:ammonia_ocean:size), 1.3)",
+            ammonia_level = "2 * pow(log2(1 + (control:ammonia_ocean:size * 3)), 1.3)",
             wlc_elevation = "max(aquilo_main - ammonia_level * wlc_amplitude, starting_island, north_bias)",
             aquilo_main =
             "elevation_magnitude * (0.25 * eon_aquilo_detail + 3 * eon_aquilo_macro * starting_macro_multiplier)",
@@ -1102,52 +1073,266 @@ data:extend({
 })
 
 
-eon_register_gleba_map_gen_on_nauvis()
 
-eon_mask_generated_surface_tiles("gleba", terrain.mask_gleba_territory)
+data.raw.planet["nauvis"].map_gen_settings.autoplace_controls["gleba_plants"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_controls["gleba_water"] = {}
 
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.gleba.decoratives,
-    prototype_type = "optimized-decorative",
-    mask = terrain.mask_gleba_territory,
-}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["natural-yumako-soil"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["natural-jellynut-soil"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["wetland-yumako"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["wetland-jellynut"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["wetland-light-green-slime"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["wetland-green-slime"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["wetland-light-dead-skin"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["wetland-dead-skin"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["wetland-pink-tentacle"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["wetland-red-tentacle"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-brown-blubber"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-olive-blubber"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-olive-blubber-2"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-olive-blubber-3"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-pale-green"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-cream-cauliflower"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-cream-cauliflower-2"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-dead-skin"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-dead-skin-2"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-cream-red"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-red-vein"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-red-vein-2"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-red-vein-3"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-red-vein-4"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-red-vein-dead"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lowland-red-infection"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["midland-turquoise-bark"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["midland-turquoise-bark-2"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["midland-cracked-lichen"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["midland-cracked-lichen-dull"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["midland-cracked-lichen-dark"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["midland-yellow-crust"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["midland-yellow-crust-2"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["midland-yellow-crust-3"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["midland-yellow-crust-4"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["highland-dark-rock"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["highland-dark-rock-2"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["highland-yellow-rock"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["pit-rock"] = {}
 
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.gleba.entities,
-    prototype_type = "simple-entity",
-    mask = terrain.mask_gleba_territory,
-}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["yellow-lettuce-lichen-1x1"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["yellow-lettuce-lichen-3x3"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["yellow-lettuce-lichen-6x6"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["yellow-lettuce-lichen-cups-1x1"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["yellow-lettuce-lichen-cups-3x3"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["yellow-lettuce-lichen-cups-6x6"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-lettuce-lichen-1x1"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-lettuce-lichen-3x3"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-lettuce-lichen-6x6"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-lettuce-lichen-water-1x1"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-lettuce-lichen-water-3x3"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-lettuce-lichen-water-6x6"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["split-gill-1x1"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["split-gill-2x2"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["split-gill-dying-1x1"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["split-gill-dying-2x2"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["split-gill-red-1x1"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["split-gill-red-2x2"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["veins"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["veins-small"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["mycelium"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["coral-water"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["coral-land"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["black-sceptre"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["pink-phalanges"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["pink-lichen-decal"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["red-lichen-decal"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-cup"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["brown-cup"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["blood-grape"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["blood-grape-vibrant"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["brambles"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["polycephalum-slime"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["polycephalum-balloon"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["fuchsia-pita"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["wispy-lichen"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["grey-cracked-mud-decal"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["barnacles-decal"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["coral-stunted"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["coral-stunted-grey"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["nerve-roots-dense"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["nerve-roots-sparse"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["yellow-coral"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["solo-barnacle"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["curly-roots-orange"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["knobbly-roots"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["knobbly-roots-orange"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["matches-small"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["pale-lettuce-lichen-cups-1x1"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["pale-lettuce-lichen-cups-3x3"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["pale-lettuce-lichen-cups-6x6"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["pale-lettuce-lichen-1x1"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["pale-lettuce-lichen-3x3"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["pale-lettuce-lichen-6x6"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["pale-lettuce-lichen-water-1x1"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["pale-lettuce-lichen-water-3x3"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["pale-lettuce-lichen-water-6x6"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["white-carpet-grass"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-carpet-grass"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-hairy-grass"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["light-mud-decal"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["dark-mud-decal"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["cracked-mud-decal"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["red-desert-bush"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["white-desert-bush"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["red-pita"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-bush-mini"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-croton"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-pita"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["green-pita-mini"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["lichen-decal"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["shroom-decal"] = {}
 
-eon_mask_prototypes("optimized-decorative", {
-    "nerve-roots-dense",
-    "nerve-roots-sparse",
-    "green-carpet-grass",
-    "green-hairy-grass",
-    "light-mud-decal",
-    "dark-mud-decal",
-    "cracked-mud-decal",
-    "red-desert-bush",
-    "white-desert-bush",
-    "red-pita",
-    "green-bush-mini",
-    "green-croton",
-    "green-pita",
-    "green-pita-mini",
-    "lichen-decal",
-    "shroom-decal",
-}, terrain.mask_gleba_territory)
+if not mods["Spaghetorio"] then
+    data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["honeycomb-fungus"] = {}
+    data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["honeycomb-fungus-1x1"] = {}
+    data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["honeycomb-fungus-decayed"] = {}
+end
 
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.gleba.trees,
-    prototype_type = "tree",
-    mask = terrain.mask_gleba_territory,
-}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["iron-stromatolite"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["copper-stromatolite"] = {}
 
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.gleba.plants,
-    prototype_type = "plant",
-    mask = terrain.mask_gleba_territory,
-}
+terrain.mask_gleba_territory("natural-yumako-soil", "tile")
+terrain.mask_gleba_territory("natural-jellynut-soil", "tile")
+terrain.mask_gleba_territory("wetland-yumako", "tile")
+terrain.mask_gleba_territory("wetland-jellynut", "tile")
+terrain.mask_gleba_territory("wetland-blue-slime", "tile")
+terrain.mask_gleba_territory("wetland-light-green-slime", "tile")
+terrain.mask_gleba_territory("wetland-green-slime", "tile")
+terrain.mask_gleba_territory("wetland-light-dead-skin", "tile")
+terrain.mask_gleba_territory("wetland-dead-skin", "tile")
+terrain.mask_gleba_territory("wetland-pink-tentacle", "tile")
+terrain.mask_gleba_territory("wetland-red-tentacle", "tile")
+terrain.mask_gleba_territory("gleba-deep-lake", "tile")
+terrain.mask_gleba_territory("lowland-brown-blubber", "tile")
+terrain.mask_gleba_territory("lowland-olive-blubber", "tile")
+terrain.mask_gleba_territory("lowland-olive-blubber-2", "tile")
+terrain.mask_gleba_territory("lowland-olive-blubber-3", "tile")
+terrain.mask_gleba_territory("lowland-pale-green", "tile")
+terrain.mask_gleba_territory("lowland-cream-cauliflower", "tile")
+terrain.mask_gleba_territory("lowland-cream-cauliflower-2", "tile")
+terrain.mask_gleba_territory("lowland-dead-skin", "tile")
+terrain.mask_gleba_territory("lowland-dead-skin-2", "tile")
+terrain.mask_gleba_territory("lowland-cream-red", "tile")
+terrain.mask_gleba_territory("lowland-red-vein", "tile")
+terrain.mask_gleba_territory("lowland-red-vein-2", "tile")
+terrain.mask_gleba_territory("lowland-red-vein-3", "tile")
+terrain.mask_gleba_territory("lowland-red-vein-4", "tile")
+terrain.mask_gleba_territory("lowland-red-vein-dead", "tile")
+terrain.mask_gleba_territory("lowland-red-infection", "tile")
+terrain.mask_gleba_territory("midland-turquoise-bark", "tile")
+terrain.mask_gleba_territory("midland-turquoise-bark-2", "tile")
+terrain.mask_gleba_territory("midland-cracked-lichen", "tile")
+terrain.mask_gleba_territory("midland-cracked-lichen-dull", "tile")
+terrain.mask_gleba_territory("midland-cracked-lichen-dark", "tile")
+terrain.mask_gleba_territory("midland-yellow-crust", "tile")
+terrain.mask_gleba_territory("midland-yellow-crust-2", "tile")
+terrain.mask_gleba_territory("midland-yellow-crust-3", "tile")
+terrain.mask_gleba_territory("midland-yellow-crust-4", "tile")
+terrain.mask_gleba_territory("highland-dark-rock", "tile")
+terrain.mask_gleba_territory("highland-dark-rock-2", "tile")
+terrain.mask_gleba_territory("highland-yellow-rock", "tile")
+terrain.mask_gleba_territory("pit-rock", "tile")
+
+terrain.mask_gleba_territory("yellow-lettuce-lichen-1x1", "optimized-decorative")
+terrain.mask_gleba_territory("yellow-lettuce-lichen-3x3", "optimized-decorative")
+terrain.mask_gleba_territory("yellow-lettuce-lichen-6x6", "optimized-decorative")
+terrain.mask_gleba_territory("yellow-lettuce-lichen-cups-1x1", "optimized-decorative")
+terrain.mask_gleba_territory("yellow-lettuce-lichen-cups-3x3", "optimized-decorative")
+terrain.mask_gleba_territory("yellow-lettuce-lichen-cups-6x6", "optimized-decorative")
+terrain.mask_gleba_territory("green-lettuce-lichen-1x1", "optimized-decorative")
+terrain.mask_gleba_territory("green-lettuce-lichen-3x3", "optimized-decorative")
+terrain.mask_gleba_territory("green-lettuce-lichen-6x6", "optimized-decorative")
+terrain.mask_gleba_territory("green-lettuce-lichen-water-1x1", "optimized-decorative")
+terrain.mask_gleba_territory("green-lettuce-lichen-water-3x3", "optimized-decorative")
+terrain.mask_gleba_territory("green-lettuce-lichen-water-6x6", "optimized-decorative")
+terrain.mask_gleba_territory("split-gill-1x1", "optimized-decorative")
+terrain.mask_gleba_territory("split-gill-2x2", "optimized-decorative")
+terrain.mask_gleba_territory("split-gill-dying-1x1", "optimized-decorative")
+terrain.mask_gleba_territory("split-gill-dying-2x2", "optimized-decorative")
+terrain.mask_gleba_territory("split-gill-red-1x1", "optimized-decorative")
+terrain.mask_gleba_territory("split-gill-red-2x2", "optimized-decorative")
+terrain.mask_gleba_territory("veins", "optimized-decorative")
+terrain.mask_gleba_territory("veins-small", "optimized-decorative")
+terrain.mask_gleba_territory("mycelium", "optimized-decorative")
+terrain.mask_gleba_territory("coral-water", "optimized-decorative")
+terrain.mask_gleba_territory("coral-land", "optimized-decorative")
+terrain.mask_gleba_territory("black-sceptre", "optimized-decorative")
+terrain.mask_gleba_territory("pink-phalanges", "optimized-decorative")
+terrain.mask_gleba_territory("pink-lichen-decal", "optimized-decorative")
+terrain.mask_gleba_territory("red-lichen-decal", "optimized-decorative")
+terrain.mask_gleba_territory("green-cup", "optimized-decorative")
+terrain.mask_gleba_territory("brown-cup", "optimized-decorative")
+terrain.mask_gleba_territory("blood-grape", "optimized-decorative")
+terrain.mask_gleba_territory("blood-grape-vibrant", "optimized-decorative")
+terrain.mask_gleba_territory("brambles", "optimized-decorative")
+terrain.mask_gleba_territory("polycephalum-slime", "optimized-decorative")
+terrain.mask_gleba_territory("polycephalum-balloon", "optimized-decorative")
+terrain.mask_gleba_territory("fuchsia-pita", "optimized-decorative")
+terrain.mask_gleba_territory("wispy-lichen", "optimized-decorative")
+terrain.mask_gleba_territory("grey-cracked-mud-decal", "optimized-decorative")
+terrain.mask_gleba_territory("barnacles-decal", "optimized-decorative")
+terrain.mask_gleba_territory("coral-stunted", "optimized-decorative")
+terrain.mask_gleba_territory("coral-stunted-grey", "optimized-decorative")
+terrain.mask_gleba_territory("nerve-roots-dense", "optimized-decorative")
+terrain.mask_gleba_territory("nerve-roots-sparse", "optimized-decorative")
+terrain.mask_gleba_territory("yellow-coral", "optimized-decorative")
+terrain.mask_gleba_territory("solo-barnacle", "optimized-decorative")
+terrain.mask_gleba_territory("curly-roots-orange", "optimized-decorative")
+terrain.mask_gleba_territory("knobbly-roots", "optimized-decorative")
+terrain.mask_gleba_territory("knobbly-roots-orange", "optimized-decorative")
+terrain.mask_gleba_territory("matches-small", "optimized-decorative")
+terrain.mask_gleba_territory("pale-lettuce-lichen-cups-1x1", "optimized-decorative")
+terrain.mask_gleba_territory("pale-lettuce-lichen-cups-3x3", "optimized-decorative")
+terrain.mask_gleba_territory("pale-lettuce-lichen-cups-6x6", "optimized-decorative")
+terrain.mask_gleba_territory("pale-lettuce-lichen-1x1", "optimized-decorative")
+terrain.mask_gleba_territory("pale-lettuce-lichen-3x3", "optimized-decorative")
+terrain.mask_gleba_territory("pale-lettuce-lichen-6x6", "optimized-decorative")
+terrain.mask_gleba_territory("pale-lettuce-lichen-water-1x1", "optimized-decorative")
+terrain.mask_gleba_territory("pale-lettuce-lichen-water-3x3", "optimized-decorative")
+terrain.mask_gleba_territory("pale-lettuce-lichen-water-6x6", "optimized-decorative")
+terrain.mask_gleba_territory("white-carpet-grass", "optimized-decorative")
+terrain.mask_gleba_territory("green-carpet-grass", "optimized-decorative")
+terrain.mask_gleba_territory("green-hairy-grass", "optimized-decorative")
+terrain.mask_gleba_territory("light-mud-decal", "optimized-decorative")
+terrain.mask_gleba_territory("dark-mud-decal", "optimized-decorative")
+terrain.mask_gleba_territory("cracked-mud-decal", "optimized-decorative")
+terrain.mask_gleba_territory("red-desert-bush", "optimized-decorative")
+terrain.mask_gleba_territory("white-desert-bush", "optimized-decorative")
+terrain.mask_gleba_territory("red-pita", "optimized-decorative")
+terrain.mask_gleba_territory("green-bush-mini", "optimized-decorative")
+terrain.mask_gleba_territory("green-croton", "optimized-decorative")
+terrain.mask_gleba_territory("green-pita", "optimized-decorative")
+terrain.mask_gleba_territory("green-pita-mini", "optimized-decorative")
+terrain.mask_gleba_territory("lichen-decal", "optimized-decorative")
+terrain.mask_gleba_territory("shroom-decal", "optimized-decorative")
+
+terrain.mask_gleba_territory("iron-stromatolite", "simple-entity")
+terrain.mask_gleba_territory("copper-stromatolite", "simple-entity")
+
+terrain.mask_gleba_territory("cuttlepop", "tree")
+terrain.mask_gleba_territory("slipstack", "tree")
+terrain.mask_gleba_territory("funneltrunk", "tree")
+terrain.mask_gleba_territory("hairyclubnub", "tree")
+terrain.mask_gleba_territory("teflilly", "tree")
+terrain.mask_gleba_territory("lickmaw", "tree")
+terrain.mask_gleba_territory("stingfrond", "tree")
+terrain.mask_gleba_territory("boompuff", "tree")
+terrain.mask_gleba_territory("sunnycomb", "tree")
+terrain.mask_gleba_territory("water-cane", "tree")
+
+if not mods["Spaghetorio"] then
+    terrain.mask_gleba_territory("honeycomb-fungus", "optimized-decorative")
+    terrain.mask_gleba_territory("honeycomb-fungus-1x1", "optimized-decorative")
+    terrain.mask_gleba_territory("honeycomb-fungus-decayed", "optimized-decorative")
+end
 
 data.raw["autoplace-control"]["gleba_plants"].can_be_disabled = true
 data.raw["autoplace-control"]["gleba_water"].can_be_disabled = true
@@ -1247,7 +1432,7 @@ data:extend({
                                                           output_scale = 1,\z
                                                           octave_output_scale_multiplier = 3,\z
                                                           octave_input_scale_multiplier = 1/3}",
-            y_offset = "y - 1000",
+            y_offset = "y - " .. eon_gleba_south_bias_y_offset,
             south_offset = "y_offset / (1 + pow(2, 0.01 * y_offset)) + 0.1 * y_offset - 60"
         }
     },
@@ -1294,18 +1479,76 @@ data:extend({
 })
 
 
-local eon_vulcanus_tile_names = eon_generated_tiles.vulcanus
+data.raw.planet["nauvis"].map_gen_settings.autoplace_controls["vulcanus_volcanism"] = {}
+
+local eon_vulcanus_tile_names = {
+    "volcanic-soil-dark",
+    "volcanic-soil-light",
+    "volcanic-ash-soil",
+    "volcanic-ash-flats",
+    "volcanic-ash-light",
+    "volcanic-ash-dark",
+    "volcanic-cracks",
+    "volcanic-cracks-warm",
+    "volcanic-folds",
+    "volcanic-folds-flat",
+    "lava",
+    "lava-hot",
+    "volcanic-folds-warm",
+    "volcanic-pumice-stones",
+    "volcanic-cracks-hot",
+    "volcanic-jagged-ground",
+    "volcanic-smooth-stone",
+    "volcanic-smooth-stone-warm",
+    "volcanic-ash-cracks",
+}
 
 if eon_aquilo_on_fulgora then
-    eon_register_vulcanus_map_gen_on_nauvis(eon_vulcanus_tile_names)
+    for _, tile_name in pairs(eon_vulcanus_tile_names) do
+        data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings[tile_name] = {}
+    end
 else
-    eon_register_vulcanus_map_gen_on_nauvis({
-        "volcanic-folds",
-        "volcanic-folds-flat",
-        "lava",
-        "lava-hot",
-    })
+    data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["volcanic-folds"] = {}
+    data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["volcanic-folds-flat"] = {}
+    data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lava"] = {}
+    data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.tile.settings["lava-hot"] = {}
 end
+
+---@return table<string, table>|nil
+local function eon_vulcanus_optimized_decorative_settings()
+    local planet = data.raw.planet and data.raw.planet["vulcanus"]
+    return planet
+        and planet.map_gen_settings
+        and planet.map_gen_settings.autoplace_settings
+        and planet.map_gen_settings.autoplace_settings.decorative
+        and planet.map_gen_settings.autoplace_settings.decorative.settings
+end
+
+local eon_vulcanus_optimized_decorative_names = {}
+do
+    local settings = eon_vulcanus_optimized_decorative_settings()
+    if settings then
+        for decorative_name, _ in pairs(settings) do
+            local decorative = data.raw["optimized-decorative"]
+                and data.raw["optimized-decorative"][decorative_name]
+            if decorative and decorative.autoplace then
+                table.insert(eon_vulcanus_optimized_decorative_names, decorative_name)
+                data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings[decorative_name] = {}
+            end
+        end
+    end
+end
+
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["crater-cliff"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["vulcanus-chimney"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["vulcanus-chimney-faded"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["vulcanus-chimney-cold"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["vulcanus-chimney-short"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["vulcanus-chimney-truncated"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["huge-volcanic-rock"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["big-volcanic-rock"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["ashland-lichen-tree"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["ashland-lichen-tree-flaming"] = {}
 
 if eon_aquilo_on_fulgora then
     local eon_vulcanus_tile_probability_expressions = {
@@ -1339,15 +1582,18 @@ if eon_aquilo_on_fulgora then
 
     data.raw.cliff["crater-cliff"].autoplace.probability_expression = "eon_crater_cliff"
 else
-    eon_mask_generated_surface_tiles("vulcanus", terrain.mask_vulcano_coverage, {
-        ["volcanic-soil-dark"] = true,
-        ["volcanic-soil-light"] = true,
-        ["volcanic-ash-soil"] = true,
-        ["volcanic-folds"] = true,
-        ["volcanic-folds-flat"] = true,
-        ["lava"] = true,
-        ["lava-hot"] = true,
-    })
+    terrain.mask_vulcano_coverage("volcanic-ash-flats", "tile")
+    terrain.mask_vulcano_coverage("volcanic-ash-light", "tile")
+    terrain.mask_vulcano_coverage("volcanic-ash-dark", "tile")
+    terrain.mask_vulcano_coverage("volcanic-cracks", "tile")
+    terrain.mask_vulcano_coverage("volcanic-cracks-warm", "tile")
+    terrain.mask_vulcano_coverage("volcanic-folds-warm", "tile")
+    terrain.mask_vulcano_coverage("volcanic-pumice-stones", "tile")
+    terrain.mask_vulcano_coverage("volcanic-cracks-hot", "tile")
+    terrain.mask_vulcano_coverage("volcanic-jagged-ground", "tile")
+    terrain.mask_vulcano_coverage("volcanic-smooth-stone", "tile")
+    terrain.mask_vulcano_coverage("volcanic-smooth-stone-warm", "tile")
+    terrain.mask_vulcano_coverage("volcanic-ash-cracks", "tile")
 
     data.raw.tile["volcanic-folds"].autoplace.probability_expression =
     "eon_updated_volcanic_folds"
@@ -1358,30 +1604,109 @@ else
     data.raw.cliff["crater-cliff"].autoplace.probability_expression = "eon_lava_hot_mountains_range"
 end
 
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.vulcanus.entities,
-    prototype_type = "simple-entity",
-    mask = terrain.mask_vulcano_coverage,
+
+local eon_vulcanus_decoratives_off_aquilo = eon_vulcanus_optimized_decorative_names
+
+local eon_vulcanus_decorative_tile_restrictions = {
+    "volcanic-ash-cracks",
+    "volcanic-ash-dark",
+    "volcanic-ash-flats",
+    "volcanic-ash-light",
+    "volcanic-ash-soil",
+    "volcanic-cracks",
+    "volcanic-cracks-hot",
+    "volcanic-cracks-warm",
+    "volcanic-folds",
+    "volcanic-folds-flat",
+    "volcanic-folds-warm",
+    "volcanic-jagged-ground",
+    "volcanic-pumice-stones",
+    "volcanic-smooth-stone",
+    "volcanic-smooth-stone-warm",
+    "volcanic-soil-dark",
+    "volcanic-soil-light",
 }
 
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.vulcanus.decoratives,
-    prototype_type = "optimized-decorative",
-    mask = terrain.mask_vulcano_terrain,
+local eon_vulcanus_lava_fire_tile_restrictions = {
+    "lava-hot",
 }
 
-data_util.apply_mask_group {
-    names = eon_generated_worldgen.vulcanus.trees,
-    prototype_type = "tree",
-    mask = terrain.mask_vulcano_terrain,
+local eon_vulcanus_trees_off_aquilo = {
+    "ashland-lichen-tree",
+    "ashland-lichen-tree-flaming",
+    "tree-volcanic-a",
 }
 
-eon_mask_prototypes("optimized-decorative", {
-    "crater-small",
-    "crater-large",
-    "pumice-relief-decal",
-    "waves-decal",
-}, terrain.mask_vulcano_terrain)
+---@param expression string|nil
+---@param wrapper string
+---@return boolean
+local function eon_expression_has_wrapper(expression, wrapper)
+    return type(expression) == "string"
+        and string.find(expression, wrapper .. "%(", 1, false) ~= nil
+end
+
+---@param prototype_type string
+---@param prototype_name string
+---@param wrapper string
+local function eon_wrap_current_autoplace_expression(prototype_type, prototype_name, wrapper)
+    local prototypes = data.raw[prototype_type]
+    local prototype = prototypes and prototypes[prototype_name]
+    local autoplace = prototype and prototype.autoplace
+    local expression = autoplace and autoplace.probability_expression
+
+    if type(expression) ~= "string" or expression == "" then return end
+    if eon_expression_has_wrapper(expression, wrapper) then return end
+
+    autoplace.probability_expression = wrapper .. "(" .. expression .. ")"
+end
+
+
+terrain.mask_vulcano_coverage("vulcanus-chimney", "simple-entity")
+terrain.mask_vulcano_coverage("vulcanus-chimney-faded", "simple-entity")
+terrain.mask_vulcano_coverage("vulcanus-chimney-cold", "simple-entity")
+terrain.mask_vulcano_coverage("vulcanus-chimney-short", "simple-entity")
+terrain.mask_vulcano_coverage("vulcanus-chimney-truncated", "simple-entity")
+terrain.mask_vulcano_coverage("huge-volcanic-rock", "simple-entity")
+terrain.mask_vulcano_coverage("big-volcanic-rock", "simple-entity")
+terrain.mask_vulcano_terrain("ashland-lichen-tree", "tree")
+terrain.mask_vulcano_terrain("ashland-lichen-tree-flaming", "tree")
+
+for _, name in ipairs(eon_vulcanus_trees_off_aquilo) do
+    eon_wrap_current_autoplace_expression("tree", name, eon_vulcanus_off_aquilo_mask)
+    eon_restrict_autoplace_to_tiles("tree", name, eon_vulcanus_decorative_tile_restrictions)
+end
+
+---@param tree_name string
+---@param expression string
+---@return nil
+local function eon_set_vulcanus_tree_probability(tree_name, expression)
+    local tree = data.raw.tree and data.raw.tree[tree_name]
+    if not (tree and tree.autoplace) then return end
+
+    tree.autoplace.probability_expression =
+        eon_vulcanus_off_aquilo_mask .. "(eon_mask_vulcano_terrain(" .. expression .. "))"
+end
+
+eon_set_vulcanus_tree_probability("ashland-lichen-tree", "eon_vulcanus_tree_on_nauvis")
+eon_set_vulcanus_tree_probability("ashland-lichen-tree-flaming", "eon_vulcanus_tree_on_nauvis / 16")
+
+for _, decorative_name in ipairs(eon_vulcanus_optimized_decorative_names) do
+    terrain.mask_vulcano_terrain(decorative_name, "optimized-decorative")
+end
+
+
+for _, name in ipairs(eon_vulcanus_decoratives_off_aquilo) do
+    eon_wrap_current_autoplace_expression("optimized-decorative", name, eon_vulcanus_off_aquilo_mask)
+    eon_restrict_autoplace_to_tiles("optimized-decorative", name, eon_vulcanus_decorative_tile_restrictions)
+end
+
+local lava_fire = data.raw["optimized-decorative"] and data.raw["optimized-decorative"]["vulcanus-lava-fire"]
+if lava_fire and lava_fire.autoplace then
+    lava_fire.autoplace.probability_expression =
+        eon_vulcanus_off_aquilo_mask .. "(eon_mask_vulcano_terrain(0.04))"
+    lava_fire.autoplace.tile_restriction = eon_vulcanus_lava_fire_tile_restrictions
+end
+
 
 data:extend({
     {
@@ -1494,6 +1819,11 @@ data:extend({
         type = "noise-expression",
         name = "eon_vulcanus_terrain",
         expression = eon_vulcanus_terrain_expression
+    },
+    {
+        type = "noise-expression",
+        name = "eon_vulcanus_tree_on_nauvis",
+        expression = eon_vulcanus_tree_on_nauvis_expression
     },
     {
         type = "noise-function",

@@ -1,8 +1,8 @@
 local data_util = require("data-util")
 
----Duplicate noise expression.
 ---@param name string
 ---@param type string
+---@return table
 local function duplicate_noise_expression(name, type)
     local expression = {
         type = "noise-expression",
@@ -15,50 +15,34 @@ local function duplicate_noise_expression(name, type)
     return expression
 end
 
----Append prototype noise expressions.
----@param destination any
----@param prototype_type string
----@param prototype_names? string[]
-local function append_prototype_noise_expressions(destination, prototype_type, prototype_names)
-    local existing = {}
-    for _, expression in pairs(destination or {}) do
-        if expression and expression.name then
-            existing[expression.name] = true
-        end
-    end
-
-    for _, prototype_name in pairs(prototype_names or {}) do
-        local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
-        local eon_name = data_util.generate_eon_name(prototype_name)
-        if prototype and prototype.autoplace and prototype.autoplace.probability_expression ~= nil and not existing[eon_name] then
-            data_util.append(destination, { duplicate_noise_expression(prototype_name, prototype_type) })
-            existing[eon_name] = true
-        end
-    end
-end
-
----Append tile noise expressions for surface.
----@param destination any
----@param surface_name string
----@param excluded_names? string[]
-local function append_tile_noise_expressions_for_surface(destination, surface_name, excluded_names)
-    for _, tile_name in pairs(data_util.tiles_for_sprite_usage_surface(surface_name, nil, excluded_names)) do
-        local tile = data.raw.tile and data.raw.tile[tile_name]
-        if tile and tile.autoplace and tile.autoplace.probability_expression then
-            data_util.append(destination, { duplicate_noise_expression(tile_name, "tile") })
-        end
-    end
-end
-
----Duplicate noise function.
 ---@param name string
+---@return table
 local function duplicate_noise_function(name)
     local expression = table.deepcopy(data.raw["noise-function"][name])
     expression.name = data_util.generate_eon_name(name)
     return expression
 end
 
-local eon_noise_expressions = {
+---@param decorative_name string
+---@return table
+local function duplicate_vulcanus_optimized_decorative_noise_expression(decorative_name)
+    local result = duplicate_noise_expression(decorative_name, "optimized-decorative")
+    local expression_name = result.expression
+    local referenced_expression = type(expression_name) == "string"
+        and data.raw["noise-expression"]
+        and data.raw["noise-expression"][expression_name]
+
+    if referenced_expression and referenced_expression.expression then
+        result.expression = referenced_expression.expression
+        if referenced_expression.local_expressions then
+            result.local_expressions = table.deepcopy(referenced_expression.local_expressions)
+        end
+    end
+
+    return result
+end
+
+data:extend({
     duplicate_noise_expression("iron-ore", "resource"),
     duplicate_noise_expression("copper-ore", "resource"),
     duplicate_noise_expression("stone", "resource"),
@@ -128,6 +112,14 @@ local eon_noise_expressions = {
     duplicate_noise_expression("tiny-rock", "optimized-decorative"),
     duplicate_noise_expression("white-desert-bush", "optimized-decorative"),
 
+    duplicate_noise_expression("snow-flat", "tile"),
+    duplicate_noise_expression("snow-crests", "tile"),
+    duplicate_noise_expression("snow-lumpy", "tile"),
+    duplicate_noise_expression("snow-patchy", "tile"),
+    duplicate_noise_expression("ice-rough", "tile"),
+    duplicate_noise_expression("ice-smooth", "tile"),
+    duplicate_noise_expression("brash-ice", "tile"),
+
     duplicate_noise_expression("lithium-iceberg-medium", "optimized-decorative"),
     duplicate_noise_expression("lithium-iceberg-small", "optimized-decorative"),
     duplicate_noise_expression("lithium-iceberg-tiny", "optimized-decorative"),
@@ -141,6 +133,48 @@ local eon_noise_expressions = {
     duplicate_noise_expression("fluorine-vent", "resource"),
     duplicate_noise_expression("lithium-iceberg-huge", "simple-entity"),
     duplicate_noise_expression("lithium-iceberg-big", "simple-entity"),
+
+    duplicate_noise_expression("natural-yumako-soil", "tile"),
+    duplicate_noise_expression("natural-jellynut-soil", "tile"),
+    duplicate_noise_expression("wetland-yumako", "tile"),
+    duplicate_noise_expression("wetland-jellynut", "tile"),
+    duplicate_noise_expression("wetland-blue-slime", "tile"),
+    duplicate_noise_expression("wetland-light-green-slime", "tile"),
+    duplicate_noise_expression("wetland-green-slime", "tile"),
+    duplicate_noise_expression("wetland-light-dead-skin", "tile"),
+    duplicate_noise_expression("wetland-dead-skin", "tile"),
+    duplicate_noise_expression("wetland-pink-tentacle", "tile"),
+    duplicate_noise_expression("wetland-red-tentacle", "tile"),
+    duplicate_noise_expression("gleba-deep-lake", "tile"),
+    duplicate_noise_expression("lowland-brown-blubber", "tile"),
+    duplicate_noise_expression("lowland-olive-blubber", "tile"),
+    duplicate_noise_expression("lowland-olive-blubber-2", "tile"),
+    duplicate_noise_expression("lowland-olive-blubber-3", "tile"),
+    duplicate_noise_expression("lowland-pale-green", "tile"),
+    duplicate_noise_expression("lowland-cream-cauliflower", "tile"),
+    duplicate_noise_expression("lowland-cream-cauliflower-2", "tile"),
+    duplicate_noise_expression("lowland-dead-skin", "tile"),
+    duplicate_noise_expression("lowland-dead-skin-2", "tile"),
+    duplicate_noise_expression("lowland-cream-red", "tile"),
+    duplicate_noise_expression("lowland-red-vein", "tile"),
+    duplicate_noise_expression("lowland-red-vein-2", "tile"),
+    duplicate_noise_expression("lowland-red-vein-3", "tile"),
+    duplicate_noise_expression("lowland-red-vein-4", "tile"),
+    duplicate_noise_expression("lowland-red-vein-dead", "tile"),
+    duplicate_noise_expression("lowland-red-infection", "tile"),
+    duplicate_noise_expression("midland-turquoise-bark", "tile"),
+    duplicate_noise_expression("midland-turquoise-bark-2", "tile"),
+    duplicate_noise_expression("midland-cracked-lichen", "tile"),
+    duplicate_noise_expression("midland-cracked-lichen-dull", "tile"),
+    duplicate_noise_expression("midland-cracked-lichen-dark", "tile"),
+    duplicate_noise_expression("midland-yellow-crust", "tile"),
+    duplicate_noise_expression("midland-yellow-crust-2", "tile"),
+    duplicate_noise_expression("midland-yellow-crust-3", "tile"),
+    duplicate_noise_expression("midland-yellow-crust-4", "tile"),
+    duplicate_noise_expression("highland-dark-rock", "tile"),
+    duplicate_noise_expression("highland-dark-rock-2", "tile"),
+    duplicate_noise_expression("highland-yellow-rock", "tile"),
+    duplicate_noise_expression("pit-rock", "tile"),
 
     duplicate_noise_expression("yellow-lettuce-lichen-1x1", "optimized-decorative"),
     duplicate_noise_expression("yellow-lettuce-lichen-3x3", "optimized-decorative"),
@@ -229,6 +263,19 @@ local eon_noise_expressions = {
     duplicate_noise_expression("sunnycomb", "tree"),
     duplicate_noise_expression("water-cane", "tree"),
 
+    duplicate_noise_expression("volcanic-ash-flats", "tile"),
+    duplicate_noise_expression("volcanic-ash-light", "tile"),
+    duplicate_noise_expression("volcanic-ash-dark", "tile"),
+    duplicate_noise_expression("volcanic-cracks", "tile"),
+    duplicate_noise_expression("volcanic-cracks-warm", "tile"),
+    duplicate_noise_expression("volcanic-folds-warm", "tile"),
+    duplicate_noise_expression("volcanic-pumice-stones", "tile"),
+    duplicate_noise_expression("volcanic-cracks-hot", "tile"),
+    duplicate_noise_expression("volcanic-jagged-ground", "tile"),
+    duplicate_noise_expression("volcanic-smooth-stone", "tile"),
+    duplicate_noise_expression("volcanic-smooth-stone-warm", "tile"),
+    duplicate_noise_expression("volcanic-ash-cracks", "tile"),
+
     duplicate_noise_expression("vulcanus-chimney", "simple-entity"),
     duplicate_noise_expression("vulcanus-chimney-faded", "simple-entity"),
     duplicate_noise_expression("vulcanus-chimney-cold", "simple-entity"),
@@ -238,90 +285,44 @@ local eon_noise_expressions = {
     duplicate_noise_expression("big-volcanic-rock", "simple-entity"),
     duplicate_noise_expression("ashland-lichen-tree", "tree"),
     duplicate_noise_expression("ashland-lichen-tree-flaming", "tree"),
-    duplicate_noise_expression("v-brown-carpet-grass", "optimized-decorative"),
-    duplicate_noise_expression("v-green-hairy-grass", "optimized-decorative"),
-    duplicate_noise_expression("v-brown-hairy-grass", "optimized-decorative"),
-    duplicate_noise_expression("v-red-pita", "optimized-decorative"),
-    duplicate_noise_expression("vulcanus-rock-decal-large", "optimized-decorative"),
-    duplicate_noise_expression("vulcanus-crack-decal", "optimized-decorative"),
-    duplicate_noise_expression("vulcanus-crack-decal-large", "optimized-decorative"),
-    duplicate_noise_expression("vulcanus-crack-decal-huge-warm", "optimized-decorative"),
-    duplicate_noise_expression("vulcanus-crack-decal-warm", "optimized-decorative"),
-    duplicate_noise_expression("calcite-stain", "optimized-decorative"),
-    duplicate_noise_expression("calcite-stain-small", "optimized-decorative"),
-    duplicate_noise_expression("sulfur-stain", "optimized-decorative"),
-    duplicate_noise_expression("sulfur-stain-small", "optimized-decorative"),
-    duplicate_noise_expression("sulfuric-acid-puddle", "optimized-decorative"),
-    duplicate_noise_expression("sulfuric-acid-puddle-small", "optimized-decorative"),
-    duplicate_noise_expression("crater-small", "optimized-decorative"),
-    duplicate_noise_expression("crater-large", "optimized-decorative"),
-    duplicate_noise_expression("pumice-relief-decal", "optimized-decorative"),
-    duplicate_noise_expression("vulcanus-sand-decal", "optimized-decorative"),
-    duplicate_noise_expression("vulcanus-dune-decal", "optimized-decorative"),
-    duplicate_noise_expression("waves-decal", "optimized-decorative"),
-    duplicate_noise_expression("medium-volcanic-rock", "optimized-decorative"),
-    duplicate_noise_expression("small-volcanic-rock", "optimized-decorative"),
-    duplicate_noise_expression("tiny-volcanic-rock", "optimized-decorative"),
-    duplicate_noise_expression("tiny-rock-cluster", "optimized-decorative"),
-    duplicate_noise_expression("small-sulfur-rock", "optimized-decorative"),
-    duplicate_noise_expression("tiny-sulfur-rock", "optimized-decorative"),
-    duplicate_noise_expression("sulfur-rock-cluster", "optimized-decorative"),
-    duplicate_noise_expression("vulcanus-lava-fire", "optimized-decorative"),
 
     duplicate_noise_expression("calcite", "resource"),
     duplicate_noise_expression("tungsten-ore", "resource"),
 
     duplicate_noise_function("water_base")
-}
-
-append_tile_noise_expressions_for_surface(eon_noise_expressions, "aquilo", {
-    ["frozen-concrete"] = true,
-    ["frozen-hazard-concrete-left"] = true,
-    ["frozen-hazard-concrete-right"] = true,
-    ["frozen-refined-concrete"] = true,
-    ["frozen-refined-hazard-concrete-left"] = true,
-    ["frozen-refined-hazard-concrete-right"] = true,
-    ["frozen-stone-path"] = true,
-    ["ice-platform"] = true,
-})
-append_tile_noise_expressions_for_surface(eon_noise_expressions, "gleba")
-append_tile_noise_expressions_for_surface(eon_noise_expressions, "vulcanus", {
-    ["volcanic-soil-dark"] = true,
-    ["volcanic-soil-light"] = true,
-    ["volcanic-ash-soil"] = true,
-    ["volcanic-folds"] = true,
-    ["volcanic-folds-flat"] = true,
-    ["lava"] = true,
-    ["lava-hot"] = true,
 })
 
-local eon_generated_tiles = data_util.generated_tiles_by_surface()
-local eon_generated_worldgen = data_util.generated_worldgen_prototypes_by_surface()
+---@return table<string, table>|nil
+local function eon_vulcanus_optimized_decorative_settings()
+    local planet = data.raw.planet and data.raw.planet["vulcanus"]
+    return planet
+        and planet.map_gen_settings
+        and planet.map_gen_settings.autoplace_settings
+        and planet.map_gen_settings.autoplace_settings.decorative
+        and planet.map_gen_settings.autoplace_settings.decorative.settings
+end
 
-append_prototype_noise_expressions(eon_noise_expressions, "tile", eon_generated_tiles.nauvis)
+---@return nil
+local function eon_extend_vulcanus_optimized_decorative_noise_expressions()
+    local settings = eon_vulcanus_optimized_decorative_settings()
+    if not settings then return end
 
-append_prototype_noise_expressions(eon_noise_expressions, "optimized-decorative",
-    eon_generated_worldgen.nauvis.decoratives)
-append_prototype_noise_expressions(eon_noise_expressions, "simple-entity", eon_generated_worldgen.nauvis.entities)
-append_prototype_noise_expressions(eon_noise_expressions, "tree", eon_generated_worldgen.nauvis.trees)
-append_prototype_noise_expressions(eon_noise_expressions, "plant", eon_generated_worldgen.nauvis.plants)
+    local expressions = {}
+    for decorative_name, _ in pairs(settings) do
+        local decorative = data.raw["optimized-decorative"]
+            and data.raw["optimized-decorative"][decorative_name]
+        if decorative and decorative.autoplace and decorative.autoplace.probability_expression then
+            table.insert(expressions, duplicate_vulcanus_optimized_decorative_noise_expression(decorative_name))
+        end
+    end
 
-append_prototype_noise_expressions(eon_noise_expressions, "optimized-decorative",
-    eon_generated_worldgen.aquilo.decoratives)
-append_prototype_noise_expressions(eon_noise_expressions, "simple-entity", eon_generated_worldgen.aquilo.entities)
+    if next(expressions) then
+        data:extend(expressions)
+    end
+end
 
-append_prototype_noise_expressions(eon_noise_expressions, "optimized-decorative",
-    eon_generated_worldgen.gleba.decoratives)
-append_prototype_noise_expressions(eon_noise_expressions, "simple-entity", eon_generated_worldgen.gleba.entities)
-append_prototype_noise_expressions(eon_noise_expressions, "tree", eon_generated_worldgen.gleba.trees)
-append_prototype_noise_expressions(eon_noise_expressions, "plant", eon_generated_worldgen.gleba.plants)
+eon_extend_vulcanus_optimized_decorative_noise_expressions()
 
-append_prototype_noise_expressions(eon_noise_expressions, "optimized-decorative",
-    eon_generated_worldgen.vulcanus.decoratives)
-append_prototype_noise_expressions(eon_noise_expressions, "simple-entity", eon_generated_worldgen.vulcanus.entities)
-append_prototype_noise_expressions(eon_noise_expressions, "tree", eon_generated_worldgen.vulcanus.trees)
-
-data:extend(eon_noise_expressions)
 
 if not mods["Spaghetorio"] then
     data:extend({

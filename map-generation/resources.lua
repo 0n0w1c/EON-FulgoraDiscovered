@@ -36,7 +36,7 @@ data:extend({
         walking_sound = base_sounds.ore,
         driving_sound = stone_driving_sound,
         minable = {
-            mining_particle = "stone-particle",
+            mining_particle = "calcite-particle",
             mining_time = 1,
             result = "calcite",
         },
@@ -94,7 +94,7 @@ data:extend({
         walking_sound = base_sounds.ore,
         driving_sound = stone_driving_sound,
         minable = {
-            mining_particle = "stone-particle",
+            mining_particle = "tungsten-ore-particle",
             mining_time = 5,
             result = "tungsten-ore",
         },

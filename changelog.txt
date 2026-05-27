@@ -1,4 +1,13 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.9.0
+Date: 26.05.2026
+  Bugfixes:
+    - Reverted the refactor to be more data driven
+  Changes:
+    - Added support for Craft Deco 2 (Adds some Alien Biomes rocks and trees to Nauvis)
+    - Added startup setting to hide the Craft Deco 2 technology
+    - Several modifications to map generation, when the Aquilo biome is generated on Nauvis
+---------------------------------------------------------------------------------------------------
 Version: 0.8.3
 Date: 24.05.2026
   Bugfixes:

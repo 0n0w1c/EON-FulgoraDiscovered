@@ -51,3 +51,8 @@ require("prototypes.tiles")
 require("map-generation.enemies")
 require("map-generation.resources-updates")
 require("map-generation.terrain")
+
+if mods["craft-deco-2"] then
+    require("map-generation.craft-deco-trees")
+    require("map-generation.craft-deco-rocks")
+end

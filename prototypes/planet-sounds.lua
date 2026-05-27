@@ -1,58 +1,26 @@
 local sounds_enabled = settings.startup["eon-fd-planet-sounds"].value
 if not sounds_enabled then return end
 
----Ensure array.
----@param v any
-local function ensure_array(v)
-    if v == nil then return {} end
-    if v[1] ~= nil then return v end
-    return { v }
+---@param value any
+---@return table
+local function ensure_array(value)
+    if value == nil then return {} end
+    if value[1] ~= nil then return value end
+    return { value }
 end
 
----Check whether to skip skip sound.
----@param entry table
-local function should_skip_sound(entry)
-    if not entry or not entry.sound then
-        return false
-    end
-
-    local sound = entry.sound
-
-    if sound.filename then
-        if string.find(sound.filename, "rain") then
-            return true
-        end
-    end
-
-    if sound.variations then
-        for _, v in ipairs(sound.variations) do
-            if v.filename then
-                if string.find(v.filename, "ice%-cracks") then
-                    return true
-                end
-            end
-        end
-    end
-
-    return false
-end
-
----Append list.
----@param dst table
----@param src table
-local function append_list(dst, src)
-    for i = 1, #src do
-        local entry = src[i]
-
-        if not should_skip_sound(entry) then
-            dst[#dst + 1] = table.deepcopy(entry)
-        end
+---@param target table
+---@param source table
+---@return nil
+local function append_list(target, source)
+    for _, value in ipairs(source) do
+        table.insert(target, value)
     end
 end
 
----Merge persistent sounds.
 ---@param target_planet_name string
 ---@param source_planet_name string
+---@return nil
 local function merge_persistent_sounds(target_planet_name, source_planet_name)
     local target = data.raw.planet[target_planet_name]
     if not target then return end
@@ -63,22 +31,30 @@ local function merge_persistent_sounds(target_planet_name, source_planet_name)
     target.persistent_ambient_sounds = target.persistent_ambient_sounds or {}
 
     local target_pas = target.persistent_ambient_sounds
-    if not target_pas then return end
     local src_pas = source.persistent_ambient_sounds
-    if not src_pas then return end
 
-    target_pas.base_ambience = ensure_array(target_pas.base_ambience)
-    target_pas.wind = ensure_array(target_pas.wind)
-    target_pas.semi_persistent = ensure_array(target_pas.semi_persistent)
+    if not target_pas or not src_pas then return end
 
-    append_list(target_pas.base_ambience, ensure_array(src_pas.base_ambience))
-    append_list(target_pas.wind, ensure_array(src_pas.wind))
-    append_list(target_pas.semi_persistent, ensure_array(src_pas.semi_persistent))
+    local target_base_ambience = ensure_array(target_pas.base_ambience)
+    local target_wind = ensure_array(target_pas.wind)
+    local target_semi_persistent = ensure_array(target_pas.semi_persistent)
+
+    local source_base_ambience = ensure_array(src_pas.base_ambience)
+    local source_wind = ensure_array(src_pas.wind)
+    local source_semi_persistent = ensure_array(src_pas.semi_persistent)
+
+    append_list(target_base_ambience, source_base_ambience)
+    append_list(target_wind, source_wind)
+    append_list(target_semi_persistent, source_semi_persistent)
+
+    target_pas.base_ambience = target_base_ambience
+    target_pas.wind = target_wind
+    target_pas.semi_persistent = target_semi_persistent
 end
 
----Clone planet music.
 ---@param source_planet_name string
 ---@param target_planet_name string
+---@return nil
 local function clone_planet_music(source_planet_name, target_planet_name)
     local clones = {}
     local ambient_sounds = data.raw["ambient-sound"] or {}

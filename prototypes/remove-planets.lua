@@ -4,7 +4,7 @@ local move_aquilo_to_fulgora =
     settings.startup["eon-fd-aquilo-on-fulgora"] and
     settings.startup["eon-fd-aquilo-on-fulgora"].value
 
----Copy nauvis aquilo connection to fulgora.
+---@return nil
 local function copy_nauvis_aquilo_connection_to_fulgora()
     if not move_aquilo_to_fulgora then
         return
@@ -76,11 +76,13 @@ if edge then
     data_util.delete_prototype("space-connection", "aquilo-solar-system-edge")
 end
 
+
 data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_oil_refinery = nil
 data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_early_smelting = nil
 data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_train_station = nil
 data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_train_junction = nil
 data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_artillery = nil
+
 
 data.raw["utility-constants"]["default"].main_menu_simulations.platform_moving = nil
 data.raw["utility-constants"]["default"].main_menu_simulations.platform_messy_nuclear = nil

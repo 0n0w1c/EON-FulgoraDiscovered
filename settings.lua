@@ -33,5 +33,13 @@ data:extend({
         setting_type = "startup",
         default_value = false,
         order = "e"
-    }
+    },
+    {
+        type = "bool-setting",
+        name = "eon-fd-hide-craft-deco-2-technology",
+        setting_type = "startup",
+        default_value = false,
+        hidden = not mods["craft-deco-2"],
+        order = "f"
+    },
 })
