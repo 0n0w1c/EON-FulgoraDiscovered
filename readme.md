@@ -62,7 +62,7 @@ This will increase the amount of the map revealed in the Map Generator's Preview
 Does Fulgora seem a little too quiet? Wage battle with [Fulgoran enemies](https://mods.factorio.com/mod/Electric_flying_enemies).  
 Increase water coverage to around 200% in the map generator and navigate [Cargo Ships](https://mods.factorio.com/mod/cargo-ships).  
 
-For biome customization, try [Craft Deco](https://mods.factorio.com/mod/craft-deco) and [Cliff Builder](https://mods.factorio.com/mod/cliff-builder).  
+For biome customization, try [Craft Deco 2](https://mods.factorio.com/mod/craft-deco-2) and [Cliff Builder](https://mods.factorio.com/mod/cliff-builder).  
 
 ---
 
