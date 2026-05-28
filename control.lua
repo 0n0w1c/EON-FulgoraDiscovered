@@ -343,30 +343,67 @@ local function eon_tile_subgroup_name(tile)
     return tile.prototype.subgroup.name
 end
 
+---@param effect_name string|nil
+---@return boolean
+local function eon_entity_prototype_exists(effect_name)
+    return type(effect_name) == "string"
+        and prototypes
+        and prototypes.entity
+        and prototypes.entity[effect_name] ~= nil
+end
+
+---@param preferred_effect string|nil
+---@param fallback_effect string|nil
+---@return string|nil
+local function eon_existing_effect_or_fallback(preferred_effect, fallback_effect)
+    if eon_entity_prototype_exists(preferred_effect) then
+        return preferred_effect
+    end
+
+    if eon_entity_prototype_exists(fallback_effect) then
+        return fallback_effect
+    end
+
+    return nil
+end
+
 ---@param surface LuaSurface
 ---@param tile LuaTile|nil
----@return string
+---@return string|nil
 local function eon_choose_nuke_effect(surface, tile)
+    -- Space platforms do not have planetary terrain to replace.
     if surface.platform then
-        return "nuke-effects-space"
+        return eon_existing_effect_or_fallback("nuke-effects-space", "nuke-effects-nauvis")
     end
 
     local subgroup_name = eon_tile_subgroup_name(tile)
 
+    -- EON-specific overrides. These intentionally do not modify vanilla
+    -- nuke effect prototypes; they only choose a different entity to create.
     if subgroup_name == "vulcanus-tiles" then
-        return "eon-nuke-effects-vulcanus-swapped"
+        return eon_existing_effect_or_fallback("eon-nuke-effects-vulcanus-swapped", "nuke-effects-vulcanus")
     end
 
     if subgroup_name == "aquilo-tiles" then
-        return "nuke-effects-aquilo"
+        return eon_existing_effect_or_fallback("nuke-effects-aquilo", "nuke-effects-nauvis")
     end
 
     if subgroup_name == "fulgora-tiles" then
-        return "eon-nuke-effects-fulgora"
+        return eon_existing_effect_or_fallback("eon-nuke-effects-fulgora", "nuke-effects-nauvis")
+    end
+
+    -- Compatibility with planet mods that follow the common convention:
+    -- <planet>-tiles -> nuke-effects-<planet>.
+    if type(subgroup_name) == "string" then
+        local planet_name = string.match(subgroup_name, "^(.+)%-tiles$")
+        local planet_effect = planet_name and ("nuke-effects-" .. planet_name) or nil
+        if eon_entity_prototype_exists(planet_effect) then
+            return planet_effect
+        end
     end
 
     -- Use the original vanilla Nauvis nuke effect unchanged.
-    return "nuke-effects-nauvis"
+    return eon_existing_effect_or_fallback("nuke-effects-nauvis", nil)
 end
 
 ---@param surface_index uint
@@ -399,11 +436,13 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
         local effect_name = eon_choose_nuke_effect(surface, tile)
         eon_pending_nuke_effects()[key] = effect_name
 
-        surface.create_entity({
-            name = effect_name,
-            position = position,
-            force = "neutral",
-        })
+        if effect_name then
+            surface.create_entity({
+                name = effect_name,
+                position = position,
+                force = "neutral",
+            })
+        end
 
         return
     end
@@ -416,11 +455,13 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
         -- Vulcanus, Aquilo, Space, and Fulgora leave liquid/damaged-tile pools instead.
         if effect_name ~= "nuke-effects-nauvis" then return end
 
-        surface.create_entity({
-            name = "eon-nuke-crater-nauvis",
-            position = position,
-            force = "neutral",
-        })
+        if eon_entity_prototype_exists("eon-nuke-crater-nauvis") then
+            surface.create_entity({
+                name = "eon-nuke-crater-nauvis",
+                position = position,
+                force = "neutral",
+            })
+        end
     end
 end)
 

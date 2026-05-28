@@ -117,14 +117,18 @@ local function eon_patch_atomic_rocket_nuke_effects()
 
     if not target_effects then return end
 
-    local vanilla_nuke_effects = {
-        ["nuke-effects-space"] = true,
-        ["nuke-effects-vulcanus"] = true,
-        ["nuke-effects-aquilo"] = true,
-        ["nuke-effects-nauvis"] = true,
+    local eon_nuke_effect_entities = {
         ["eon-nuke-effects-fulgora"] = true,
         ["eon-nuke-effects-vulcanus-swapped"] = true,
     }
+
+    ---@param entity_name string|nil
+    ---@return boolean
+    local function is_nuke_effect_entity(entity_name)
+        return type(entity_name) == "string"
+            and (string.match(entity_name, "^nuke%-effects%-") ~= nil
+                or eon_nuke_effect_entities[entity_name])
+    end
 
     local filtered = {}
     local inserted_biome_selector = false
@@ -153,9 +157,10 @@ local function eon_patch_atomic_rocket_nuke_effects()
             insert_biome_selector()
         elseif effect.type == "script" and effect.effect_id == EON_NUKE_CRATER_EFFECT_ID then
             insert_crater_selector()
-        elseif effect.type == "create-entity" and vanilla_nuke_effects[effect.entity_name] then
-            -- Keep the biome selector where vanilla creates nuke-effects-*.
-            -- Moving set-tile later can erase crater/decorative effects.
+        elseif effect.type == "create-entity" and is_nuke_effect_entity(effect.entity_name) then
+            -- Keep the biome selector where vanilla or modded nuke-effects-*
+            -- entities would have run. Moving set-tile later can erase
+            -- crater/decorative effects.
             insert_biome_selector()
         elseif effect.type == "create-decorative" and effect.decorative == "nuclear-ground-patch" then
             -- The crater belongs only to the Nauvis nuclear-ground effect.
