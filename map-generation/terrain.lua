@@ -1628,7 +1628,7 @@ local eon_vulcanus_decorative_tile_restrictions = {
 }
 
 local eon_vulcanus_lava_fire_tile_restrictions = {
-    "lava-hot",
+    "lava",
 }
 
 local eon_vulcanus_trees_off_aquilo = {
@@ -1706,7 +1706,6 @@ if lava_fire and lava_fire.autoplace then
         eon_vulcanus_off_aquilo_mask .. "(eon_mask_vulcano_terrain(0.04))"
     lava_fire.autoplace.tile_restriction = eon_vulcanus_lava_fire_tile_restrictions
 end
-
 
 data:extend({
     {
