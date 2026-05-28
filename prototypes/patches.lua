@@ -1,35 +1,175 @@
 local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
     and settings.startup["eon-fd-aquilo-on-fulgora"].value
 
+local EON_NUKE_EFFECT_ID = "eon-atomic-rocket-biome-effect"
+local EON_NUKE_CRATER_EFFECT_ID = "eon-atomic-rocket-nauvis-crater-effect"
+
 ---@param expression string
 ---@return any
 local function eon_mask_off_aquilo_for_nauvis(expression)
-    if eon_aquilo_on_fulgora then
-        return expression
-    end
+    if eon_aquilo_on_fulgora then return expression end
     return "eon_mask_off_aquilo_territory(" .. expression .. ")"
 end
 
-local projectile = data.raw["projectile"] and data.raw["projectile"]["atomic-rocket"]
-if projectile
-    and projectile.action
-    and projectile.action.action_delivery
-    and projectile.action.action_delivery.target_effects
-then
-    local remove = {
+---@param prototype table|nil
+---@return table|nil
+local function eon_get_created_target_effects(prototype)
+    return prototype
+        and prototype.created_effect
+        and prototype.created_effect.action_delivery
+        and prototype.created_effect.action_delivery.target_effects
+end
+
+---@param source_name string
+---@param clone_name string
+---@param replacements table<string, string>
+---@param before_effects table[]|nil
+---@return nil
+local function eon_clone_nuke_effect(source_name, clone_name, replacements, before_effects)
+    local source = data.raw["explosion"] and data.raw["explosion"][source_name]
+    if not source or data.raw["explosion"][clone_name] then return end
+
+    local clone = table.deepcopy(source)
+    clone.name = clone_name
+    clone.surface_conditions = nil
+
+    local target_effects = eon_get_created_target_effects(clone)
+    if target_effects then
+        if before_effects then
+            for i = #before_effects, 1, -1 do
+                table.insert(target_effects, 1, before_effects[i])
+            end
+        end
+
+        for _, effect in pairs(target_effects) do
+            if effect.type == "set-tile" and replacements[effect.tile_name] then
+                effect.tile_name = replacements[effect.tile_name]
+            end
+        end
+    end
+
+    data:extend({ clone })
+end
+
+---@return nil
+local function eon_create_biome_nuke_effects()
+    eon_clone_nuke_effect("nuke-effects-vulcanus", "eon-nuke-effects-fulgora", {
+        ["lava-hot"] = "oil-ocean-deep",
+        ["lava"] = "oil-ocean-shallow",
+    })
+
+    eon_clone_nuke_effect("nuke-effects-vulcanus", "eon-nuke-effects-vulcanus-swapped", {
+        ["lava-hot"] = "lava",
+        ["lava"] = "lava-hot",
+    }, {
+        -- Outer warm-cracks ring. Insert before the lava effects so the pool
+        -- overwrites the center while keeping only the outer band.
+        {
+            type = "set-tile",
+            tile_name = "volcanic-cracks-warm",
+            radius = 14,
+            apply_projection = true,
+            tile_collision_mask = {
+                layers = {
+                    water_tile = true,
+                },
+            },
+        },
+    })
+
+    local nauvis_effect = data.raw["explosion"] and data.raw["explosion"]["nuke-effects-nauvis"]
+    if nauvis_effect and not data.raw["explosion"]["eon-nuke-crater-nauvis"] then
+        local crater = table.deepcopy(nauvis_effect)
+        crater.name = "eon-nuke-crater-nauvis"
+        crater.surface_conditions = nil
+        crater.created_effect = {
+            type = "direct",
+            action_delivery = {
+                type = "instant",
+                target_effects = {
+                    {
+                        type = "create-decorative",
+                        decorative = "nuclear-ground-patch",
+                        spawn_min_radius = 11.5,
+                        spawn_max_radius = 12.5,
+                        spawn_min = 30,
+                        spawn_max = 40,
+                        apply_projection = true,
+                        spread_evenly = true,
+                    },
+                },
+            },
+        }
+
+        data:extend({ crater })
+    end
+end
+
+eon_create_biome_nuke_effects()
+
+---@return nil
+local function eon_patch_atomic_rocket_nuke_effects()
+    local projectile = data.raw["projectile"] and data.raw["projectile"]["atomic-rocket"]
+    local target_effects = projectile
+        and projectile.action
+        and projectile.action.action_delivery
+        and projectile.action.action_delivery.target_effects
+
+    if not target_effects then return end
+
+    local vanilla_nuke_effects = {
+        ["nuke-effects-space"] = true,
         ["nuke-effects-vulcanus"] = true,
         ["nuke-effects-aquilo"] = true,
+        ["nuke-effects-nauvis"] = true,
+        ["eon-nuke-effects-fulgora"] = true,
+        ["eon-nuke-effects-vulcanus-swapped"] = true,
     }
 
     local filtered = {}
-    for _, effect in ipairs(projectile.action.action_delivery.target_effects) do
-        if not (effect.type == "create-entity" and remove[effect.entity_name]) then
+    local inserted_biome_selector = false
+    local inserted_crater_selector = false
+
+    local function insert_biome_selector()
+        if inserted_biome_selector then return end
+        inserted_biome_selector = true
+        table.insert(filtered, {
+            type = "script",
+            effect_id = EON_NUKE_EFFECT_ID,
+        })
+    end
+
+    local function insert_crater_selector()
+        if inserted_crater_selector then return end
+        inserted_crater_selector = true
+        table.insert(filtered, {
+            type = "script",
+            effect_id = EON_NUKE_CRATER_EFFECT_ID,
+        })
+    end
+
+    for _, effect in ipairs(target_effects) do
+        if effect.type == "script" and effect.effect_id == EON_NUKE_EFFECT_ID then
+            insert_biome_selector()
+        elseif effect.type == "script" and effect.effect_id == EON_NUKE_CRATER_EFFECT_ID then
+            insert_crater_selector()
+        elseif effect.type == "create-entity" and vanilla_nuke_effects[effect.entity_name] then
+            -- Keep the biome selector where vanilla creates nuke-effects-*.
+            -- Moving set-tile later can erase crater/decorative effects.
+            insert_biome_selector()
+        elseif effect.type == "create-decorative" and effect.decorative == "nuclear-ground-patch" then
+            -- The crater belongs only to the Nauvis nuclear-ground effect.
+            insert_crater_selector()
+        else
             table.insert(filtered, effect)
         end
     end
 
+    insert_biome_selector()
     projectile.action.action_delivery.target_effects = filtered
 end
+
+eon_patch_atomic_rocket_nuke_effects()
 
 local fish = data.raw["fish"] and data.raw["fish"]["fish"]
 if fish and fish.autoplace and fish.autoplace.probability_expression then

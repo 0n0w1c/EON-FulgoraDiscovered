@@ -330,6 +330,100 @@ local function process_area(surface, area)
 end
 
 
+local EON_NUKE_EFFECT_ID = "eon-atomic-rocket-biome-effect"
+local EON_NUKE_CRATER_EFFECT_ID = "eon-atomic-rocket-nauvis-crater-effect"
+
+---@param tile LuaTile|nil
+---@return string|nil
+local function eon_tile_subgroup_name(tile)
+    if not (tile and tile.valid and tile.prototype and tile.prototype.subgroup) then
+        return nil
+    end
+
+    return tile.prototype.subgroup.name
+end
+
+---@param surface LuaSurface
+---@param tile LuaTile|nil
+---@return string
+local function eon_choose_nuke_effect(surface, tile)
+    if surface.platform then
+        return "nuke-effects-space"
+    end
+
+    local subgroup_name = eon_tile_subgroup_name(tile)
+
+    if subgroup_name == "vulcanus-tiles" then
+        return "eon-nuke-effects-vulcanus-swapped"
+    end
+
+    if subgroup_name == "aquilo-tiles" then
+        return "nuke-effects-aquilo"
+    end
+
+    if subgroup_name == "fulgora-tiles" then
+        return "eon-nuke-effects-fulgora"
+    end
+
+    -- Use the original vanilla Nauvis nuke effect unchanged.
+    return "nuke-effects-nauvis"
+end
+
+---@param surface_index uint
+---@param position MapPosition
+---@return string
+local function eon_nuke_position_key(surface_index, position)
+    return surface_index
+        .. ":" .. math.floor(position.x * 100 + 0.5)
+        .. ":" .. math.floor(position.y * 100 + 0.5)
+end
+
+local function eon_pending_nuke_effects()
+    storage.eon_pending_nuke_effects = storage.eon_pending_nuke_effects or {}
+    return storage.eon_pending_nuke_effects
+end
+
+script.on_event(defines.events.on_script_trigger_effect, function(event)
+    if event.effect_id ~= EON_NUKE_EFFECT_ID and event.effect_id ~= EON_NUKE_CRATER_EFFECT_ID then return end
+
+    local surface = game.surfaces[event.surface_index]
+    if not (surface and surface.valid) then return end
+
+    local position = event.target_position or event.source_position
+    if not position then return end
+
+    local key = eon_nuke_position_key(event.surface_index, position)
+
+    if event.effect_id == EON_NUKE_EFFECT_ID then
+        local tile = surface.get_tile(position.x, position.y)
+        local effect_name = eon_choose_nuke_effect(surface, tile)
+        eon_pending_nuke_effects()[key] = effect_name
+
+        surface.create_entity({
+            name = effect_name,
+            position = position,
+            force = "neutral",
+        })
+
+        return
+    end
+
+    if event.effect_id == EON_NUKE_CRATER_EFFECT_ID then
+        local effect_name = eon_pending_nuke_effects()[key]
+        eon_pending_nuke_effects()[key] = nil
+
+        -- The crater/ring decorative is part of the Nauvis nuclear-ground behavior only.
+        -- Vulcanus, Aquilo, Space, and Fulgora leave liquid/damaged-tile pools instead.
+        if effect_name ~= "nuke-effects-nauvis" then return end
+
+        surface.create_entity({
+            name = "eon-nuke-crater-nauvis",
+            position = position,
+            force = "neutral",
+        })
+    end
+end)
+
 script.on_event(defines.events.on_chunk_generated, function(event)
     local surface = event.surface
     if not (surface and surface.valid) then return end

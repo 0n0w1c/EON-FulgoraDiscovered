@@ -45,7 +45,8 @@ local eon_gleba_south_bias_y_offset = eon_aquilo_on_fulgora and 1000 or 1500
 
 local eon_vulcanus_coverage_expression = eon_aquilo_on_fulgora
     and "eon_vulcanus_region(0)"
-    or "max(eon_updated_volcanic_folds, eon_lava_mountains_range, eon_lava_hot_mountains_range) > 0"
+    or
+    "max(eon_updated_volcanic_folds, eon_lava_mountains_range, eon_lava_hot_mountains_range, eon_volcano_cracks_warm_range) > 0"
 
 local eon_vulcanus_terrain_expression = eon_aquilo_on_fulgora
     and "eon_vulcanus_region(0)"
@@ -1595,12 +1596,11 @@ else
     terrain.mask_vulcano_coverage("volcanic-smooth-stone-warm", "tile")
     terrain.mask_vulcano_coverage("volcanic-ash-cracks", "tile")
 
-    data.raw.tile["volcanic-folds"].autoplace.probability_expression =
-    "eon_updated_volcanic_folds"
-    data.raw.tile["volcanic-folds-flat"].autoplace.probability_expression =
-    "eon_updated_volcanic_folds_flat"
+    data.raw.tile["volcanic-folds"].autoplace.probability_expression = "eon_updated_volcanic_folds"
+    data.raw.tile["volcanic-folds-flat"].autoplace.probability_expression = "eon_updated_volcanic_folds_flat"
     data.raw.tile["lava"].autoplace.probability_expression = "eon_lava_mountains_range"
     data.raw.tile["lava-hot"].autoplace.probability_expression = "eon_lava_hot_mountains_range"
+    data.raw.tile["volcanic-cracks-warm"].autoplace.probability_expression = "eon_volcano_cracks_warm_range"
     data.raw.cliff["crater-cliff"].autoplace.probability_expression = "eon_lava_hot_mountains_range"
 end
 
@@ -1786,6 +1786,11 @@ data:extend({
         type = "noise-expression",
         name = "eon_lava_hot_mountains_range",
         expression = "1000 * range_select_base(eon_mountain_lava_spots, 0.15, 0.35, 1, 0, 1) - eon_offset_vulcano"
+    },
+    {
+        type = "noise-expression",
+        name = "eon_volcano_cracks_warm_range",
+        expression = "900 * range_select_base(eon_mountain_lava_spots, 0.10, 0.17, 1, 0, 1) - eon_offset_vulcano"
     },
     {
         type = "noise-expression",
