@@ -70,7 +70,14 @@ local function eon_vulcanus_tree_expression_for_nauvis()
     return expression
 end
 
-local eon_vulcanus_tree_on_nauvis_expression = eon_vulcanus_tree_expression_for_nauvis()
+-- EON's Vulcanus regions on Nauvis/Fulgora are smaller than vanilla Vulcanus biomes,
+-- so the vanilla ashland tree expression makes both ashland trees and Craft Deco
+-- volcanic trees extremely sparse.  Use the same moisture/aux rules, but allow
+-- trees across more of the ashland biome and increase the positive spawn chance.
+local eon_vulcanus_tree_on_nauvis_expression =
+    "min(10 * (vulcanus_ashlands_biome - 0.75), " ..
+    "4 * (-1.5 + 1.5 * vulcanus_moisture + 0.5 * (vulcanus_moisture > 0.9) - " ..
+    "0.5 * vulcanus_aux + 0.5 * vulcanus_decorative_knockout))"
 
 local eon_gleba_continuous_cliffiness_expression = "clamp(quick_multioctave_noise{x = x,\z
                                                        y = y,\z
@@ -818,13 +825,15 @@ data.raw.tile["brash-ice"].autoplace.probability_expression = eon_aquilo_on_fulg
     "eon_mask_aquilo_territory(max(eon_aquilo_base(eon_aquilo_ammonia_depth + 0.5, 200), eon_aquilo_nauvis_ammonia_ocean_edge))"
 
 
+---Defines the ammonia ocean terrain control.
+---UI labels frequency as Scale and size as Coverage.
 data:extend({
     {
         type = "autoplace-control",
         name = "ammonia_ocean",
         localised_description = nil,
         order = "z-ammonia",
-        category = "resource",
+        category = "terrain",
         hidden = false,
         can_be_disabled = false,
     },
@@ -1382,22 +1391,22 @@ data:extend({
     {
         type = "noise-expression",
         name = "eon_jellynut_spots",
-        expression = "clamp(eon_gleba_agriculture_spots(1, 64) * 5000, -inf, 2)"
+        expression = "clamp(eon_gleba_agriculture_spots(1, 64 * sqrt(control:gleba_water:size), control:gleba_water:frequency) * 5000 * control:gleba_water:frequency, -inf, 2)"
     },
     {
         type = "noise-expression",
         name = "eon_yumako_spots",
-        expression = "clamp(eon_gleba_agriculture_spots(2, 64) * 5000, -inf, 2)"
+        expression = "clamp(eon_gleba_agriculture_spots(2, 64 * sqrt(control:gleba_water:size), control:gleba_water:frequency) * 5000 * control:gleba_water:frequency, -inf, 2)"
     },
     {
         type = "noise-expression",
         name = "eon_jellynut_soil",
-        expression = "eon_gleba_agriculture_spots(1, 32) * 6"
+        expression = "eon_gleba_agriculture_spots(1, 32 * sqrt(control:gleba_plants:size), control:gleba_plants:frequency) * 6 * control:gleba_plants:frequency"
     },
     {
         type = "noise-expression",
         name = "eon_yumako_soil",
-        expression = "eon_gleba_agriculture_spots(2, 32) * 6"
+        expression = "eon_gleba_agriculture_spots(2, 32 * sqrt(control:gleba_plants:size), control:gleba_plants:frequency) * 6 * control:gleba_plants:frequency"
     },
 
     {
@@ -1440,7 +1449,7 @@ data:extend({
     {
         type = "noise-function",
         name = "eon_gleba_agriculture_spots",
-        parameters = { "seed", "spot_radius_expression" },
+        parameters = { "seed", "spot_radius_expression", "spot_frequency_expression" },
         expression = "eon_mask_gleba_territory(spot_noise{x = x + wobble_noise_x * 15,\z
                                                       y = y + wobble_noise_y * 15,\z
                                                       seed0 = map_seed,\z
@@ -1449,14 +1458,14 @@ data:extend({
                                                       suggested_minimum_candidate_point_spacing = 128,\z
                                                       skip_span = 1,\z
                                                       skip_offset = 0,\z
-                                                      region_size = 1024,\z
+                                                      region_size = 1024 / max(0.125, spot_frequency_expression),\z
                                                       density_expression = 80,\z
                                                       spot_quantity_expression = 1000,\z
                                                       spot_radius_expression = spot_radius_expression,\z
                                                       hard_region_target_quantity = 0,\z
                                                       spot_favorability_expression = 60,\z
                                                       basement_value = -0.5,\z
-                                                      maximum_spot_basement_radius = 128})",
+                                                      maximum_spot_basement_radius = max(32, 128 * sqrt(control:gleba_water:size))})",
         local_expressions =
         {
             wobble_noise_x =

@@ -1,4 +1,13 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.10.0
+Date: 29.05.2026
+  Bugfixes:
+    - Some Gleba autoplace controls did not have a map effect
+    - Refactored the autoplace for enemy nests and turrets
+  Changes:
+    - Moved the Ammonia ocean and Vulcanism autoplace controls to the Terrain tab
+    - Pentapod nests now spawn on wetlands
+---------------------------------------------------------------------------------------------------
 Version: 0.9.3
 Date: 28.05.2026
   Bugfixes:
@@ -9,7 +18,7 @@ Date: 28.05.2026
 Version: 0.9.2
 Date: 27.05.2026
   Bugfixes:
-    - Remove invalid space connections, rerouted through Fulgora if a planet becomes isolated
+    - Remove invalid space connections, route through Fulgora if a planet becomes isolated
   Changes:
     - Planet Ithurice is not compatible
 ---------------------------------------------------------------------------------------------------

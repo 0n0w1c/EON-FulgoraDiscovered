@@ -229,8 +229,6 @@ local function eon_remove_hidden_planet_space_connections()
     local stranded_planets = {}
     local rerouted_planets = {}
 
-    -- Remove routes to planets EON hides. If that disconnects another planet
-    -- entirely, remember the removed route so it can be recreated from Fulgora.
     for connection_name_to_remove, connection in pairs(table.deepcopy(connections)) do
         if connection_touches_removed_planet(connection) then
             local other_endpoint = other_endpoint_from_removed_connection(connection)
@@ -264,8 +262,6 @@ local function eon_remove_hidden_planet_space_connections()
         end
     end
 
-    -- Space routes and discovery techs need to agree. A modded planet rerouted
-    -- through Fulgora should not still require a hidden planet discovery tech.
     eon_repair_rerouted_planet_discovery_technologies(rerouted_planets)
 end
 
@@ -357,3 +353,108 @@ eon_repair_rerouted_planet_discovery_technologies = function(rerouted_planets)
 end
 
 eon_remove_hidden_planet_space_connections()
+
+---Normalizes Commander enemy candidates on Nauvis.
+---Collision masks are shared; tile restrictions define wetland or land placement.
+---@class EonCollisionMask
+---@field layers table<string, boolean>
+---@type EonCollisionMask
+local eon_commander_enemy_collision_mask = {
+    layers = {
+        item = true,
+        meltable = true,
+        object = true,
+        player = true,
+        is_object = true,
+        is_lower_object = true,
+    }
+}
+
+---@type string[] Tile names where Gleba pentapod spawners may be autoplaced.
+local eon_gleba_wetland_spawner_tiles = {
+    "wetland-yumako",
+    "wetland-jellynut",
+    "wetland-blue-slime",
+    "wetland-light-green-slime",
+    "wetland-green-slime",
+    "wetland-light-dead-skin",
+    "wetland-dead-skin",
+    "wetland-pink-tentacle",
+    "wetland-red-tentacle",
+}
+
+---Returns whether a collision mask contains a layer.
+---@param mask table|nil Collision mask table from a prototype, if present.
+---@param layer string Collision layer name to test.
+---@return boolean has_layer True when the layer is present and enabled.
+local function eon_collision_mask_has_layer(mask, layer)
+    if type(mask) ~= "table" then return false end
+
+    if type(mask.layers) == "table" then
+        return mask.layers[layer] == true
+    end
+
+    for _, mask_layer in pairs(mask) do
+        if mask_layer == layer then return true end
+    end
+
+    return false
+end
+
+---Collects solid, non-water tile names.
+---@return string[] tile_names Solid, non-water tile names.
+local function eon_collect_solid_tile_names()
+    local tiles = {}
+
+    for tile_name, tile in pairs(data.raw["tile"] or {}) do
+        local mask = tile.collision_mask
+        if eon_collision_mask_has_layer(mask, "ground_tile")
+            and not eon_collision_mask_has_layer(mask, "water_tile")
+        then
+            table.insert(tiles, tile_name)
+        end
+    end
+
+    if #tiles > 0 then return tiles end
+
+    return {
+        "grass-1", "grass-2", "grass-3", "grass-4",
+        "dry-dirt", "dirt-1", "dirt-2", "dirt-3", "dirt-4", "dirt-5", "dirt-6", "dirt-7",
+        "sand-1", "sand-2", "sand-3",
+        "red-desert-0", "red-desert-1", "red-desert-2", "red-desert-3",
+    }
+end
+
+---@type string[]
+local eon_land_spawner_tiles = eon_collect_solid_tile_names()
+
+---Returns whether a prototype participates in enemy-base style autoplace.
+---@param proto table|nil Candidate unit-spawner or turret prototype.
+---@return boolean is_candidate True when the prototype has an autoplace control.
+local function eon_is_autoplaced_enemy_candidate(proto)
+    return proto ~= nil
+        and proto.autoplace ~= nil
+        and proto.autoplace.control ~= nil
+end
+
+---Normalizes an autoplaced enemy prototype for Commander expansion.
+---@param proto table Unit-spawner or turret prototype to adjust in-place.
+---@return nil
+local function eon_normalize_autoplaced_enemy_candidate(proto)
+    if not eon_is_autoplaced_enemy_candidate(proto) then return end
+
+    proto.collision_mask = table.deepcopy(eon_commander_enemy_collision_mask)
+
+    if proto.name == "gleba-spawner" or proto.name == "gleba-spawner-small" then
+        proto.autoplace.tile_restriction = table.deepcopy(eon_gleba_wetland_spawner_tiles)
+        return
+    end
+
+    proto.autoplace.tile_restriction = table.deepcopy(eon_land_spawner_tiles)
+end
+
+for _, prototype_type in pairs({ "unit-spawner", "turret" }) do
+    for _, proto in pairs(data.raw[prototype_type] or {}) do
+        eon_normalize_autoplaced_enemy_candidate(proto)
+    end
+end

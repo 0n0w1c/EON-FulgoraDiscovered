@@ -239,6 +239,8 @@ data.raw["noise-expression"]["demolisher_variation_expression"].expression =
 data.raw["planet"]["nauvis"].map_gen_settings.autoplace_controls["gleba_enemy_base"] = {}
 
 
+---Configures pentapod spawner autoplace for EON's Gleba biome.
+---Uses `gleba_enemy_base` frequency and size; richness is unused.
 local gleba_enemy_frequency = "var('control:gleba_enemy_base:frequency')"
 local gleba_enemy_size = "sqrt(var('control:gleba_enemy_base:size'))"
 
@@ -247,26 +249,27 @@ local fertile_cap = 0.00015
 local fertile_scale = 2000
 local green_penalty = 12000
 
----@param a any
----@param b any
----@return any
+---@param a string|number
+---@param b string|number
+---@return string
 local function min_expr(a, b)
     return "min(" .. a .. ", " .. b .. ")"
 end
 
----@vararg any
----@return any
+---@vararg string|number
+---@return string
 local function max_expr(...)
     return "max(" .. table.concat({ ... }, ", ") .. ")"
 end
 
----@param expr any
----@return any
+---@param expr string
+---@return string
 local function gleba_enemy_mask(expr)
     return gleba_enemy_frequency ..
         " * eon_mask_gleba_territory((" ..
         expr ..
-        ") * gleba_above_deep_water_mask)"
+        ") * " .. gleba_enemy_size ..
+        " * gleba_above_deep_water_mask)"
 end
 
 local enemy_autoplace = min_expr(enemy_cap, "enemy_autoplace_base(0, 8)")
@@ -280,7 +283,7 @@ local fertile_coastal_enemy_autoplace =
 
 local gleba_enemy_density =
     max_expr(
-        "0.001 * gleba_starting_enemies * " .. gleba_enemy_size,
+        "0.001 * gleba_starting_enemies",
         enemy_autoplace,
         fertile_coastal_enemy_autoplace
     )

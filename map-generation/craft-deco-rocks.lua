@@ -8,7 +8,6 @@ local CRAFT_DECO_ROCK_SUBGROUPS = {
 ---@class EonCraftDecoRockFamily
 ---@field base_name string
 ---@field match fun(name: string): boolean
-
 ---@type EonCraftDecoRockFamily[]
 local ROCK_FAMILIES = {
     {

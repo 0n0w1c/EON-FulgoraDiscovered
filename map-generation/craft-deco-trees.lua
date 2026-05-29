@@ -275,7 +275,7 @@ local function apply_volcanic_autoplace(name, tree)
         control = "trees",
         order = "z[tree]-c[craft-deco-2]-volcanic-" .. name,
         probability_expression = eon_vulcanus_off_aquilo_mask ..
-        "(eon_mask_vulcano_terrain(0.05 * eon_vulcanus_ashland_tree_density))",
+        "(eon_mask_vulcano_terrain(eon_vulcanus_tree_on_nauvis))",
         richness_expression = "clamp(random_penalty_at(18, 1), 0, 1)",
         tile_restriction = {
             "volcanic-ash-cracks",

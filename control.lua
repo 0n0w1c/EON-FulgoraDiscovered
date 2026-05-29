@@ -367,19 +367,17 @@ local function eon_existing_effect_or_fallback(preferred_effect, fallback_effect
     return nil
 end
 
+---Chooses the biome-specific nuke effect for a surface tile.
 ---@param surface LuaSurface
 ---@param tile LuaTile|nil
 ---@return string|nil
 local function eon_choose_nuke_effect(surface, tile)
-    -- Space platforms do not have planetary terrain to replace.
     if surface.platform then
         return eon_existing_effect_or_fallback("nuke-effects-space", "nuke-effects-nauvis")
     end
 
     local subgroup_name = eon_tile_subgroup_name(tile)
 
-    -- EON-specific overrides. These intentionally do not modify vanilla
-    -- nuke effect prototypes; they only choose a different entity to create.
     if subgroup_name == "vulcanus-tiles" then
         return eon_existing_effect_or_fallback("eon-nuke-effects-vulcanus-swapped", "nuke-effects-vulcanus")
     end
@@ -392,8 +390,6 @@ local function eon_choose_nuke_effect(surface, tile)
         return eon_existing_effect_or_fallback("eon-nuke-effects-fulgora", "nuke-effects-nauvis")
     end
 
-    -- Compatibility with planet mods that follow the common convention:
-    -- <planet>-tiles -> nuke-effects-<planet>.
     if type(subgroup_name) == "string" then
         local planet_name = string.match(subgroup_name, "^(.+)%-tiles$")
         local planet_effect = planet_name and ("nuke-effects-" .. planet_name) or nil
@@ -402,7 +398,6 @@ local function eon_choose_nuke_effect(surface, tile)
         end
     end
 
-    -- Use the original vanilla Nauvis nuke effect unchanged.
     return eon_existing_effect_or_fallback("nuke-effects-nauvis", nil)
 end
 
@@ -451,8 +446,6 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
         local effect_name = eon_pending_nuke_effects()[key]
         eon_pending_nuke_effects()[key] = nil
 
-        -- The crater/ring decorative is part of the Nauvis nuclear-ground behavior only.
-        -- Vulcanus, Aquilo, Space, and Fulgora leave liquid/damaged-tile pools instead.
         if effect_name ~= "nuke-effects-nauvis" then return end
 
         if eon_entity_prototype_exists("eon-nuke-crater-nauvis") then

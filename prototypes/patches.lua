@@ -62,8 +62,6 @@ local function eon_create_biome_nuke_effects()
         ["lava-hot"] = "lava",
         ["lava"] = "lava-hot",
     }, {
-        -- Outer warm-cracks ring. Insert before the lava effects so the pool
-        -- overwrites the center while keeping only the outer band.
         {
             type = "set-tile",
             tile_name = "volcanic-cracks-warm",
@@ -158,12 +156,8 @@ local function eon_patch_atomic_rocket_nuke_effects()
         elseif effect.type == "script" and effect.effect_id == EON_NUKE_CRATER_EFFECT_ID then
             insert_crater_selector()
         elseif effect.type == "create-entity" and is_nuke_effect_entity(effect.entity_name) then
-            -- Keep the biome selector where vanilla or modded nuke-effects-*
-            -- entities would have run. Moving set-tile later can erase
-            -- crater/decorative effects.
             insert_biome_selector()
         elseif effect.type == "create-decorative" and effect.decorative == "nuclear-ground-patch" then
-            -- The crater belongs only to the Nauvis nuclear-ground effect.
             insert_crater_selector()
         else
             table.insert(filtered, effect)

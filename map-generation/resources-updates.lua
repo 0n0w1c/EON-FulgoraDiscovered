@@ -101,8 +101,10 @@ table.insert(data.raw["simple-entity"]["big-volcanic-rock"].minable.results,
 table.insert(data.raw["simple-entity"]["huge-volcanic-rock"].minable.results,
     { type = "item", name = "calcite", amount_min = 3, amount_max = 15 })
 
+---Moves Vulcanus volcanism to the Terrain tab.
+---UI labels frequency as Scale and size as Coverage.
 data.raw["autoplace-control"]["vulcanus_volcanism"].order = "z-volcanism"
-data.raw["autoplace-control"]["vulcanus_volcanism"].category = "resource"
+data.raw["autoplace-control"]["vulcanus_volcanism"].category = "terrain"
 data.raw["autoplace-control"]["vulcanus_volcanism"].localised_description = nil
 
 data.raw["autoplace-control"]["sulfuric_acid_geyser"].order = "b-z"
