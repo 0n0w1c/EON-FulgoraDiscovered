@@ -4,7 +4,6 @@ require("prototypes.planet-sounds")
 
 require("prototypes.patches")
 
-
 ---@param planet_name string
 ---@return any
 local function eon_planet_has_unit_spawner_autoplace(planet_name)
@@ -101,6 +100,75 @@ local function eon_hide_craft_deco_2_recipes()
 end
 
 eon_hide_craft_deco_2_recipes()
+
+---@param resistance_owner table|nil
+---@return boolean
+local function eon_set_full_electric_resistance(resistance_owner)
+    if not resistance_owner then return false end
+
+    resistance_owner.resistances = resistance_owner.resistances or {}
+
+    for _, resistance in pairs(resistance_owner.resistances) do
+        if resistance.type == "electric" then
+            resistance.percent = 100
+            return true
+        end
+    end
+
+    table.insert(resistance_owner.resistances, { type = "electric", percent = 100 })
+    return true
+end
+
+---@param prototype_type string
+---@param prototype_name string
+---@return boolean
+local function eon_is_cold_biter_enemy_prototype(prototype_type, prototype_name)
+    if type(prototype_name) ~= "string" then return false end
+
+    if prototype_type == "unit-spawner" then
+        return prototype_name == "cb-cold-spawner"
+            or string.find(prototype_name, "cold%-spawner", 1, false) ~= nil
+            or string.find(prototype_name, "frost%-spawner", 1, false) ~= nil
+    end
+
+    if prototype_type == "turret" then
+        return string.find(prototype_name, "cold%-worm%-turret", 1, false) ~= nil
+            or string.find(prototype_name, "frost%-worm%-turret", 1, false) ~= nil
+    end
+
+    if prototype_type == "unit" then
+        return string.find(prototype_name, "cold%-biter", 1, false) ~= nil
+            or string.find(prototype_name, "cold%-spitter", 1, false) ~= nil
+            or string.find(prototype_name, "frost%-biter", 1, false) ~= nil
+            or string.find(prototype_name, "frost%-spitter", 1, false) ~= nil
+    end
+
+    return false
+end
+
+---@return nil
+local function eon_make_cold_biters_electric_immune_on_fulgora_aquilo()
+    local aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
+        and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
+
+    if not aquilo_on_fulgora then return end
+    if not (mods["Cold_biters"] or mods["Frost_biters"]) then return end
+
+    local patched = 0
+    for _, prototype_type in pairs({ "unit-spawner", "turret", "unit" }) do
+        for prototype_name, prototype in pairs(data.raw[prototype_type] or {}) do
+            if eon_is_cold_biter_enemy_prototype(prototype_type, prototype_name)
+                and eon_set_full_electric_resistance(prototype)
+            then
+                patched = patched + 1
+            end
+        end
+    end
+
+    log("[EON] Cold/Frost Biters electric immunity on Fulgora Aquilo patched prototypes=" .. patched)
+end
+
+eon_make_cold_biters_electric_immune_on_fulgora_aquilo()
 
 local eon_repair_rerouted_planet_discovery_technologies
 
@@ -279,6 +347,7 @@ eon_repair_rerouted_planet_discovery_technologies = function(rerouted_planets)
         ["planet-discovery-vulcanus"] = true,
     }
 
+    ---@type string?
     local replacement_prerequisite = "planet-discovery-fulgora"
     if not technologies[replacement_prerequisite] then
         replacement_prerequisite = nil
@@ -401,6 +470,30 @@ local function eon_collision_mask_has_layer(mask, layer)
     return false
 end
 
+---Adds a collision layer to a prototype collision mask, preserving the 2.0 layers format.
+---@param proto table|nil Prototype with a collision_mask field.
+---@param layer string Collision layer to add.
+---@return boolean changed True when the layer was newly added.
+local function eon_add_collision_mask_layer(proto, layer)
+    if type(proto) ~= "table" or type(layer) ~= "string" then return false end
+
+    proto.collision_mask = proto.collision_mask or { layers = {} }
+
+    if type(proto.collision_mask.layers) ~= "table" then
+        local converted = { layers = {} }
+        for _, mask_layer in pairs(proto.collision_mask) do
+            if type(mask_layer) == "string" then
+                converted.layers[mask_layer] = true
+            end
+        end
+        proto.collision_mask = converted
+    end
+
+    if proto.collision_mask.layers[layer] == true then return false end
+    proto.collision_mask.layers[layer] = true
+    return true
+end
+
 ---Collects solid, non-water tile names.
 ---@return string[] tile_names Solid, non-water tile names.
 local function eon_collect_solid_tile_names()
@@ -458,3 +551,124 @@ for _, prototype_type in pairs({ "unit-spawner", "turret" }) do
         eon_normalize_autoplaced_enemy_candidate(proto)
     end
 end
+
+local eon_fulgora_oil_ocean_tiles = {
+    ["oil-ocean-shallow"] = true,
+    ["oil-ocean-deep"] = true,
+}
+
+---Excludes Fulgora oil-ocean tiles from a base prototype's autoplace tile restriction.
+---@param proto table|nil Candidate spawner or worm prototype.
+---@return boolean changed True when the tile restriction was changed.
+local function eon_exclude_fulgora_oil_ocean_from_autoplace(proto)
+    if type(proto) ~= "table" or type(proto.autoplace) ~= "table" then return false end
+
+    local changed = false
+    local restriction = proto.autoplace.tile_restriction
+
+    if type(restriction) ~= "table" then
+        proto.autoplace.tile_restriction = table.deepcopy(eon_land_spawner_tiles)
+        return true
+    end
+
+    local filtered = {}
+    local removed = false
+    for _, tile_name in pairs(restriction) do
+        if eon_fulgora_oil_ocean_tiles[tile_name] then
+            removed = true
+        else
+            table.insert(filtered, tile_name)
+        end
+    end
+
+    if #filtered == 0 then
+        filtered = table.deepcopy(eon_land_spawner_tiles)
+        removed = true
+    end
+
+    if removed then
+        proto.autoplace.tile_restriction = filtered
+        changed = true
+    end
+
+    return changed
+end
+
+
+---@return nil
+local function eon_make_deep_oil_ocean_collide_with_players()
+    local tile = data.raw["tile"] and data.raw["tile"]["oil-ocean-deep"]
+    if not tile then return end
+
+    if eon_add_collision_mask_layer(tile, "player") then
+        log("[EON] oil-ocean-deep collision mask patched with player layer")
+    end
+end
+
+eon_make_deep_oil_ocean_collide_with_players()
+
+---@return nil
+local function eon_prevent_cold_biter_bases_on_fulgora_oil_ocean()
+    local aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
+        and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
+
+    if not aquilo_on_fulgora then return end
+    if not (mods["Cold_biters"] or mods["Frost_biters"]) then return end
+
+    local collision_patched = 0
+    local restriction_patched = 0
+    for _, prototype_type in pairs({ "unit-spawner", "turret" }) do
+        for prototype_name, prototype in pairs(data.raw[prototype_type] or {}) do
+            if eon_is_cold_biter_enemy_prototype(prototype_type, prototype_name) then
+                if eon_add_collision_mask_layer(prototype, "water_tile") then
+                    collision_patched = collision_patched + 1
+                end
+                if eon_exclude_fulgora_oil_ocean_from_autoplace(prototype) then
+                    restriction_patched = restriction_patched + 1
+                end
+            end
+        end
+    end
+
+    log("[EON] Cold/Frost Biters Fulgora oil-ocean base prevention patched collision_prototypes="
+        .. collision_patched .. " tile_restriction_prototypes=" .. restriction_patched)
+end
+
+eon_prevent_cold_biter_bases_on_fulgora_oil_ocean()
+
+---@param prototype_type string
+---@param prototype_name string
+---@return boolean
+local function eon_is_fulgoran_enemy_base_prototype(prototype_type, prototype_name)
+    if type(prototype_name) ~= "string" then return false end
+    if prototype_type ~= "unit-spawner" and prototype_type ~= "turret" then return false end
+
+    return prototype_name == "flying-electric-unit-spawner"
+        or prototype_name == "walker-electric-unit-spawner"
+        or string.find(prototype_name, "electric%-unit%-spawner", 1, false) ~= nil
+end
+
+---@return nil
+local function eon_prevent_fulgoran_enemy_bases_on_fulgora_oil_ocean()
+    if not mods["Electric_flying_enemies"] then return end
+
+    local collision_patched = 0
+    local restriction_patched = 0
+    for _, prototype_type in pairs({ "unit-spawner", "turret" }) do
+        for prototype_name, prototype in pairs(data.raw[prototype_type] or {}) do
+            if eon_is_fulgoran_enemy_base_prototype(prototype_type, prototype_name) then
+                if eon_add_collision_mask_layer(prototype, "water_tile") then
+                    collision_patched = collision_patched + 1
+                end
+                if eon_exclude_fulgora_oil_ocean_from_autoplace(prototype) then
+                    restriction_patched = restriction_patched + 1
+                end
+            end
+        end
+    end
+
+    log("[EON] Fulgoran Enemies oil-ocean base prevention patched collision_prototypes="
+        .. collision_patched .. " tile_restriction_prototypes=" .. restriction_patched)
+end
+
+eon_prevent_fulgoran_enemy_bases_on_fulgora_oil_ocean()

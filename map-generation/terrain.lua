@@ -52,28 +52,6 @@ local eon_vulcanus_terrain_expression = eon_aquilo_on_fulgora
     and "eon_vulcanus_region(0)"
     or "max(eon_vulcano_coverage, eon_updated_volcanic_folds_flat) > 0"
 
----@return string
-local function eon_vulcanus_tree_expression_for_nauvis()
-    local expression = data.raw["noise-expression"]
-        and data.raw["noise-expression"]["vulcanus_tree"]
-        and data.raw["noise-expression"]["vulcanus_tree"].expression
-
-    if type(expression) ~= "string" or expression == "" then
-        expression = "min(10 * (vulcanus_ashlands_biome - 0.9)," ..
-            "-1.5 + 1.5 * moisture + 0.5 * (moisture > 0.9) - " ..
-            "0.5 * aux + 0.5 * vulcanus_decorative_knockout)"
-    end
-
-    expression = string.gsub(expression, "%f[%w_]moisture%f[^%w_]", "vulcanus_moisture")
-    expression = string.gsub(expression, "%f[%w_]aux%f[^%w_]", "vulcanus_aux")
-
-    return expression
-end
-
--- EON's Vulcanus regions on Nauvis/Fulgora are smaller than vanilla Vulcanus biomes,
--- so the vanilla ashland tree expression makes both ashland trees and Craft Deco
--- volcanic trees extremely sparse.  Use the same moisture/aux rules, but allow
--- trees across more of the ashland biome and increase the positive spawn chance.
 local eon_vulcanus_tree_on_nauvis_expression =
     "min(10 * (vulcanus_ashlands_biome - 0.75), " ..
     "4 * (-1.5 + 1.5 * vulcanus_moisture + 0.5 * (vulcanus_moisture > 0.9) - " ..
@@ -154,9 +132,7 @@ local eon_aquilo_snow_decorative_tile_names = {
     "fulgoran-machinery",
 }
 
-local eon_noise_expr_string
-
----@param prototype table
+---@param prototype table?
 ---@param wrapper string
 ---@return nil
 local function eon_wrap_probability_expression(prototype, wrapper)
@@ -175,6 +151,20 @@ local function eon_mask_fulgora_oil_ocean_off_aquilo_ocean_edge()
         local tile = data.raw.tile and data.raw.tile[tile_name]
         eon_wrap_probability_expression(tile, "eon_mask_off_aquilo_ocean_edge")
     end
+end
+
+---@param entity_name string
+---@return table? prototype Prototype with an autoplace probability expression, when one exists.
+local function eon_autoplace_entity_prototype(entity_name)
+    for _, prototype_type in pairs({ "resource", "simple-entity", "lightning-attractor" }) do
+        local prototypes = data.raw[prototype_type]
+        local prototype = prototypes and prototypes[entity_name]
+        if prototype and prototype.autoplace then
+            return prototype
+        end
+    end
+
+    return nil
 end
 
 ---@param prototype_type any
@@ -381,7 +371,6 @@ data:extend({
     },
 })
 
-
 data.raw.tile["water"].autoplace.probability_expression = "eon_updated_water + if(eon_gleba_region(-10), -inf, 0)"
 data.raw.tile["deepwater"].autoplace.probability_expression =
 "eon_updated_deepwater + if(eon_gleba_region(-100), -inf, 0)"
@@ -504,7 +493,6 @@ data:extend({
         name = "eon_resource_territory",
         expression = "eon_aquilo_base(eon_aquilo_ammonia_depth + 2, 200)"
     },
-
     {
         type = "noise-function",
         name = "eon_identity",
@@ -544,7 +532,6 @@ data:extend({
 })
 
 eon_apply_blended_nauvis_cliff_settings()
-
 
 local eon_aquilo_map_gen = data.raw.planet[eon_aquilo_planet_name].map_gen_settings
 local eon_inactive_aquilo_planet_name = eon_aquilo_on_fulgora and "nauvis" or "fulgora"
@@ -681,15 +668,15 @@ if eon_aquilo_on_fulgora then
     if fulgora_settings then
         for entity_name, _ in pairs(fulgora_settings.entity.settings) do
             if not eon_aquilo_entity_names[entity_name] then
-                if data.raw.resource[entity_name] then
-                    eon_wrap_probability_expression(data.raw.resource[entity_name],
-                        "eon_mask_off_aquilo_territory")
-                elseif data.raw["simple-entity"][entity_name] then
-                    eon_wrap_probability_expression(data.raw["simple-entity"][entity_name],
-                        "eon_mask_off_aquilo_territory")
-                end
+                eon_wrap_probability_expression(
+                    eon_autoplace_entity_prototype(entity_name),
+                    "eon_mask_off_aquilo_territory")
             end
         end
+
+        eon_wrap_probability_expression(
+            eon_autoplace_entity_prototype("fulgoran-ruin-attractor"),
+            "eon_mask_off_aquilo_territory")
     end
 end
 
@@ -824,9 +811,6 @@ data.raw.tile["brash-ice"].autoplace.probability_expression = eon_aquilo_on_fulg
     or
     "eon_mask_aquilo_territory(max(eon_aquilo_base(eon_aquilo_ammonia_depth + 0.5, 200), eon_aquilo_nauvis_ammonia_ocean_edge))"
 
-
----Defines the ammonia ocean terrain control.
----UI labels frequency as Scale and size as Coverage.
 data:extend({
     {
         type = "autoplace-control",
@@ -1030,7 +1014,6 @@ data:extend({
                                     octaves = 1,\z
                                     input_scale = eon_aquilo_segmentation_multiplier / 1600})",
     },
-
     {
         type = "noise-function",
         name = "eon_aquilo_base",
@@ -1080,9 +1063,14 @@ data:extend({
         parameters = { "expression" },
         expression = "if(eon_aquilo_fulgora_ocean_edge, -inf, expression)"
     },
+    {
+        type = "noise-function",
+        name = "eon_mask_off_fulgora_oil_ocean",
+        parameters = { "expression" },
+        expression =
+        "if(max(50 * fulgora_oil_mask * water_base(fulgora_coastline, 1000), 100 * fulgora_oil_mask * water_base(fulgora_coastline - 50 - fulgora_coastline_drop / 2, 2000)) > 0, -inf, expression)"
+    },
 })
-
-
 
 data.raw.planet["nauvis"].map_gen_settings.autoplace_controls["gleba_plants"] = {}
 data.raw.planet["nauvis"].map_gen_settings.autoplace_controls["gleba_water"] = {}
@@ -1391,22 +1379,26 @@ data:extend({
     {
         type = "noise-expression",
         name = "eon_jellynut_spots",
-        expression = "clamp(eon_gleba_agriculture_spots(1, 64 * sqrt(control:gleba_water:size), control:gleba_water:frequency) * 5000 * control:gleba_water:frequency, -inf, 2)"
+        expression =
+        "clamp(eon_gleba_agriculture_spots(1, 64 * sqrt(control:gleba_water:size), control:gleba_water:frequency) * 5000 * control:gleba_water:frequency, -inf, 2)"
     },
     {
         type = "noise-expression",
         name = "eon_yumako_spots",
-        expression = "clamp(eon_gleba_agriculture_spots(2, 64 * sqrt(control:gleba_water:size), control:gleba_water:frequency) * 5000 * control:gleba_water:frequency, -inf, 2)"
+        expression =
+        "clamp(eon_gleba_agriculture_spots(2, 64 * sqrt(control:gleba_water:size), control:gleba_water:frequency) * 5000 * control:gleba_water:frequency, -inf, 2)"
     },
     {
         type = "noise-expression",
         name = "eon_jellynut_soil",
-        expression = "eon_gleba_agriculture_spots(1, 32 * sqrt(control:gleba_plants:size), control:gleba_plants:frequency) * 6 * control:gleba_plants:frequency"
+        expression =
+        "eon_gleba_agriculture_spots(1, 32 * sqrt(control:gleba_plants:size), control:gleba_plants:frequency) * 6 * control:gleba_plants:frequency"
     },
     {
         type = "noise-expression",
         name = "eon_yumako_soil",
-        expression = "eon_gleba_agriculture_spots(2, 32 * sqrt(control:gleba_plants:size), control:gleba_plants:frequency) * 6 * control:gleba_plants:frequency"
+        expression =
+        "eon_gleba_agriculture_spots(2, 32 * sqrt(control:gleba_plants:size), control:gleba_plants:frequency) * 6 * control:gleba_plants:frequency"
     },
 
     {
@@ -1487,7 +1479,6 @@ data:extend({
         expression = "if(eon_gleba_mask, -inf, expression)"
     },
 })
-
 
 data.raw.planet["nauvis"].map_gen_settings.autoplace_controls["vulcanus_volcanism"] = {}
 
@@ -1613,7 +1604,6 @@ else
     data.raw.cliff["crater-cliff"].autoplace.probability_expression = "eon_lava_hot_mountains_range"
 end
 
-
 local eon_vulcanus_decoratives_off_aquilo = eon_vulcanus_optimized_decorative_names
 
 local eon_vulcanus_decorative_tile_restrictions = {
@@ -1669,7 +1659,6 @@ local function eon_wrap_current_autoplace_expression(prototype_type, prototype_n
     autoplace.probability_expression = wrapper .. "(" .. expression .. ")"
 end
 
-
 terrain.mask_vulcano_coverage("vulcanus-chimney", "simple-entity")
 terrain.mask_vulcano_coverage("vulcanus-chimney-faded", "simple-entity")
 terrain.mask_vulcano_coverage("vulcanus-chimney-cold", "simple-entity")
@@ -1702,7 +1691,6 @@ eon_set_vulcanus_tree_probability("ashland-lichen-tree-flaming", "eon_vulcanus_t
 for _, decorative_name in ipairs(eon_vulcanus_optimized_decorative_names) do
     terrain.mask_vulcano_terrain(decorative_name, "optimized-decorative")
 end
-
 
 for _, name in ipairs(eon_vulcanus_decoratives_off_aquilo) do
     eon_wrap_current_autoplace_expression("optimized-decorative", name, eon_vulcanus_off_aquilo_mask)
@@ -1850,7 +1838,6 @@ data:extend({
             "10 * (vulcanus_ashlands_biome_noise + vulcanus_basalts_biome_noise + vulcanus_mountains_biome_noise)"
         }
     },
-
     {
         type = "noise-function",
         name = "eon_mask_vulcano_coverage",

@@ -45,7 +45,6 @@ data.raw["turret"]["big-worm-turret"].autoplace.probability_expression = "eon_ma
 data.raw["turret"]["behemoth-worm-turret"].autoplace.probability_expression =
 "eon_mask_nauvis_territory(behemoth_worm_turret)"
 
-
 if mods["ArmouredBiters"] then
     local armoured_biter_spawner = data.raw["unit-spawner"] and data.raw["unit-spawner"]["armoured-biter-spawner"]
     if armoured_biter_spawner
@@ -65,14 +64,13 @@ if mods["ArmouredBiters"] then
     end
 end
 
-
-
 if mods["Explosive_biters"] then
     ---@param expression string
     ---@return string
     local function eon_explosive_probability_expression(expression)
         expression = string.gsub(expression, "^enemy_autoplace_base%(", "eb_enemy_autoplace_base(")
         expression = string.gsub(expression, "([^%w_])enemy_autoplace_base%(", "%1eb_enemy_autoplace_base(")
+
         return expression
     end
 
@@ -121,7 +119,6 @@ if mods["Explosive_biters"] then
     eon_mask_explosive_autoplace("turret", "mother-explosive-worm-turret", "mother_explosive_worm_turret")
 end
 
-
 if mods["Cold_biters"] then
     local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
         and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
@@ -144,8 +141,7 @@ if mods["Cold_biters"] then
                 },
             })
 
-            prototype.autoplace.probability_expression =
-                "eon_mask_aquilo_territory(" .. expression_name .. ")"
+            prototype.autoplace.probability_expression = "eon_mask_aquilo_territory(" .. expression_name .. ")"
         end
     end
 
@@ -178,12 +174,10 @@ if mods["Cold_biters"] then
     eon_mask_cold_autoplace("turret", "mother-cold-worm-turret", "eon_mother_cold_worm_turret")
 end
 
+if mods["Electric_flying_enemies"] then
+    local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
+        and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
 
-if mods["Electric_flying_enemies"]
-    and mods["Cold_biters"]
-    and settings.startup["eon-fd-aquilo-on-fulgora"]
-    and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
-then
     ---@param prototype_type any
     ---@param prototype_name string
     ---@param expression_name string
@@ -202,8 +196,11 @@ then
                 },
             })
 
-            prototype.autoplace.probability_expression =
-                "eon_mask_off_aquilo_territory(" .. expression_name .. ")"
+            if eon_aquilo_on_fulgora then
+                prototype.autoplace.probability_expression = "eon_mask_off_aquilo_territory(" .. expression_name .. ")"
+            else
+                prototype.autoplace.probability_expression = expression_name
+            end
         end
     end
 
@@ -212,7 +209,6 @@ then
     eon_mask_electric_off_aquilo("unit-spawner", "walker-electric-unit-spawner",
         "eon_walker_electric_unit_spawner_off_aquilo")
 end
-
 
 local eon_nauvis_territory_settings = table.deepcopy(data.raw["planet"]["vulcanus"].map_gen_settings.territory_settings)
 data.raw["planet"]["nauvis"].map_gen_settings.territory_settings = eon_nauvis_territory_settings
@@ -235,12 +231,8 @@ data.raw["noise-expression"]["demolisher_starting_area"].expression = "if(eon_vu
 data.raw["noise-expression"]["demolisher_variation_expression"].expression =
 "floor(clamp(distance / (50 * 32) - 0.25, 0, 4)) + (-99 * no_enemies_mode)"
 
-
 data.raw["planet"]["nauvis"].map_gen_settings.autoplace_controls["gleba_enemy_base"] = {}
 
-
----Configures pentapod spawner autoplace for EON's Gleba biome.
----Uses `gleba_enemy_base` frequency and size; richness is unused.
 local gleba_enemy_frequency = "var('control:gleba_enemy_base:frequency')"
 local gleba_enemy_size = "sqrt(var('control:gleba_enemy_base:size'))"
 

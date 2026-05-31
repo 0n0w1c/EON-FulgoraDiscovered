@@ -1,4 +1,13 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.10.1
+Date: 31.05.2026
+  Bugfixes:
+    - Improved integration with the supported enemy mods
+  Changes:
+    - Supported enemies do not expand beyond their biome
+    - No walking on the deep oil ocean on Fulgora
+    - Aquilo moved to Fulgora: No Fulgoran lightning attractors in the Aquilo biome
+---------------------------------------------------------------------------------------------------
 Version: 0.10.0
 Date: 29.05.2026
   Bugfixes:
