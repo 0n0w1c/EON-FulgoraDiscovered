@@ -63,6 +63,7 @@ Does Fulgora seem a little too quiet? Wage battle with [Fulgoran enemies](https:
 Increase water coverage to around 200% in the map generator and navigate [Cargo Ships](https://mods.factorio.com/mod/cargo-ships).  
 
 For biome customization, try [Craft Deco 2](https://mods.factorio.com/mod/craft-deco-2) and [Cliff Builder](https://mods.factorio.com/mod/cliff-builder).  
+If Craft Deco 2 is active, this mod will utilize the Alien Biomes rocks and trees in the Nauvis map generation.  
 
 ---
 
