@@ -62,9 +62,6 @@ This will increase the amount of the map revealed in the Map Generator's Preview
 Does Fulgora seem a little too quiet? Wage battle with [Fulgoran enemies](https://mods.factorio.com/mod/Electric_flying_enemies).  
 Increase water coverage to around 200% in the map generator and navigate [Cargo Ships](https://mods.factorio.com/mod/cargo-ships).  
 
-For biome customization, try [Craft Deco 2](https://mods.factorio.com/mod/craft-deco-2) and [Cliff Builder](https://mods.factorio.com/mod/cliff-builder).  
-If Craft Deco 2 is active, this mod will utilize the Alien Biomes rocks and trees in the Nauvis map generation.  
-
 ---
 
 #### Supported
@@ -72,7 +69,9 @@ If Craft Deco 2 is active, this mod will utilize the Alien Biomes rocks and tree
 [Armoured Biters](https://mods.factorio.com/mod/ArmouredBiters) - Spawn in Nauvis biome
 [Explosive Biters](https://mods.factorio.com/mod/Explosive_biters) - Spawn in Vulcanus biome
 [Frost Biters](https://mods.factorio.com/mod/Cold_biters) - Spawn in Aquilo biome
-[Fulgoran Enemies](https://mods.factorio.com/mod/Electric_flying_enemies) - Spawn in Fulgora biome
+[Fulgoran Enemies](https://mods.factorio.com/mod/Electric_flying_enemies) - Spawn in Fulgora biome  
+
+[Craft Deco 2](https://mods.factorio.com/mod/craft-deco-2) - Utilizes the Alien Biomes rocks and trees in the Nauvis map generation  
 
 ---
 
