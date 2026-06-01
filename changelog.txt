@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.11.0
+Date: 01.06.2026
+  Bugfixes:
+    - Improved compatibility with planet mods
+  Changes:
+    - Removed the incompatible flag for Planet Ithurice and Planet Paracelsin
+---------------------------------------------------------------------------------------------------
 Version: 0.10.1
 Date: 31.05.2026
   Bugfixes:

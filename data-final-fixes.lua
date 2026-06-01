@@ -164,8 +164,6 @@ local function eon_make_cold_biters_electric_immune_on_fulgora_aquilo()
             end
         end
     end
-
-    log("[EON] Cold/Frost Biters electric immunity on Fulgora Aquilo patched prototypes=" .. patched)
 end
 
 eon_make_cold_biters_electric_immune_on_fulgora_aquilo()
@@ -599,10 +597,6 @@ end
 local function eon_make_deep_oil_ocean_collide_with_players()
     local tile = data.raw["tile"] and data.raw["tile"]["oil-ocean-deep"]
     if not tile then return end
-
-    if eon_add_collision_mask_layer(tile, "player") then
-        log("[EON] oil-ocean-deep collision mask patched with player layer")
-    end
 end
 
 eon_make_deep_oil_ocean_collide_with_players()
@@ -629,9 +623,6 @@ local function eon_prevent_cold_biter_bases_on_fulgora_oil_ocean()
             end
         end
     end
-
-    log("[EON] Cold/Frost Biters Fulgora oil-ocean base prevention patched collision_prototypes="
-        .. collision_patched .. " tile_restriction_prototypes=" .. restriction_patched)
 end
 
 eon_prevent_cold_biter_bases_on_fulgora_oil_ocean()
@@ -666,9 +657,7 @@ local function eon_prevent_fulgoran_enemy_bases_on_fulgora_oil_ocean()
             end
         end
     end
-
-    log("[EON] Fulgoran Enemies oil-ocean base prevention patched collision_prototypes="
-        .. collision_patched .. " tile_restriction_prototypes=" .. restriction_patched)
 end
 
 eon_prevent_fulgoran_enemy_bases_on_fulgora_oil_ocean()
+require("map-generation.planet_compatibility").restore_external_planets()

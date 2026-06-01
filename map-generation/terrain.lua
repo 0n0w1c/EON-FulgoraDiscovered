@@ -1188,11 +1188,9 @@ data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.setting
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["lichen-decal"] = {}
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["shroom-decal"] = {}
 
-if not mods["Spaghetorio"] then
-    data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["honeycomb-fungus"] = {}
-    data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["honeycomb-fungus-1x1"] = {}
-    data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["honeycomb-fungus-decayed"] = {}
-end
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["honeycomb-fungus"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["honeycomb-fungus-1x1"] = {}
+data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.decorative.settings["honeycomb-fungus-decayed"] = {}
 
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["iron-stromatolite"] = {}
 data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings["copper-stromatolite"] = {}
@@ -1326,11 +1324,9 @@ terrain.mask_gleba_territory("boompuff", "tree")
 terrain.mask_gleba_territory("sunnycomb", "tree")
 terrain.mask_gleba_territory("water-cane", "tree")
 
-if not mods["Spaghetorio"] then
-    terrain.mask_gleba_territory("honeycomb-fungus", "optimized-decorative")
-    terrain.mask_gleba_territory("honeycomb-fungus-1x1", "optimized-decorative")
-    terrain.mask_gleba_territory("honeycomb-fungus-decayed", "optimized-decorative")
-end
+terrain.mask_gleba_territory("honeycomb-fungus", "optimized-decorative")
+terrain.mask_gleba_territory("honeycomb-fungus-1x1", "optimized-decorative")
+terrain.mask_gleba_territory("honeycomb-fungus-decayed", "optimized-decorative")
 
 data.raw["autoplace-control"]["gleba_plants"].can_be_disabled = true
 data.raw["autoplace-control"]["gleba_water"].can_be_disabled = true

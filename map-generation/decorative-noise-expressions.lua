@@ -1,16 +1,16 @@
 local data_util = require("data-util")
 
 ---@param name string
----@param type string
+---@param prototype_type string
 ---@return table
-local function duplicate_noise_expression(name, type)
+local function duplicate_noise_expression(name, prototype_type)
     local expression = {
         type = "noise-expression",
         name = data_util.generate_eon_name(name),
-        expression = data.raw[type][name].autoplace.probability_expression
+        expression = data.raw[prototype_type][name].autoplace.probability_expression
     }
-    if data.raw[type][name].autoplace.local_expressions then
-        expression.local_expressions = data.raw[type][name].autoplace.local_expressions
+    if data.raw[prototype_type][name].autoplace.local_expressions then
+        expression.local_expressions = data.raw[prototype_type][name].autoplace.local_expressions
     end
     return expression
 end
@@ -21,6 +21,28 @@ local function duplicate_noise_function(name)
     local expression = table.deepcopy(data.raw["noise-function"][name])
     expression.name = data_util.generate_eon_name(name)
     return expression
+end
+
+local extended_noise_expression_names = {}
+
+---@param prototypes table[]
+---@return nil
+local function extend_unique_noise_prototypes(prototypes)
+    local unique = {}
+
+    for _, prototype in pairs(prototypes) do
+        if prototype and prototype.name and not extended_noise_expression_names[prototype.name] then
+            extended_noise_expression_names[prototype.name] = true
+
+            if not (data.raw[prototype.type] and data.raw[prototype.type][prototype.name]) then
+                table.insert(unique, prototype)
+            end
+        end
+    end
+
+    if next(unique) then
+        data:extend(unique)
+    end
 end
 
 ---@param decorative_name string
@@ -42,7 +64,7 @@ local function duplicate_vulcanus_optimized_decorative_noise_expression(decorati
     return result
 end
 
-data:extend({
+extend_unique_noise_prototypes({
     duplicate_noise_expression("iron-ore", "resource"),
     duplicate_noise_expression("copper-ore", "resource"),
     duplicate_noise_expression("stone", "resource"),
@@ -317,17 +339,14 @@ local function eon_extend_vulcanus_optimized_decorative_noise_expressions()
     end
 
     if next(expressions) then
-        data:extend(expressions)
+        extend_unique_noise_prototypes(expressions)
     end
 end
 
 eon_extend_vulcanus_optimized_decorative_noise_expressions()
 
-
-if not mods["Spaghetorio"] then
-    data:extend({
-        duplicate_noise_expression("honeycomb-fungus", "optimized-decorative"),
-        duplicate_noise_expression("honeycomb-fungus-1x1", "optimized-decorative"),
-        duplicate_noise_expression("honeycomb-fungus-decayed", "optimized-decorative"),
-    })
-end
+extend_unique_noise_prototypes({
+    duplicate_noise_expression("honeycomb-fungus", "optimized-decorative"),
+    duplicate_noise_expression("honeycomb-fungus-1x1", "optimized-decorative"),
+    duplicate_noise_expression("honeycomb-fungus-decayed", "optimized-decorative"),
+})
