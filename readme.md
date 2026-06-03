@@ -66,10 +66,10 @@ Increase water coverage to around 200% in the map generator and navigate [Cargo 
 
 #### Supported
 
-[Armoured Biters](https://mods.factorio.com/mod/ArmouredBiters) - Spawn in Nauvis biome
-[Explosive Biters](https://mods.factorio.com/mod/Explosive_biters) - Spawn in Vulcanus biome
-[Frost Biters](https://mods.factorio.com/mod/Cold_biters) - Spawn in Aquilo biome
-[Fulgoran Enemies](https://mods.factorio.com/mod/Electric_flying_enemies) - Spawn in Fulgora biome  
+[Armoured Biters](https://mods.factorio.com/mod/ArmouredBiters) - Nauvis biome  
+[Explosive Biters](https://mods.factorio.com/mod/Explosive_biters) - Vulcanus biome  
+[Frost Biters](https://mods.factorio.com/mod/Cold_biters) - Aquilo biome  
+[Fulgoran Enemies](https://mods.factorio.com/mod/Electric_flying_enemies) - Fulgora biome  
 
 [Craft Deco 2](https://mods.factorio.com/mod/craft-deco-2) - Utilizes the Alien Biomes rocks and trees in the Nauvis map generation  
 
