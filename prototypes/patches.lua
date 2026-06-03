@@ -195,11 +195,11 @@ local function scale_entity_autoplace(type_name, entity_name, factor)
     end
 end
 
-scale_entity_autoplace("simple-entity", "vulcanus-chimney", 0.2)
-scale_entity_autoplace("simple-entity", "vulcanus-chimney-faded", 0.2)
-scale_entity_autoplace("simple-entity", "vulcanus-chimney-cold", 0.2)
-scale_entity_autoplace("simple-entity", "vulcanus-chimney-short", 0.2)
-scale_entity_autoplace("simple-entity", "vulcanus-chimney-truncated", 0.2)
+scale_entity_autoplace("simple-entity", "vulcanus-chimney", 0.1)
+scale_entity_autoplace("simple-entity", "vulcanus-chimney-faded", 0.1)
+scale_entity_autoplace("simple-entity", "vulcanus-chimney-cold", 0.1)
+scale_entity_autoplace("simple-entity", "vulcanus-chimney-short", 0.1)
+scale_entity_autoplace("simple-entity", "vulcanus-chimney-truncated", 0.1)
 scale_entity_autoplace("simple-entity", "huge-volcanic-rock", 0.4)
 scale_entity_autoplace("simple-entity", "big-volcanic-rock", 0.4)
 

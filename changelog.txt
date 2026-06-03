@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.11.2
+Date: 03.06.2026
+  Bugfixes:
+    - Removed the delayed expansion-site cleanup workaround for Cold Biters and Explosive Biters
+    - Adjustments to map generation on Nauvis
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.11.1
 Date: 02.06.2026
   Bugfixes:

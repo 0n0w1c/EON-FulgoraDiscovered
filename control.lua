@@ -500,11 +500,6 @@ local eon_enemy_base_variant_by_name = {
     ["walker-electric-unit-spawner"] = { tier = "spawner", family = "fulgora" },
 }
 
-local eon_enemy_base_names = {}
-for entity_name, _ in pairs(eon_enemy_base_variant_by_name) do
-    table.insert(eon_enemy_base_names, entity_name)
-end
-
 
 local eon_enemy_expansion_scar_decoratives = {
     "enemy-decal",
@@ -889,91 +884,6 @@ local function eon_replacement_enemy_name(variant, terrain_family)
     return existing[math.random(existing_count)]
 end
 
-local EON_EXPANSION_SITE_CLEANUP_TICKS = 60 * 60 * 10
-local EON_EXPANSION_SITE_CLEANUP_RADIUS = 24
-local EON_EXPANSION_SITE_CLEANUP_INTERVAL = 60
-
----@param surface LuaSurface|nil Surface where the cleanup would run.
----@return boolean enabled True when the delayed cleanup workaround is needed.
-local function eon_expansion_site_cleanup_enabled(surface)
-    if not (surface and surface.valid and eon_enemy_surface_names[surface.name]) then return false end
-
-    return script.active_mods["Cold_biters"] ~= nil
-        or script.active_mods["Explosive_biters"] ~= nil
-end
-
----@return table<uint, table[]> buckets Pending cleanup records keyed by due tick.
-local function eon_pending_expansion_site_cleanups()
-    storage.eon_pending_expansion_site_cleanups = storage.eon_pending_expansion_site_cleanups or {}
-    return storage.eon_pending_expansion_site_cleanups
-end
-
----@param surface LuaSurface Surface containing the expansion site.
----@param position MapPosition Position of the expansion site.
----@return string key Stable bucket key for nearby expansion-site events.
-local function eon_expansion_site_cleanup_key(surface, position)
-    local radius = EON_EXPANSION_SITE_CLEANUP_RADIUS
-    local bucket_x = math.floor(position.x / radius)
-    local bucket_y = math.floor(position.y / radius)
-    return tostring(surface.index) .. ":" .. tostring(bucket_x) .. ":" .. tostring(bucket_y)
-end
-
----@return table<string, table> records Expansion group units tracked by cleanup-site key.
-local function eon_expansion_site_tracked_unit_records()
-    storage.eon_expansion_site_tracked_unit_records = storage.eon_expansion_site_tracked_unit_records or {}
-    return storage.eon_expansion_site_tracked_unit_records
-end
-
-local eon_schedule_expansion_site_cleanup -- forward declaration for delayed expansion site cleanup
-
----@param surface LuaSurface Surface containing the expansion site.
----@param position MapPosition Expansion group destination.
----@param units table Unit group members to destroy during delayed cleanup if still valid.
----@return nil
-local function eon_record_expansion_site_group_units(surface, position, units)
-    if not (surface and surface.valid and position and type(units) == "table") then return end
-    if not eon_expansion_site_cleanup_enabled(surface) then return end
-
-    local key = eon_expansion_site_cleanup_key(surface, position)
-    local records = eon_expansion_site_tracked_unit_records()
-    local record = records[key]
-    if not record then
-        record = {
-            surface_index = surface.index,
-            position = { x = position.x, y = position.y },
-            units = {},
-        }
-        records[key] = record
-    end
-
-    for _, unit in pairs(units) do
-        if unit and unit.valid and unit.unit_number then
-            record.units[unit.unit_number] = unit
-        end
-    end
-end
-
----@param key string|nil Cleanup-site key.
----@return integer destroyed Number of tracked units destroyed.
-local function eon_destroy_tracked_expansion_site_units(key)
-    if not key then return 0 end
-    local records = storage.eon_expansion_site_tracked_unit_records
-    local record = records and records[key] or nil
-    if not record then return 0 end
-
-    local destroyed = 0
-    for unit_number, unit in pairs(record.units or {}) do
-        if unit and unit.valid then
-            unit.destroy({ raise_destroy = false })
-            destroyed = destroyed + 1
-        end
-        record.units[unit_number] = nil
-    end
-
-    records[key] = nil
-    return destroyed
-end
-
 ---@param event EventData.on_unit_group_finished_gathering
 local function eon_on_unit_group_finished_gathering(event)
     local group = event.group
@@ -1013,10 +923,6 @@ local function eon_on_unit_group_finished_gathering(event)
     end
 
     if not changed then
-        eon_record_expansion_site_group_units(surface, destination, group.members or {})
-        if eon_schedule_expansion_site_cleanup then
-            eon_schedule_expansion_site_cleanup(surface, destination)
-        end
         return
     end
 
@@ -1039,153 +945,6 @@ local function eon_on_unit_group_finished_gathering(event)
             end
         end
     end
-
-    eon_record_expansion_site_group_units(surface, destination, group.members or {})
-    if eon_schedule_expansion_site_cleanup then
-        eon_schedule_expansion_site_cleanup(surface, destination)
-    end
-end
-
----@return integer
-local function eon_destroy_spawner_owned_units(spawner)
-    if not (spawner and spawner.valid and spawner.type == "unit-spawner") then return 0 end
-
-    local ok, units = pcall(function() return spawner.units end)
-    if not ok or type(units) ~= "table" then return 0 end
-
-    local destroyed = 0
-    for _, unit in pairs(units) do
-        if unit and unit.valid then
-            unit.destroy({ raise_destroy = false })
-            destroyed = destroyed + 1
-        end
-    end
-
-    return destroyed
-end
-
----@param surface LuaSurface
----@param position MapPosition
-eon_schedule_expansion_site_cleanup = function(surface, position)
-    if not (surface and surface.valid and position) then return end
-    if not eon_expansion_site_cleanup_enabled(surface) then return end
-
-    local key = eon_expansion_site_cleanup_key(surface, position)
-    storage.eon_scheduled_expansion_site_cleanup_keys = storage.eon_scheduled_expansion_site_cleanup_keys or {}
-    if storage.eon_scheduled_expansion_site_cleanup_keys[key] then return end
-
-    local due_tick = game.tick + EON_EXPANSION_SITE_CLEANUP_TICKS
-    local buckets = eon_pending_expansion_site_cleanups()
-    buckets[due_tick] = buckets[due_tick] or {}
-    storage.eon_scheduled_expansion_site_cleanup_keys[key] = due_tick
-
-    table.insert(buckets[due_tick], {
-        key = key,
-        surface_index = surface.index,
-        position = { x = position.x, y = position.y },
-        radius = EON_EXPANSION_SITE_CLEANUP_RADIUS,
-    })
-end
-
----@param surface LuaSurface
----@param position MapPosition
----@param radius number
----@return LuaEntity[]
-local function eon_find_nearby_enemy_structures(surface, position, radius)
-    local existing_enemy_base_names = eon_existing_entity_names(eon_enemy_base_names)
-    if table_size(existing_enemy_base_names) == 0 then return {} end
-
-    return surface.find_entities_filtered({
-        area = {
-            { position.x - radius, position.y - radius },
-            { position.x + radius, position.y + radius },
-        },
-        force = "enemy",
-        name = existing_enemy_base_names,
-    })
-end
-
----@param entity LuaEntity
----@return integer units_destroyed, integer bases_replaced, integer bases_removed
-local function eon_delayed_cleanup_enemy_base(entity)
-    if not (entity and entity.valid) then return 0, 0, 0 end
-
-    local variant = eon_enemy_base_variant_by_name[entity.name]
-    if not variant then return 0, 0, 0 end
-
-    local surface = entity.surface
-    if not (surface and surface.valid) then return 0, 0, 0 end
-
-    local terrain_family = eon_enemy_terrain_family_for_entity(entity)
-
-    if eon_enemy_base_allowed_on_terrain(variant, terrain_family) then
-        return 0, 0, 0
-    end
-
-    local replacement_name = eon_replacement_enemy_name(variant, terrain_family)
-    local position = { x = entity.position.x, y = entity.position.y }
-    local force = entity.force
-    local owned_units_destroyed = eon_destroy_spawner_owned_units(entity)
-
-    entity.destroy({ raise_destroy = false })
-    eon_clear_enemy_expansion_scars(surface, position, variant)
-
-    if replacement_name then
-        local created = surface.create_entity({
-            name = replacement_name,
-            position = position,
-            force = force,
-            raise_built = false,
-        })
-
-        if created and created.valid then
-            return owned_units_destroyed, 1, 0
-        end
-    end
-
-    return owned_units_destroyed, 0, 1
-end
-
----@param record table Pending delayed expansion-site cleanup record.
-local function eon_run_expansion_site_cleanup(record)
-    local surface = record.surface_index and game.surfaces[record.surface_index] or nil
-    local position = record.position
-    local radius = record.radius or EON_EXPANSION_SITE_CLEANUP_RADIUS
-
-    if not (surface and surface.valid and position) then return end
-
-    if not eon_expansion_site_cleanup_enabled(surface) then
-        eon_destroy_tracked_expansion_site_units(record.key)
-        return
-    end
-
-    for _, base in pairs(eon_find_nearby_enemy_structures(surface, position, radius)) do
-        eon_delayed_cleanup_enemy_base(base)
-    end
-
-    for _, base in pairs(eon_find_nearby_enemy_structures(surface, position, radius)) do
-        eon_destroy_spawner_owned_units(base)
-    end
-
-    eon_destroy_tracked_expansion_site_units(record.key)
-end
-
----@param event NthTickEventData
-local function eon_on_nth_tick_expansion_site_cleanups(event)
-    local buckets = storage.eon_pending_expansion_site_cleanups
-    if not buckets then return end
-
-    for due_tick, bucket in pairs(buckets) do
-        if due_tick <= event.tick then
-            buckets[due_tick] = nil
-            for _, record in pairs(bucket) do
-                if record.key and storage.eon_scheduled_expansion_site_cleanup_keys then
-                    storage.eon_scheduled_expansion_site_cleanup_keys[record.key] = nil
-                end
-                eon_run_expansion_site_cleanup(record)
-            end
-        end
-    end
 end
 
 ---@param entity LuaEntity|nil Entity supplied by on_biter_base_built or script_raised_built.
@@ -1199,8 +958,6 @@ local function eon_enforce_enemy_base_entity(entity)
 
     if not variant then return end
     if not (surface and surface.valid and eon_enemy_surface_names[surface.name]) then return end
-
-    eon_schedule_expansion_site_cleanup(surface, entity.position)
 
     if eon_enemy_base_allowed_on_terrain(variant, terrain_family) then return end
 
@@ -1230,7 +987,6 @@ script.on_event(defines.events.script_raised_built, function(event)
     eon_enforce_enemy_base_entity(event.entity)
 end)
 
-script.on_nth_tick(EON_EXPANSION_SITE_CLEANUP_INTERVAL, eon_on_nth_tick_expansion_site_cleanups)
 
 script.on_event(defines.events.on_chunk_generated, function(event)
     local surface = event.surface

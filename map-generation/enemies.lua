@@ -65,6 +65,9 @@ if mods["ArmouredBiters"] then
 end
 
 if mods["Explosive_biters"] then
+    local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
+        and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
+
     ---@param expression string
     ---@return string
     local function eon_explosive_probability_expression(expression)
@@ -97,8 +100,12 @@ if mods["Explosive_biters"] then
                 },
             })
 
-            prototype.autoplace.probability_expression =
-                "eon_mask_vulcano_terrain(" .. expression_name .. ")"
+            if eon_aquilo_on_fulgora then
+                prototype.autoplace.probability_expression = "eon_mask_vulcano_terrain(" .. expression_name .. ")"
+            else
+                prototype.autoplace.probability_expression =
+                    "eon_mask_off_aquilo_territory(eon_mask_vulcano_terrain(" .. expression_name .. "))"
+            end
         end
     end
 
