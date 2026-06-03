@@ -660,4 +660,18 @@ local function eon_prevent_fulgoran_enemy_bases_on_fulgora_oil_ocean()
 end
 
 eon_prevent_fulgoran_enemy_bases_on_fulgora_oil_ocean()
+
+---@return nil
+local function eon_order_fulgoran_enemies_after_gleba_enemy_bases()
+    if not mods["Electric_flying_enemies"] then return end
+
+    local control = data.raw["autoplace-control"] and data.raw["autoplace-control"]["electric_enemies"]
+    if not control then return end
+
+    control.order = "z-a"
+    control.category = "enemy"
+end
+
+eon_order_fulgoran_enemies_after_gleba_enemy_bases()
+
 require("map-generation.planet_compatibility").restore_external_planets()

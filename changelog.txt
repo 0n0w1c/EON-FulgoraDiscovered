@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.11.1
+Date: 02.06.2026
+  Bugfixes:
+    - Added the Fulgora cliffs autoplace control
+    - Aquilo on Fulgora: removed cliffs from the Aquilo biome, in the map generator preview
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.11.0
 Date: 01.06.2026
   Bugfixes:

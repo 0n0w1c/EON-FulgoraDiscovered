@@ -6,9 +6,6 @@ if eon_aquilo_on_fulgora then
     surface_names.fulgora = true
 end
 
--- Enemy expansion biome enforcement follows the same remixed surfaces this
--- mod owns: Nauvis, plus Fulgora only when Aquilo has been moved there.
--- Native planet surfaces are left to their own autoplace/expansion rules.
 local eon_enemy_surface_names = { nauvis = true }
 if eon_aquilo_on_fulgora then
     eon_enemy_surface_names.fulgora = true
@@ -177,7 +174,7 @@ local function keep_cliff_off_aquilo_tiles(cliff)
     local should_remove = false
 
     if eon_aquilo_on_fulgora then
-        should_remove = surface_name == "fulgora" and cliff.name == "cliff-fulgora"
+        should_remove = false
     else
         should_remove = surface_name == "nauvis"
     end
@@ -466,8 +463,6 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
     end
 end)
 
--- Runtime enemy base biome enforcement.
--- Initial autoplace is masked in map-generation/enemies.lua; this handles bases built later by enemy expansion.
 local eon_enemy_base_variant_by_name = {
     ["biter-spawner"] = { tier = "spawner", family = "vanilla" },
     ["spitter-spawner"] = { tier = "spawner", family = "vanilla" },
@@ -511,9 +506,6 @@ for entity_name, _ in pairs(eon_enemy_base_variant_by_name) do
 end
 
 
--- Vanilla expansion base placement can leave enemy/worm decal "scars" before this mod replaces
--- the base with a biome-appropriate variant.  Remove only those expansion decals around
--- bases that are actually replaced so the wrong-biome ground scar is not left behind.
 local eon_enemy_expansion_scar_decoratives = {
     "enemy-decal",
     "enemy-decal-transparent",
@@ -590,10 +582,6 @@ local eon_enemy_replacements = {
     },
 }
 
--- Visual expansion-party normalization.  When an expansion group finishes
--- gathering, replace mobile units with units matching the tile family at the
--- build-base destination.  The actual spawner/worm prototype is still enforced
--- by on_biter_base_built.
 local eon_enemy_unit_replacements = {
     vanilla = {
         biter = {
@@ -759,15 +747,17 @@ local function eon_replacement_unit_name(unit_name, target_family)
         and eon_enemy_unit_replacements[target_family][kind][tier]
 
     local existing = eon_existing_entity_names(candidates)
-    if #existing == 0 and kind == "spitter" then
+    local existing_count = table_size(existing)
+    if existing_count == 0 and kind == "spitter" then
         candidates = eon_enemy_unit_replacements[target_family]
             and eon_enemy_unit_replacements[target_family].biter
             and eon_enemy_unit_replacements[target_family].biter[tier]
         existing = eon_existing_entity_names(candidates)
+        existing_count = table_size(existing)
     end
 
-    if #existing == 0 then return nil end
-    return existing[math.random(#existing)]
+    if existing_count == 0 then return nil end
+    return existing[math.random(existing_count)]
 end
 
 ---@param terrain_family string|nil
@@ -815,8 +805,6 @@ local function eon_enemy_tile_family(tile)
         return "cold"
     end
 
-    -- Explicit tile-name checks matter on remixed surfaces where subgroup data
-    -- may not be enough to identify the source biome.
     if subgroup_name == "vulcanus-tiles" or terrain_cliff_rules[2].tile_names[tile_name] then
         return "hot"
     end
@@ -842,9 +830,6 @@ local function eon_enemy_terrain_family_for_entity(entity)
     local surface = entity.surface
     local position = entity.position
 
-    -- Enemy expansion biome enforcement intentionally checks only the tile at
-    -- the entity position. Map-generation masks use exact tile families; runtime
-    -- replacement should make the same direct decision.
     return eon_enemy_tile_family(surface.get_tile(position.x, position.y))
 end
 
@@ -864,8 +849,6 @@ local function eon_enemy_base_allowed_on_terrain(variant, terrain_family)
         return variant.family == "fulgora" or not eon_aquilo_on_fulgora
     end
 
-    -- When Aquilo is not moved to Fulgora, do not remove native Fulgoran enemies
-    -- merely because their tiles are unknown to this mod.
     if variant.family == "fulgora" and not eon_aquilo_on_fulgora then
         return true
     end
@@ -882,8 +865,6 @@ local function eon_target_enemy_family(variant, terrain_family)
     if terrain_family == "gleba" then return "gleba" end
     if terrain_family == "fulgora" then return "fulgora" end
 
-    -- Nauvis supports both vanilla and Armoured Biters bases. Preserve armoured
-    -- bases instead of downgrading them to vanilla.
     if terrain_family == "nauvis" then
         if variant.family == "armoured" then return "armoured" end
         return "vanilla"
@@ -902,9 +883,10 @@ local function eon_replacement_enemy_name(variant, terrain_family)
         and eon_enemy_replacements[target_family][variant.tier]
 
     local existing = eon_existing_entity_names(candidates)
-    if #existing == 0 then return nil end
+    local existing_count = table_size(existing)
+    if existing_count == 0 then return nil end
 
-    return existing[math.random(#existing)]
+    return existing[math.random(existing_count)]
 end
 
 local EON_EXPANSION_SITE_CLEANUP_TICKS = 60 * 60 * 10
@@ -916,12 +898,8 @@ local EON_EXPANSION_SITE_CLEANUP_INTERVAL = 60
 local function eon_expansion_site_cleanup_enabled(surface)
     if not (surface and surface.valid and eon_enemy_surface_names[surface.name]) then return false end
 
-    -- The delayed cleanup compensates for Cold/Explosive Biters replacing
-    -- expansion structures in earlier on_biter_base_built handlers without
-    -- necessarily raising script_raised_built. Do not run it when neither mod is
-    -- active. eon_enemy_surface_names limits this to Nauvis, plus Fulgora only
-    -- when Aquilo has been moved there.
-    return script.active_mods["Cold_biters"] or script.active_mods["Explosive_biters"]
+    return script.active_mods["Cold_biters"] ~= nil
+        or script.active_mods["Explosive_biters"] ~= nil
 end
 
 ---@return table<uint, table[]> buckets Pending cleanup records keyed by due tick.
@@ -934,9 +912,6 @@ end
 ---@param position MapPosition Position of the expansion site.
 ---@return string key Stable bucket key for nearby expansion-site events.
 local function eon_expansion_site_cleanup_key(surface, position)
-    -- Bucket nearby expansion build events together so one growing base site only
-    -- schedules one delayed cleanup pass. Expansion bases create several
-    -- spawners/worms over time around the same destination.
     local radius = EON_EXPANSION_SITE_CLEANUP_RADIUS
     local bucket_x = math.floor(position.x / radius)
     local bucket_y = math.floor(position.y / radius)
@@ -1026,14 +1001,11 @@ local function eon_on_unit_group_finished_gathering(event)
             table.insert(old_units, unit)
             local replacement_name = nil
 
-            -- Treat any unit already belonging to the target family as visually
-            -- correct. This avoids repeatedly swapping between equivalent
-            -- alternatives such as Fulgoran flying and walking units.
             if eon_enemy_unit_family(unit.name) ~= target_family then
                 replacement_name = eon_replacement_unit_name(unit.name, target_family)
             end
 
-            replacements[unit.unit_number or #old_units] = replacement_name
+            replacements[unit.unit_number or table_size(old_units)] = replacement_name
             if replacement_name and replacement_name ~= unit.name then
                 changed = true
             end
@@ -1048,9 +1020,6 @@ local function eon_on_unit_group_finished_gathering(event)
         return
     end
 
-    -- Add replacements before removing old members so the group is less likely
-    -- to become invalid mid-update. Units that already belong to the target
-    -- visual family are left in place.
     for _, old_unit in pairs(old_units) do
         local replacement_name = replacements[old_unit.unit_number or 0]
         if replacement_name and replacement_name ~= old_unit.name then
@@ -1124,11 +1093,8 @@ end
 ---@return LuaEntity[]
 local function eon_find_nearby_enemy_structures(surface, position, radius)
     local existing_enemy_base_names = eon_existing_entity_names(eon_enemy_base_names)
-    if #existing_enemy_base_names == 0 then return {} end
+    if table_size(existing_enemy_base_names) == 0 then return {} end
 
-    -- eon_enemy_base_names includes both unit-spawners and worm/turret bases.
-    -- Do not filter by type here: optional enemy mods use different prototype
-    -- types/names, and the loaded-name filter is the source of truth.
     return surface.find_entities_filtered({
         area = {
             { position.x - radius, position.y - radius },
@@ -1197,13 +1163,10 @@ local function eon_run_expansion_site_cleanup(record)
         eon_delayed_cleanup_enemy_base(base)
     end
 
-    -- Re-scan after replacing wrong spawners/worms, then purge units owned by all nearby spawners.
     for _, base in pairs(eon_find_nearby_enemy_structures(surface, position, radius)) do
         eon_destroy_spawner_owned_units(base)
     end
 
-    -- Remove only the known expansion group members recorded when the group finalized.
-    -- Do not surface-scan mobile units here; unrelated enemies may pass through the site.
     eon_destroy_tracked_expansion_site_units(record.key)
 end
 

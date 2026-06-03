@@ -37,6 +37,10 @@ local eon_nauvis_cliffiness_expression = eon_aquilo_on_fulgora
     and "(main_cliffiness >= cliff_cutoff) * 10"
     or "eon_mask_off_aquilo_territory((main_cliffiness >= cliff_cutoff) * 10)"
 
+local eon_fulgora_cliffiness_expression = eon_aquilo_on_fulgora
+    and "eon_mask_off_aquilo_territory(fulgora_cliffiness)"
+    or "fulgora_cliffiness"
+
 local eon_gleba_region_expression =
 "eon_mask_off_vulcano_terrain(if(gleba_noise + gleba_intermediate_noise + gleba_small_noise + moisture_nauvis + south_offset > threshold, 1, 0))"
 
@@ -645,6 +649,11 @@ if eon_aquilo_map_gen then
 end
 
 if eon_aquilo_on_fulgora then
+    data.raw.planet["fulgora"].map_gen_settings.property_expression_names =
+        data.raw.planet["fulgora"].map_gen_settings.property_expression_names or {}
+    data.raw.planet["fulgora"].map_gen_settings.property_expression_names["cliffiness"] =
+    "eon_fulgora_cliffiness_off_aquilo"
+
     local fulgora_settings = data.raw.planet["fulgora"].map_gen_settings.autoplace_settings
 
     if fulgora_settings then
@@ -816,12 +825,34 @@ data:extend({
         type = "autoplace-control",
         name = "ammonia_ocean",
         localised_description = nil,
-        order = "z-ammonia",
+        order = "c-z-cb",
         category = "terrain",
         hidden = false,
         can_be_disabled = false,
     },
 })
+
+if data.raw["autoplace-control"]["fulgora_cliff"] then
+    data.raw["autoplace-control"]["fulgora_cliff"].order = "c-z-c"
+    data.raw["autoplace-control"]["fulgora_cliff"].category = "cliff"
+    data.raw["autoplace-control"]["fulgora_cliff"].localised_description = nil
+else
+    data:extend({
+        {
+            type = "autoplace-control",
+            name = "fulgora_cliff",
+            order = "c-z-c",
+            category = "cliff",
+        },
+    })
+end
+
+local eon_fulgora_map_gen = data.raw.planet["fulgora"] and data.raw.planet["fulgora"].map_gen_settings
+if eon_fulgora_map_gen then
+    eon_fulgora_map_gen.autoplace_controls = eon_fulgora_map_gen.autoplace_controls or {}
+    eon_fulgora_map_gen.autoplace_controls["fulgora_cliff"] =
+        eon_fulgora_map_gen.autoplace_controls["fulgora_cliff"] or {}
+end
 
 data:extend({
     {
@@ -1069,6 +1100,11 @@ data:extend({
         parameters = { "expression" },
         expression =
         "if(max(50 * fulgora_oil_mask * water_base(fulgora_coastline, 1000), 100 * fulgora_oil_mask * water_base(fulgora_coastline - 50 - fulgora_coastline_drop / 2, 2000)) > 0, -inf, expression)"
+    },
+    {
+        type = "noise-expression",
+        name = "eon_fulgora_cliffiness_off_aquilo",
+        expression = eon_fulgora_cliffiness_expression
     },
 })
 
