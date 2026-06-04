@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.11.3
+Date: 04.06.2026
+  Bugfixes:
+    - Lithium brine and fluorine vents remained restricted to the Aquilo biome
+    - Adjustments to the map generation for the Vulcanus biome, when Aquilo is moved to Fulgora
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.11.2
 Date: 03.06.2026
   Bugfixes:

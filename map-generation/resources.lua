@@ -2,6 +2,22 @@ local resource_autoplace = require("resource-autoplace")
 local base_sounds = require("__base__.prototypes.entity.sounds")
 local simulations = require("__space-age__.prototypes.factoriopedia-simulations")
 
+
+local eon_unrestricted_fulgora_aquilo_resources = settings.startup["eon-fd-aquilo-on-fulgora"]
+    and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
+    and not (settings.startup["eon-fd-guarded-resources"]
+        and settings.startup["eon-fd-guarded-resources"].value == true)
+
+local eon_calcite_autoplace_density = eon_unrestricted_fulgora_aquilo_resources and 1.4 or 0.8
+local eon_calcite_autoplace_spots = eon_unrestricted_fulgora_aquilo_resources and 2.4 or 1.5
+local eon_calcite_autoplace_size_min = eon_unrestricted_fulgora_aquilo_resources and 3 or 2
+local eon_calcite_autoplace_size_max = eon_unrestricted_fulgora_aquilo_resources and 6 or 4
+
+local eon_tungsten_autoplace_density = eon_unrestricted_fulgora_aquilo_resources and 0.75 or 0.4
+local eon_tungsten_autoplace_spots = eon_unrestricted_fulgora_aquilo_resources and 2.1 or 1.25
+local eon_tungsten_autoplace_size_min = eon_unrestricted_fulgora_aquilo_resources and 3 or 2
+local eon_tungsten_autoplace_size_max = eon_unrestricted_fulgora_aquilo_resources and 6 or 4
+
 local stone_driving_sound = {
     sound = {
         filename = "__base__/sound/driving/vehicle-surface-stone.ogg",
@@ -46,11 +62,11 @@ data:extend({
         autoplace = resource_autoplace.resource_autoplace_settings {
             name = "calcite",
             order = "c-calcite",
-            base_density = 0.8,
-            base_spots_per_km2 = 1.5,
+            base_density = eon_calcite_autoplace_density,
+            base_spots_per_km2 = eon_calcite_autoplace_spots,
             has_starting_area_placement = false,
-            random_spot_size_minimum = 2,
-            random_spot_size_maximum = 4,
+            random_spot_size_minimum = eon_calcite_autoplace_size_min,
+            random_spot_size_maximum = eon_calcite_autoplace_size_max,
             regular_rq_factor_multiplier = 1
         },
         stage_counts = { 15000, 9500, 5500, 2900, 1300, 400, 150, 80 },
@@ -104,11 +120,11 @@ data:extend({
         autoplace = resource_autoplace.resource_autoplace_settings {
             name = "tungsten_ore",
             order = "c-tungsten",
-            base_density = 0.4,
-            base_spots_per_km2 = 1.25,
+            base_density = eon_tungsten_autoplace_density,
+            base_spots_per_km2 = eon_tungsten_autoplace_spots,
             has_starting_area_placement = false,
-            random_spot_size_minimum = 2,
-            random_spot_size_maximum = 4,
+            random_spot_size_minimum = eon_tungsten_autoplace_size_min,
+            random_spot_size_maximum = eon_tungsten_autoplace_size_max,
             regular_rq_factor_multiplier = 1
         },
         stage_counts = { 15000, 9500, 5500, 2900, 1300, 400, 150, 80 },

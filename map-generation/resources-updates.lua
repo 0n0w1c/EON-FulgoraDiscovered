@@ -6,6 +6,9 @@ local guarded_resources_enabled = settings.startup["eon-fd-guarded-resources"]
 local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
     and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
 
+local eon_unrestricted_vulcanus_resource_mode = eon_aquilo_on_fulgora
+    and not guarded_resources_enabled
+
 local mask_vulcanus_resources_off_aquilo = guarded_resources_enabled and not eon_aquilo_on_fulgora
 
 local eon_vulcanus_resource_off_aquilo_mask = mask_vulcanus_resources_off_aquilo
@@ -36,6 +39,12 @@ end
 ---@return string
 local function mask_off_aquilo_territory(expression)
     return eon_vulcanus_resource_off_aquilo_mask .. "(" .. expression .. ")"
+end
+
+---@param expression string Resource probability expression to preserve outside Aquilo and block on invalid Aquilo resource tiles.
+---@return string
+local function mask_off_aquilo_resource_tiles(expression)
+    return "eon_mask_off_aquilo_resource_tiles(" .. expression .. ")"
 end
 
 ---@param expression string
@@ -291,7 +300,7 @@ local sulfuric_acid_geyser_probability_base_expression =
 
 local sulfuric_acid_geyser_probability_expression = guarded_resources_enabled
     and mask_vulcanus_resource_terrain(sulfuric_acid_geyser_probability_base_expression)
-    or mask_off_ammonia_ocean(sulfuric_acid_geyser_probability_base_expression)
+    or mask_off_aquilo_resource_tiles(sulfuric_acid_geyser_probability_base_expression)
 
 local sulfuric_acid_geyser_richness_expression = guarded_resources_enabled
     and string.format(eon_vulcanus_resource_richness_expression, "vulcanus_sulfuric_acid_geyser_richness")
@@ -308,9 +317,12 @@ local default_sulfuric_acid_geyser_patches_expression =
     starting_patch_set_count = default_starting_resource_patch_set_count, starting_patch_set_index = 0, \z
     starting_rq_factor = 0.14285714285714}"
 
-local default_sulfuric_acid_geyser_probability_expression =
+local default_sulfuric_acid_geyser_probability_base_expression =
 "(control:sulfuric_acid_geyser:size > 0) * \z
     (clamp(eon_default_sulfuric_acid_geyser_patches, 0, 1) * random_penalty{x = x, y = y, source = 1, amplitude = 1 / 0.020833333333333})"
+
+local default_sulfuric_acid_geyser_probability_expression =
+    mask_off_aquilo_resource_tiles(default_sulfuric_acid_geyser_probability_base_expression)
 
 local default_sulfuric_acid_geyser_richness_expression =
 "(control:sulfuric_acid_geyser:size > 0) * \z
@@ -715,6 +727,171 @@ local nauvis_settings = data.raw.planet["nauvis"]
     and data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity
     and data.raw.planet["nauvis"].map_gen_settings.autoplace_settings.entity.settings
 
+---@class EonUnrestrictedVulcanusResourceConfig
+---@field control string
+---@field density number
+---@field spots number
+---@field candidates integer
+---@field index integer
+---@field seed integer
+---@field min number
+---@field max number
+---@field size number
+---@field richness number
+---@field rq number
+---@field starting_rq number
+---@field fluid boolean|nil
+
+---@type table<string, EonUnrestrictedVulcanusResourceConfig>
+local eon_unrestricted_vulcanus_resource_configs = {
+    ["iron-ore"] = { control = "iron-ore", density = 10, spots = 3.6, candidates = 32, index = 0, seed = 2100, min = 0.25, max = 2.4, size = 1.25, richness = 1.0, rq = 0.11, starting_rq = 0.21428571428571 },
+    ["copper-ore"] = { control = "copper-ore", density = 8, spots = 3.6, candidates = 32, index = 1, seed = 2101, min = 0.25, max = 2.4, size = 1.25, richness = 1.0, rq = 0.11, starting_rq = 0.17142857142857 },
+    ["coal"] = { control = "coal", density = 8, spots = 3.4, candidates = 30, index = 2, seed = 2102, min = 0.25, max = 2.4, size = 1.2, richness = 1.0, rq = 0.1, starting_rq = 0.15714285714286 },
+    ["stone"] = { control = "stone", density = 4, spots = 3.2, candidates = 30, index = 3, seed = 2103, min = 0.25, max = 2.2, size = 1.2, richness = 1.0, rq = 0.1, starting_rq = 0.15714285714286 },
+    ["uranium-ore"] = { control = "uranium-ore", density = 0.9, spots = 1.35, candidates = 22, index = 5, seed = 2105, min = 2, max = 4, size = 0.85, richness = 0.1, rq = 0.1, starting_rq = 0.14285714285714 },
+    ["crude-oil"] = { control = "crude-oil", density = 8.2, spots = 2.4, candidates = 28, index = 4, seed = 2104, min = 1, max = 1, size = 1.15, richness = 1.0, rq = 0.1, starting_rq = 0.14285714285714, fluid = true },
+    ["calcite"] = { control = "calcite", density = 5, spots = 3.0, candidates = 28, index = 6, seed = 2110, min = 0.5, max = 2.5, size = 1.15, richness = 0.9, rq = 0.1, starting_rq = 0.14285714285714 },
+    ["tungsten-ore"] = { control = "tungsten_ore", density = 1.2, spots = 1.8, candidates = 24, index = 7, seed = 2111, min = 1.5, max = 3.5, size = 0.95, richness = 0.45, rq = 0.1, starting_rq = 0.14285714285714 },
+    ["sulfuric-acid-geyser"] = { control = "sulfuric_acid_geyser", density = 8.2, spots = 2.4, candidates = 28, index = 5, seed = 2112, min = 1, max = 1, size = 1.15, richness = 1.0, rq = 0.1, starting_rq = 0.14285714285714, fluid = true },
+}
+
+---@param resource_name string
+---@return boolean
+local function should_boost_unrestricted_vulcanus_resource(resource_name)
+    if not eon_unrestricted_vulcanus_resource_mode then
+        return false
+    end
+
+    if not nauvis_settings then
+        return false
+    end
+
+    return nauvis_settings[resource_name] ~= nil
+        and eon_unrestricted_vulcanus_resource_configs[resource_name] ~= nil
+end
+
+---@param resource_name string
+---@param property_name string
+---@return string
+local function unrestricted_vulcanus_expression_name(resource_name, property_name)
+    return "eon_unrestricted_vulcanus_" .. resource_name:gsub("[^%w_]", "_") .. "_" .. property_name
+end
+
+---@param control_name string
+---@param property_name string
+---@return string
+local function control_variable(control_name, property_name)
+    return "var('control:" .. control_name .. ":" .. property_name .. "')"
+end
+
+---@param expression string
+---@param additive_expression string
+---@return string
+local function add_expression_on_vulcanus_terrain(expression, additive_expression)
+    return "max(" .. expression .. ", eon_mask_vulcano_terrain(" .. additive_expression .. "))"
+end
+
+---@param expression string
+---@return string
+local function mask_unrestricted_vulcanus_probability(expression)
+    return mask_off_aquilo_resource_tiles(expression)
+end
+
+---@param config EonUnrestrictedVulcanusResourceConfig
+---@return string
+local function nauvis_style_vulcanus_patches_expression(config)
+    return "resource_autoplace_all_patches{base_density = " .. config.density ..
+        ", base_spots_per_km2 = " .. config.spots ..
+        ", candidate_spot_count = " .. config.candidates ..
+        ", frequency_multiplier = " .. control_variable(config.control, "frequency") ..
+        ", has_starting_area_placement = 0" ..
+        ", random_spot_size_minimum = " .. config.min ..
+        ", random_spot_size_maximum = " .. config.max ..
+        ", regular_blob_amplitude_multiplier = 0.125" ..
+        ", regular_patch_set_count = default_regular_resource_patch_set_count" ..
+        ", regular_patch_set_index = " .. config.index ..
+        ", regular_rq_factor = " .. config.rq ..
+        ", seed1 = " .. config.seed ..
+        ", size_multiplier = " .. control_variable(config.control, "size") .. " * " .. config.size ..
+        ", starting_blob_amplitude_multiplier = 0.125" ..
+        ", starting_patch_set_count = default_starting_resource_patch_set_count" ..
+        ", starting_patch_set_index = 0" ..
+        ", starting_rq_factor = " .. config.starting_rq .. "}"
+end
+
+---@param config EonUnrestrictedVulcanusResourceConfig
+---@param patches_name string
+---@return string
+local function nauvis_style_vulcanus_probability_expression(config, patches_name)
+    local probability = "(" .. control_variable(config.control, "size") .. " > 0) * clamp(" .. patches_name .. ", 0, 1)"
+
+    if config.fluid then
+        probability = probability .. " * random_penalty{x = x, y = y, source = 1, amplitude = 1 / 0.020833333333333}"
+    end
+
+    return probability
+end
+
+---@param config EonUnrestrictedVulcanusResourceConfig
+---@param patches_name string
+---@return string
+local function nauvis_style_vulcanus_richness_expression(config, patches_name)
+    local size = control_variable(config.control, "size")
+    local richness = control_variable(config.control, "richness")
+
+    if config.fluid then
+        return "(" .. size .. " > 0) * " .. richness .. " * (" ..
+            patches_name .. " / 0.020833333333333 + 220000) * max((1000 + distance) / 2600, 1)"
+    end
+
+    return "(" .. size .. " > 0) * " .. richness .. " * " ..
+        config.richness .. " * " .. patches_name .. " * max((1000 + distance) / 2600, 1)"
+end
+
+---@param resource_name string
+---@param resource table
+---@return nil
+local function boost_unrestricted_vulcanus_resource(resource_name, resource)
+    if not should_boost_unrestricted_vulcanus_resource(resource_name) or not resource.autoplace then return end
+
+    local config = eon_unrestricted_vulcanus_resource_configs[resource_name]
+    local patches_name = unrestricted_vulcanus_expression_name(resource_name, "patches")
+    set_or_extend_noise_expression(patches_name, nauvis_style_vulcanus_patches_expression(config))
+
+    local probability_expression = expression_for_autoplace(resource)
+    if probability_expression and probability_expression ~= "" then
+        local probability_name = unrestricted_vulcanus_expression_name(resource_name, "probability")
+        local boosted_probability_expression = add_expression_on_vulcanus_terrain(
+            probability_expression,
+            nauvis_style_vulcanus_probability_expression(config, patches_name)
+        )
+
+        set_or_extend_noise_expression(probability_name,
+            mask_unrestricted_vulcanus_probability(boosted_probability_expression))
+        resource.autoplace.probability_expression = probability_name
+        set_nauvis_entity_property_expression(resource_name, "probability", probability_name)
+    end
+
+    local richness_expression = richness_expression_for_autoplace(resource)
+    if richness_expression and richness_expression ~= "" then
+        local richness_name = unrestricted_vulcanus_expression_name(resource_name, "richness")
+        local boosted_richness_expression = add_expression_on_vulcanus_terrain(
+            richness_expression,
+            nauvis_style_vulcanus_richness_expression(config, patches_name)
+        )
+
+        set_or_extend_noise_expression(richness_name, boosted_richness_expression)
+        resource.autoplace.richness_expression = richness_name
+        set_nauvis_entity_property_expression(resource_name, "richness", richness_name)
+    end
+end
+
+if eon_unrestricted_vulcanus_resource_mode and nauvis_settings then
+    for resource_name, resource in pairs(data.raw.resource or {}) do
+        boost_unrestricted_vulcanus_resource(resource_name, resource)
+    end
+end
+
 if mask_vulcanus_resources_off_ammonia_ocean and nauvis_settings then
     local skip_ammonia_ocean_mask = {
         ["lithium-brine"] = true,
@@ -733,6 +910,22 @@ if mask_vulcanus_resources_off_ammonia_ocean and nauvis_settings then
                 and not string.find(expression, "eon_mask_off_ammonia_ocean(", 1, true)
             then
                 resource.autoplace.probability_expression = mask_off_ammonia_ocean(expression)
+            end
+        end
+    end
+end
+
+if nauvis_settings then
+    for resource_name, resource in pairs(data.raw.resource) do
+        if nauvis_settings[resource_name] and resource.autoplace then
+            local expression = resource.autoplace.probability_expression
+
+            if type(expression) == "string"
+                and expression ~= ""
+                and not string.find(expression, "eon_mask_off_aquilo_resource_tiles(", 1, true)
+                and not string.find(expression, "eon_mask_aquilo_resource_tiles(", 1, true)
+            then
+                resource.autoplace.probability_expression = mask_off_aquilo_resource_tiles(expression)
             end
         end
     end
