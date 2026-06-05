@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.11.4
+Date: 04.06.2026
+  Bugfixes:
+    - More map generation adjustments, when resources are not restricted to their native biome
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.11.3
 Date: 04.06.2026
   Bugfixes:

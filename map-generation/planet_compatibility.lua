@@ -2,6 +2,7 @@ local compat = {}
 
 local ORIGINALS = EON_ORIGINAL_AUTOPLACE or {}
 EON_ORIGINAL_AUTOPLACE = ORIGINALS
+ORIGINALS.__planet_property_expression_names = ORIGINALS.__planet_property_expression_names or {}
 
 local prototype_types = {
     "tile",
@@ -71,29 +72,47 @@ end
 
 ---@param expression_name string
 ---@param expression any
+---@param local_expressions table|nil
 ---@return string|nil
-local function add_original_expression(expression_name, expression)
+local function add_original_expression(expression_name, expression, local_expressions)
     if type(expression) ~= "string" or expression == "" then return nil end
 
     if data.raw["noise-expression"] and data.raw["noise-expression"][expression_name] then
         return expression_name
     end
 
-    data:extend({
-        {
-            type = "noise-expression",
-            name = expression_name,
-            expression = expression,
-        }
-    })
+    local prototype = {
+        type = "noise-expression",
+        name = expression_name,
+        expression = expression,
+    }
+
+    if local_expressions then
+        prototype.local_expressions = table.deepcopy(local_expressions)
+    end
+
+    data:extend({ prototype })
 
     return expression_name
+end
+
+---@return nil
+local function capture_original_planet_property_expressions()
+    for planet_name, planet in pairs(data.raw.planet or {}) do
+        local property_expression_names = planet.map_gen_settings
+            and planet.map_gen_settings.property_expression_names
+
+        if property_expression_names then
+            ORIGINALS.__planet_property_expression_names[planet_name] = table.deepcopy(property_expression_names)
+        end
+    end
 end
 
 ---@return nil
 function compat.capture_original_autoplace()
     if ORIGINALS.__captured then return end
     ORIGINALS.__captured = true
+    capture_original_planet_property_expressions()
 
     for _, prototype_type in pairs(prototype_types) do
         for prototype_name, prototype in pairs(data.raw[prototype_type] or {}) do
@@ -103,12 +122,14 @@ function compat.capture_original_autoplace()
 
                 record.probability_expression_name = add_original_expression(
                     "eon_original_" .. safe_name(prototype_type) .. "_" .. safe_name(prototype_name) .. "_probability",
-                    autoplace.probability_expression
+                    autoplace.probability_expression,
+                    autoplace.local_expressions
                 )
 
                 record.richness_expression_name = add_original_expression(
                     "eon_original_" .. safe_name(prototype_type) .. "_" .. safe_name(prototype_name) .. "_richness",
-                    autoplace.richness_expression
+                    autoplace.richness_expression,
+                    autoplace.local_expressions
                 )
 
                 if record.probability_expression_name or record.richness_expression_name then
@@ -130,7 +151,11 @@ function compat.restore_external_planets()
             local autoplace_settings = map_gen and map_gen.autoplace_settings
 
             if map_gen and autoplace_settings then
-                map_gen.property_expression_names = map_gen.property_expression_names or {}
+                map_gen.property_expression_names = table.deepcopy(
+                    ORIGINALS.__planet_property_expression_names[planet_name]
+                    or map_gen.property_expression_names
+                    or {}
+                )
                 local planet_restored = 0
 
                 for category, category_settings in pairs(autoplace_settings) do

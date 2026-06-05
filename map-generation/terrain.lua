@@ -163,6 +163,47 @@ local function eon_wrap_probability_expression(prototype, wrapper)
     end
 end
 
+---@param value any
+---@return table<string, string>?
+local function eon_normalize_local_expressions(value)
+    if type(value) ~= "table" then
+        return nil
+    end
+
+    local local_expressions = {}
+
+    for name, expression in pairs(value) do
+        if type(name) == "string" and type(expression) == "string" then
+            local_expressions[name] = expression
+        end
+    end
+
+    return next(local_expressions) and local_expressions or nil
+end
+
+---@param name string
+---@param expression string
+---@param local_expressions table<string, string>?
+---@return nil
+local function eon_set_or_extend_noise_expression(name, expression, local_expressions)
+    local noise_expression = data.raw["noise-expression"] and data.raw["noise-expression"][name]
+
+    if noise_expression then
+        noise_expression.expression = expression
+        noise_expression.local_expressions = local_expressions
+        return
+    end
+
+    data:extend({
+        {
+            type = "noise-expression",
+            name = name,
+            expression = expression,
+            local_expressions = local_expressions,
+        }
+    })
+end
+
 ---@return nil
 local function eon_mask_fulgora_oil_ocean_off_aquilo_ocean_edge()
     for _, tile_name in pairs({ "oil-ocean-deep", "oil-ocean-shallow" }) do
@@ -578,16 +619,32 @@ if data.raw.resource["fluorine-vent"] and data.raw.resource["fluorine-vent"].aut
 end
 
 ---@param planet_name string
+---@param property_key string
+---@param expression_name string
+---@return nil
+local function eon_set_property_expression(planet_name, property_key, expression_name)
+    local planet = data.raw.planet[planet_name]
+    if not planet or not planet.map_gen_settings then return end
+
+    planet.map_gen_settings.property_expression_names = planet.map_gen_settings.property_expression_names or {}
+    planet.map_gen_settings.property_expression_names[property_key] = expression_name
+end
+
+---@param planet_name string
 ---@param entity_name string
 ---@param property_name string
 ---@param expression_name string
 ---@return nil
 local function eon_set_entity_property_expression(planet_name, entity_name, property_name, expression_name)
-    local planet = data.raw.planet[planet_name]
-    if not planet or not planet.map_gen_settings then return end
+    eon_set_property_expression(planet_name, "entity:" .. entity_name .. ":" .. property_name, expression_name)
+end
 
-    planet.map_gen_settings.property_expression_names = planet.map_gen_settings.property_expression_names or {}
-    planet.map_gen_settings.property_expression_names["entity:" .. entity_name .. ":" .. property_name] = expression_name
+---@param planet_name string
+---@param decorative_name string
+---@param expression_name string
+---@return nil
+local function eon_set_decorative_probability_expression(planet_name, decorative_name, expression_name)
+    eon_set_property_expression(planet_name, "decorative:" .. decorative_name .. ":probability", expression_name)
 end
 
 table.insert(eon_aquilo_autoplace_controls, "ammonia_ocean")
@@ -703,6 +760,65 @@ if eon_aquilo_on_fulgora then
             eon_autoplace_entity_prototype("fulgoran-ruin-attractor"),
             "eon_mask_off_aquilo_territory")
     end
+
+    local fulgora_aquilo_resources = {
+        ["lithium-brine"] = true,
+        ["fluorine-vent"] = true,
+    }
+
+    for resource_name, _ in pairs(fulgora_aquilo_resources) do
+        local resource = data.raw.resource and data.raw.resource[resource_name]
+
+        if resource and resource.autoplace then
+            local probability_expression_name = "eon_fulgora_aquilo_" ..
+                string.gsub(resource_name, "[^%w_]", "_") .. "_probability"
+            local original_probability_expression_name = data_util.generate_eon_name(resource_name)
+
+            eon_set_or_extend_noise_expression(
+                probability_expression_name,
+                eon_mask_resource_tiles(original_probability_expression_name, true)
+            )
+
+            resource.autoplace.probability_expression = probability_expression_name
+            eon_set_entity_property_expression("fulgora", resource_name, "probability", probability_expression_name)
+            eon_set_resource_property_expression_if_string(
+                "fulgora",
+                resource_name,
+                "richness",
+                resource.autoplace.richness_expression
+            )
+        end
+    end
+
+    local scrap = data.raw.resource and data.raw.resource["scrap"]
+    if scrap and scrap.autoplace then
+        local probability_expression = scrap.autoplace.probability_expression
+
+        if type(probability_expression) == "string" then
+            local probability_expression_name = "eon_fulgora_scrap_probability"
+            local richness_expression_name = "eon_fulgora_scrap_richness"
+            local scrap_local_expressions = eon_normalize_local_expressions(scrap.autoplace.local_expressions)
+
+            eon_set_or_extend_noise_expression(
+                probability_expression_name,
+                "eon_mask_off_aquilo_territory(" .. probability_expression .. ")",
+                scrap_local_expressions
+            )
+
+            scrap.autoplace.probability_expression = probability_expression_name
+            eon_set_entity_property_expression("fulgora", "scrap", "probability", probability_expression_name)
+
+            local richness_expression = scrap.autoplace.richness_expression
+            if type(richness_expression) == "string" then
+                eon_set_or_extend_noise_expression(
+                    richness_expression_name,
+                    richness_expression,
+                    scrap_local_expressions
+                )
+                eon_set_entity_property_expression("fulgora", "scrap", "richness", richness_expression_name)
+            end
+        end
+    end
 end
 
 if eon_guarded_resources_enabled then
@@ -761,121 +877,224 @@ terrain.mask_aquilo_territory("lithium-iceberg-huge", "simple-entity")
 terrain.mask_aquilo_territory("lithium-iceberg-big", "simple-entity")
 
 if not eon_aquilo_on_fulgora then
-    local eon_fluid_spot_density = eon_guarded_resources_enabled
-        and "eon_aquilo_resource_placeable_land"
-        or "1"
+    ---@class EonNauvisAquiloFluidResourceConfig
+    ---@field resource_name string
+    ---@field expression_name string
+    ---@field control string
+    ---@field seed integer
+    ---@field guarded_count integer
+    ---@field skip_offset integer
+    ---@field guarded_radius number
+    ---@field unrestricted_patch_index integer
+    ---@field unrestricted_seed integer
+    ---@field probability_multiplier number
+    ---@field richness number
 
-    local eon_fluid_spot_favorability = eon_guarded_resources_enabled
-        and "if(eon_aquilo_resource_placeable_land, max(0, eon_aquilo_land), 0)"
-        or "1"
+    ---@type EonNauvisAquiloFluidResourceConfig[]
+    local eon_nauvis_aquilo_fluid_resource_configs = {
+        {
+            resource_name = "lithium-brine",
+            expression_name = "lithium_brine",
+            control = "lithium_brine",
+            seed = 567,
+            guarded_count = 3,
+            skip_offset = 1,
+            guarded_radius = 1.2,
+            unrestricted_patch_index = 11,
+            unrestricted_seed = 567,
+            probability_multiplier = 0.012,
+            richness = 720000,
+        },
+        {
+            resource_name = "fluorine-vent",
+            expression_name = "fluorine_vent",
+            control = "fluorine_vent",
+            seed = 567,
+            guarded_count = 2,
+            skip_offset = 2,
+            guarded_radius = 1.5,
+            unrestricted_patch_index = 12,
+            unrestricted_seed = 568,
+            probability_multiplier = 0.008,
+            richness = 520000,
+        },
+    }
+
+    ---@param control string
+    ---@param property string
+    ---@return string
+    local function eon_control_expression(control, property)
+        return "control:" .. control .. ":" .. property
+    end
+
+    ---@param config EonNauvisAquiloFluidResourceConfig
+    ---@param property string
+    ---@return string
+    local function eon_nauvis_aquilo_fluid_expression_name(config, property)
+        return "eon_nauvis_aquilo_" .. config.expression_name .. "_" .. property
+    end
+
+    ---@param config EonNauvisAquiloFluidResourceConfig
+    ---@return string
+    local function eon_nauvis_aquilo_fluid_spots_expression(config)
+        local frequency = eon_control_expression(config.control, "frequency")
+        local size = eon_control_expression(config.control, "size")
+
+        if eon_guarded_resources_enabled then
+            return "aquilo_spot_noise{seed = " .. config.seed ..
+                ", count = " .. config.guarded_count ..
+                ", skip_offset = " .. config.skip_offset ..
+                ", region_size = 600 + 400 / " .. frequency ..
+                ", density = 1" ..
+                ", radius = aquilo_spot_size * " .. config.guarded_radius .. " * sqrt(" .. size .. ")" ..
+                ", favorability = 1}"
+        end
+
+        return "resource_autoplace_all_patches{base_density = 8.2" ..
+            ", base_spots_per_km2 = 1.8" ..
+            ", candidate_spot_count = 21" ..
+            ", frequency_multiplier = " .. frequency ..
+            ", has_starting_area_placement = 0" ..
+            ", random_spot_size_minimum = 1" ..
+            ", random_spot_size_maximum = 1" ..
+            ", regular_blob_amplitude_multiplier = 0.125" ..
+            ", regular_patch_set_count = default_regular_resource_patch_set_count" ..
+            ", regular_patch_set_index = " .. config.unrestricted_patch_index ..
+            ", regular_rq_factor = 0.1" ..
+            ", seed1 = " .. config.unrestricted_seed ..
+            ", size_multiplier = " .. size ..
+            ", starting_blob_amplitude_multiplier = 0.125" ..
+            ", starting_patch_set_count = default_starting_resource_patch_set_count" ..
+            ", starting_patch_set_index = 0" ..
+            ", starting_rq_factor = 0.14285714285714}"
+    end
+
+    ---@param config EonNauvisAquiloFluidResourceConfig
+    ---@param spots_name string
+    ---@return string
+    local function eon_nauvis_aquilo_fluid_probability_expression(config, spots_name)
+        local size = eon_control_expression(config.control, "size")
+
+        if eon_guarded_resources_enabled then
+            return eon_mask_resource_tiles(
+                "(" .. size .. " > 0) * max(0, " .. spots_name .. ") * " .. config.probability_multiplier,
+                true)
+        end
+
+        return eon_mask_resource_tiles(
+            "(" .. size .. " > 0) * (clamp(" .. spots_name ..
+            ", 0, 1) * random_penalty{x = x, y = y, source = 1, amplitude = 1 / 0.020833333333333})",
+            false)
+    end
+
+    ---@param config EonNauvisAquiloFluidResourceConfig
+    ---@param spots_name string
+    ---@return string
+    local function eon_nauvis_aquilo_fluid_richness_expression(config, spots_name)
+        local size = eon_control_expression(config.control, "size")
+        local richness = eon_control_expression(config.control, "richness")
+
+        if eon_guarded_resources_enabled then
+            return "max(0, " .. spots_name .. ") * " .. config.richness .. " * " .. richness
+        end
+
+        return "(" .. size .. " > 0) * (" .. richness .. " * (" .. spots_name ..
+            " / 0.020833333333333 + 220000) * max((1000 + distance) / 2600, 1))"
+    end
+
+    ---@param resource_name string
+    ---@param probability_name string
+    ---@param richness_name string
+    ---@return nil
+    local function eon_assign_nauvis_aquilo_fluid_resource(resource_name, probability_name, richness_name)
+        local resource = data.raw.resource[resource_name]
+        if not resource or not resource.autoplace then return end
+
+        resource.autoplace.probability_expression = probability_name
+        resource.autoplace.richness_expression = richness_name
+        eon_set_entity_property_expression("nauvis", resource_name, "probability", probability_name)
+        eon_set_entity_property_expression("nauvis", resource_name, "richness", richness_name)
+    end
 
     local eon_fluid_resource_spots = "max(eon_nauvis_aquilo_lithium_brine_spots, eon_nauvis_aquilo_fluorine_vent_spots)"
+    local eon_fluid_resource_expressions = {}
 
-    local eon_lithium_brine_probability_expression = eon_mask_resource_tiles(
-        "(control:lithium_brine:size > 0) * max(0, eon_nauvis_aquilo_lithium_brine_spots) * 0.009",
-        eon_guarded_resources_enabled)
+    for _, config in ipairs(eon_nauvis_aquilo_fluid_resource_configs) do
+        local spots_name = eon_nauvis_aquilo_fluid_expression_name(config, "spots")
+        local probability_name = eon_nauvis_aquilo_fluid_expression_name(config, "probability")
+        local richness_name = eon_nauvis_aquilo_fluid_expression_name(config, "richness")
 
-    local eon_fluorine_vent_probability_expression = eon_mask_resource_tiles(
-        "(control:fluorine_vent:size > 0) * max(0, eon_nauvis_aquilo_fluorine_vent_spots) * 0.006",
-        eon_guarded_resources_enabled)
+        table.insert(eon_fluid_resource_expressions, {
+            type = "noise-expression",
+            name = spots_name,
+            expression = eon_nauvis_aquilo_fluid_spots_expression(config),
+        })
+        table.insert(eon_fluid_resource_expressions, {
+            type = "noise-expression",
+            name = probability_name,
+            expression = eon_nauvis_aquilo_fluid_probability_expression(config, spots_name),
+        })
+        table.insert(eon_fluid_resource_expressions, {
+            type = "noise-expression",
+            name = richness_name,
+            expression = eon_nauvis_aquilo_fluid_richness_expression(config, spots_name),
+        })
 
-    local eon_aquilo_fluid_resource_snow_decal_expression = eon_mask_resource_tiles(
-        "min(0.055, 0.9 * clamp(" .. eon_fluid_resource_spots .. " - 0.16, 0, 1))",
-        eon_guarded_resources_enabled)
+        eon_assign_nauvis_aquilo_fluid_resource(config.resource_name, probability_name, richness_name)
+    end
 
-    local eon_aquilo_fluid_resource_snow_drift_expression = eon_mask_resource_tiles(
-        "min(0.018, 0.35 * clamp(" .. eon_fluid_resource_spots .. " - 0.24, 0, 1))",
-        eon_guarded_resources_enabled)
+    table.insert(eon_fluid_resource_expressions, {
+        type = "noise-expression",
+        name = "eon_nauvis_aquilo_fluid_resource_snow_decal",
+        expression = eon_mask_resource_tiles(
+            "min(0.055, 0.9 * clamp(" .. eon_fluid_resource_spots .. " - 0.16, 0, 1))",
+            eon_guarded_resources_enabled),
+    })
+    table.insert(eon_fluid_resource_expressions, {
+        type = "noise-expression",
+        name = "eon_nauvis_aquilo_fluid_resource_snow_drift",
+        expression = eon_mask_resource_tiles(
+            "min(0.018, 0.35 * clamp(" .. eon_fluid_resource_spots .. " - 0.24, 0, 1))",
+            eon_guarded_resources_enabled),
+    })
+
+    data:extend(eon_fluid_resource_expressions)
+
+    local eon_aquilo_snowy_decal_expression_name = "eon_nauvis_aquilo_fluid_resource_snowy_decal_probability"
+    local eon_snow_drift_decal_expression_name = "eon_nauvis_aquilo_fluid_resource_snow_drift_decal_probability"
 
     data:extend({
         {
             type = "noise-expression",
-            name = "eon_nauvis_aquilo_lithium_brine_spots",
-            expression =
-                "aquilo_spot_noise{seed = 567, count = 2, skip_offset = 1, region_size = 1300 + 1100 / control:lithium_brine:frequency, density = " ..
-                eon_fluid_spot_density ..
-                ", radius = aquilo_spot_size * 1.1 * sqrt(control:lithium_brine:size), favorability = " ..
-                eon_fluid_spot_favorability .. "}"
+            name = eon_aquilo_snowy_decal_expression_name,
+            expression = "max(" ..
+                eon_aquilo_snow_decorative_mask ..
+                "(eon_aqulio_snowy_decal), eon_nauvis_aquilo_fluid_resource_snow_decal)"
         },
         {
             type = "noise-expression",
-            name = "eon_nauvis_aquilo_lithium_brine_probability",
-            expression = eon_lithium_brine_probability_expression
-        },
-        {
-            type = "noise-expression",
-            name = "eon_nauvis_aquilo_lithium_brine_richness",
-            expression = "max(0, eon_nauvis_aquilo_lithium_brine_spots) * 720000 * control:lithium_brine:richness"
-        },
-        {
-            type = "noise-expression",
-            name = "eon_nauvis_aquilo_fluorine_vent_spots",
-            expression =
-                "aquilo_spot_noise{seed = 567, count = 1, skip_offset = 2, region_size = 1300 + 1100 / control:fluorine_vent:frequency, density = " ..
-                eon_fluid_spot_density ..
-                ", radius = aquilo_spot_size * 1.35 * sqrt(control:fluorine_vent:size), favorability = " ..
-                eon_fluid_spot_favorability .. "}"
-        },
-        {
-            type = "noise-expression",
-            name = "eon_nauvis_aquilo_fluorine_vent_probability",
-            expression = eon_fluorine_vent_probability_expression
-        },
-        {
-            type = "noise-expression",
-            name = "eon_nauvis_aquilo_fluorine_vent_richness",
-            expression = "max(0, eon_nauvis_aquilo_fluorine_vent_spots) * 520000 * control:fluorine_vent:richness"
-        },
-        {
-            type = "noise-expression",
-            name = "eon_nauvis_aquilo_fluid_resource_snow_decal",
-            expression = eon_aquilo_fluid_resource_snow_decal_expression
-        },
-        {
-            type = "noise-expression",
-            name = "eon_nauvis_aquilo_fluid_resource_snow_drift",
-            expression = eon_aquilo_fluid_resource_snow_drift_expression
+            name = eon_snow_drift_decal_expression_name,
+            expression = "max(" ..
+                eon_aquilo_snow_decorative_mask .. "(eon_snow_drift_decal), eon_nauvis_aquilo_fluid_resource_snow_drift)"
         }
     })
 
     local eon_aquilo_snowy_decal = data.raw["optimized-decorative"] and
-    data.raw["optimized-decorative"]["aqulio-snowy-decal"]
+        data.raw["optimized-decorative"]["aqulio-snowy-decal"]
     if eon_aquilo_snowy_decal and eon_aquilo_snowy_decal.autoplace then
         eon_aquilo_snowy_decal.autoplace.tile_restriction = nil
-        eon_aquilo_snowy_decal.autoplace.probability_expression =
-            "max(" ..
-            eon_aquilo_snow_decorative_mask .. "(eon_aqulio_snowy_decal), eon_nauvis_aquilo_fluid_resource_snow_decal)"
+        eon_aquilo_snowy_decal.autoplace.probability_expression = eon_aquilo_snowy_decal_expression_name
+        eon_set_decorative_probability_expression("nauvis", "aqulio-snowy-decal",
+            eon_aquilo_snowy_decal_expression_name)
     end
 
     local eon_snow_drift_decal = data.raw["optimized-decorative"] and
-    data.raw["optimized-decorative"]["snow-drift-decal"]
+        data.raw["optimized-decorative"]["snow-drift-decal"]
     if eon_snow_drift_decal and eon_snow_drift_decal.autoplace then
         eon_snow_drift_decal.autoplace.tile_restriction = nil
-        eon_snow_drift_decal.autoplace.probability_expression =
-            "max(" ..
-            eon_aquilo_snow_decorative_mask .. "(eon_snow_drift_decal), eon_nauvis_aquilo_fluid_resource_snow_drift)"
-    end
-
-    if data.raw.resource["lithium-brine"] and data.raw.resource["lithium-brine"].autoplace then
-        data.raw.resource["lithium-brine"].autoplace.probability_expression =
-        "eon_nauvis_aquilo_lithium_brine_probability"
-        data.raw.resource["lithium-brine"].autoplace.richness_expression =
-        "eon_nauvis_aquilo_lithium_brine_richness"
-        eon_set_entity_property_expression("nauvis", "lithium-brine", "probability",
-            "eon_nauvis_aquilo_lithium_brine_probability")
-        eon_set_entity_property_expression("nauvis", "lithium-brine", "richness",
-            "eon_nauvis_aquilo_lithium_brine_richness")
-    end
-
-    if data.raw.resource["fluorine-vent"] and data.raw.resource["fluorine-vent"].autoplace then
-        data.raw.resource["fluorine-vent"].autoplace.probability_expression =
-        "eon_nauvis_aquilo_fluorine_vent_probability"
-        data.raw.resource["fluorine-vent"].autoplace.richness_expression =
-        "eon_nauvis_aquilo_fluorine_vent_richness"
-        eon_set_entity_property_expression("nauvis", "fluorine-vent", "probability",
-            "eon_nauvis_aquilo_fluorine_vent_probability")
-        eon_set_entity_property_expression("nauvis", "fluorine-vent", "richness",
-            "eon_nauvis_aquilo_fluorine_vent_richness")
+        eon_snow_drift_decal.autoplace.probability_expression = eon_snow_drift_decal_expression_name
+        eon_set_decorative_probability_expression("nauvis", "snow-drift-decal",
+            eon_snow_drift_decal_expression_name)
     end
 end
 

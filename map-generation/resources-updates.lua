@@ -560,10 +560,19 @@ local function set_nauvis_entity_property_expression(entity_name, property_name,
     nauvis.map_gen_settings.property_expression_names["entity:" .. entity_name .. ":" .. property_name] = expression_name
 end
 
+local eon_aquilo_nauvis_fluid_resources = {
+    ["lithium-brine"] = true,
+    ["fluorine-vent"] = true,
+}
+
 ---@param resource_name string
 ---@param resource table
 ---@return nil
 local function apply_guarded_resource_biome_mask(resource_name, resource)
+    if not eon_aquilo_on_fulgora and eon_aquilo_nauvis_fluid_resources[resource_name] then
+        return
+    end
+
     local nauvis_settings = get_planet_entity_settings("nauvis") or {}
     local gleba_settings = get_planet_entity_settings("gleba") or {}
     local vulcanus_settings = get_planet_entity_settings("vulcanus") or {}
@@ -708,6 +717,26 @@ if guarded_resources_enabled then
     "eon_nauvis_vulcanus_sulfuric_acid_geyser_probability"
     data.raw.resource["sulfuric-acid-geyser"].autoplace.richness_expression =
     "eon_nauvis_vulcanus_sulfuric_acid_geyser_richness"
+
+    if not eon_aquilo_on_fulgora then
+        set_nauvis_entity_property_expression("lithium-brine", "probability",
+            "eon_nauvis_aquilo_lithium_brine_probability")
+        set_nauvis_entity_property_expression("lithium-brine", "richness",
+            "eon_nauvis_aquilo_lithium_brine_richness")
+        data.raw.resource["lithium-brine"].autoplace.probability_expression =
+        "eon_nauvis_aquilo_lithium_brine_probability"
+        data.raw.resource["lithium-brine"].autoplace.richness_expression =
+        "eon_nauvis_aquilo_lithium_brine_richness"
+
+        set_nauvis_entity_property_expression("fluorine-vent", "probability",
+            "eon_nauvis_aquilo_fluorine_vent_probability")
+        set_nauvis_entity_property_expression("fluorine-vent", "richness",
+            "eon_nauvis_aquilo_fluorine_vent_richness")
+        data.raw.resource["fluorine-vent"].autoplace.probability_expression =
+        "eon_nauvis_aquilo_fluorine_vent_probability"
+        data.raw.resource["fluorine-vent"].autoplace.richness_expression =
+        "eon_nauvis_aquilo_fluorine_vent_richness"
+    end
 else
     set_nauvis_entity_property_expression("sulfuric-acid-geyser", "probability",
         "eon_default_sulfuric_acid_geyser_probability")
@@ -729,30 +758,30 @@ local nauvis_settings = data.raw.planet["nauvis"]
 
 ---@class EonUnrestrictedVulcanusResourceConfig
 ---@field control string
----@field density number
----@field spots number
----@field candidates integer
----@field index integer
+---@field base_density number
+---@field base_spots_per_km2 number
+---@field candidate_spot_count integer
+---@field regular_patch_set_index integer
 ---@field seed integer
----@field min number
----@field max number
----@field size number
+---@field random_spot_size_minimum number
+---@field random_spot_size_maximum number
+---@field size_multiplier number
 ---@field richness number
----@field rq number
+---@field regular_rq_factor number
 ---@field starting_rq number
 ---@field fluid boolean|nil
 
 ---@type table<string, EonUnrestrictedVulcanusResourceConfig>
 local eon_unrestricted_vulcanus_resource_configs = {
-    ["iron-ore"] = { control = "iron-ore", density = 10, spots = 3.6, candidates = 32, index = 0, seed = 2100, min = 0.25, max = 2.4, size = 1.25, richness = 1.0, rq = 0.11, starting_rq = 0.21428571428571 },
-    ["copper-ore"] = { control = "copper-ore", density = 8, spots = 3.6, candidates = 32, index = 1, seed = 2101, min = 0.25, max = 2.4, size = 1.25, richness = 1.0, rq = 0.11, starting_rq = 0.17142857142857 },
-    ["coal"] = { control = "coal", density = 8, spots = 3.4, candidates = 30, index = 2, seed = 2102, min = 0.25, max = 2.4, size = 1.2, richness = 1.0, rq = 0.1, starting_rq = 0.15714285714286 },
-    ["stone"] = { control = "stone", density = 4, spots = 3.2, candidates = 30, index = 3, seed = 2103, min = 0.25, max = 2.2, size = 1.2, richness = 1.0, rq = 0.1, starting_rq = 0.15714285714286 },
-    ["uranium-ore"] = { control = "uranium-ore", density = 0.9, spots = 1.35, candidates = 22, index = 5, seed = 2105, min = 2, max = 4, size = 0.85, richness = 0.1, rq = 0.1, starting_rq = 0.14285714285714 },
-    ["crude-oil"] = { control = "crude-oil", density = 8.2, spots = 2.4, candidates = 28, index = 4, seed = 2104, min = 1, max = 1, size = 1.15, richness = 1.0, rq = 0.1, starting_rq = 0.14285714285714, fluid = true },
-    ["calcite"] = { control = "calcite", density = 5, spots = 3.0, candidates = 28, index = 6, seed = 2110, min = 0.5, max = 2.5, size = 1.15, richness = 0.9, rq = 0.1, starting_rq = 0.14285714285714 },
-    ["tungsten-ore"] = { control = "tungsten_ore", density = 1.2, spots = 1.8, candidates = 24, index = 7, seed = 2111, min = 1.5, max = 3.5, size = 0.95, richness = 0.45, rq = 0.1, starting_rq = 0.14285714285714 },
-    ["sulfuric-acid-geyser"] = { control = "sulfuric_acid_geyser", density = 8.2, spots = 2.4, candidates = 28, index = 5, seed = 2112, min = 1, max = 1, size = 1.15, richness = 1.0, rq = 0.1, starting_rq = 0.14285714285714, fluid = true },
+    ["iron-ore"] = { control = "iron-ore", base_density = 10, base_spots_per_km2 = 3.6, candidate_spot_count = 32, regular_patch_set_index = 0, seed = 2100, random_spot_size_minimum = 0.25, random_spot_size_maximum = 2.4, size_multiplier = 1.25, richness = 1.0, regular_rq_factor = 0.11, starting_rq = 0.21428571428571 },
+    ["copper-ore"] = { control = "copper-ore", base_density = 8, base_spots_per_km2 = 3.6, candidate_spot_count = 32, regular_patch_set_index = 1, seed = 2101, random_spot_size_minimum = 0.25, random_spot_size_maximum = 2.4, size_multiplier = 1.25, richness = 1.0, regular_rq_factor = 0.11, starting_rq = 0.17142857142857 },
+    ["coal"] = { control = "coal", base_density = 8, base_spots_per_km2 = 3.4, candidate_spot_count = 30, regular_patch_set_index = 2, seed = 2102, random_spot_size_minimum = 0.25, random_spot_size_maximum = 2.4, size_multiplier = 1.2, richness = 1.0, regular_rq_factor = 0.1, starting_rq = 0.15714285714286 },
+    ["stone"] = { control = "stone", base_density = 4, base_spots_per_km2 = 3.2, candidate_spot_count = 30, regular_patch_set_index = 3, seed = 2103, random_spot_size_minimum = 0.25, random_spot_size_maximum = 2.2, size_multiplier = 1.2, richness = 1.0, regular_rq_factor = 0.1, starting_rq = 0.15714285714286 },
+    ["uranium-ore"] = { control = "uranium-ore", base_density = 0.9, base_spots_per_km2 = 1.35, candidate_spot_count = 22, regular_patch_set_index = 5, seed = 2105, random_spot_size_minimum = 2, random_spot_size_maximum = 4, size_multiplier = 0.85, richness = 0.1, regular_rq_factor = 0.1, starting_rq = 0.14285714285714 },
+    ["crude-oil"] = { control = "crude-oil", base_density = 8.2, base_spots_per_km2 = 2.4, candidate_spot_count = 28, regular_patch_set_index = 4, seed = 2104, random_spot_size_minimum = 1, random_spot_size_maximum = 1, size_multiplier = 1.15, richness = 1.0, regular_rq_factor = 0.1, starting_rq = 0.14285714285714, fluid = true },
+    ["calcite"] = { control = "calcite", base_density = 5, base_spots_per_km2 = 3.0, candidate_spot_count = 28, regular_patch_set_index = 6, seed = 2110, random_spot_size_minimum = 0.5, random_spot_size_maximum = 2.5, size_multiplier = 1.15, richness = 0.9, regular_rq_factor = 0.1, starting_rq = 0.14285714285714 },
+    ["tungsten-ore"] = { control = "tungsten_ore", base_density = 1.2, base_spots_per_km2 = 1.8, candidate_spot_count = 24, regular_patch_set_index = 7, seed = 2111, random_spot_size_minimum = 1.5, random_spot_size_maximum = 3.5, size_multiplier = 0.95, richness = 0.45, regular_rq_factor = 0.1, starting_rq = 0.14285714285714 },
+    ["sulfuric-acid-geyser"] = { control = "sulfuric_acid_geyser", base_density = 8.2, base_spots_per_km2 = 2.4, candidate_spot_count = 28, regular_patch_set_index = 5, seed = 2112, random_spot_size_minimum = 1, random_spot_size_maximum = 1, size_multiplier = 1.15, richness = 1.0, regular_rq_factor = 0.1, starting_rq = 0.14285714285714, fluid = true },
 }
 
 ---@param resource_name string
@@ -791,28 +820,22 @@ local function add_expression_on_vulcanus_terrain(expression, additive_expressio
     return "max(" .. expression .. ", eon_mask_vulcano_terrain(" .. additive_expression .. "))"
 end
 
----@param expression string
----@return string
-local function mask_unrestricted_vulcanus_probability(expression)
-    return mask_off_aquilo_resource_tiles(expression)
-end
-
 ---@param config EonUnrestrictedVulcanusResourceConfig
 ---@return string
 local function nauvis_style_vulcanus_patches_expression(config)
-    return "resource_autoplace_all_patches{base_density = " .. config.density ..
-        ", base_spots_per_km2 = " .. config.spots ..
-        ", candidate_spot_count = " .. config.candidates ..
+    return "resource_autoplace_all_patches{base_density = " .. config.base_density ..
+        ", base_spots_per_km2 = " .. config.base_spots_per_km2 ..
+        ", candidate_spot_count = " .. config.candidate_spot_count ..
         ", frequency_multiplier = " .. control_variable(config.control, "frequency") ..
         ", has_starting_area_placement = 0" ..
-        ", random_spot_size_minimum = " .. config.min ..
-        ", random_spot_size_maximum = " .. config.max ..
+        ", random_spot_size_minimum = " .. config.random_spot_size_minimum ..
+        ", random_spot_size_maximum = " .. config.random_spot_size_maximum ..
         ", regular_blob_amplitude_multiplier = 0.125" ..
         ", regular_patch_set_count = default_regular_resource_patch_set_count" ..
-        ", regular_patch_set_index = " .. config.index ..
-        ", regular_rq_factor = " .. config.rq ..
+        ", regular_patch_set_index = " .. config.regular_patch_set_index ..
+        ", regular_rq_factor = " .. config.regular_rq_factor ..
         ", seed1 = " .. config.seed ..
-        ", size_multiplier = " .. control_variable(config.control, "size") .. " * " .. config.size ..
+        ", size_multiplier = " .. control_variable(config.control, "size") .. " * " .. config.size_multiplier ..
         ", starting_blob_amplitude_multiplier = 0.125" ..
         ", starting_patch_set_count = default_starting_resource_patch_set_count" ..
         ", starting_patch_set_index = 0" ..
@@ -867,7 +890,7 @@ local function boost_unrestricted_vulcanus_resource(resource_name, resource)
         )
 
         set_or_extend_noise_expression(probability_name,
-            mask_unrestricted_vulcanus_probability(boosted_probability_expression))
+            mask_off_aquilo_resource_tiles(boosted_probability_expression))
         resource.autoplace.probability_expression = probability_name
         set_nauvis_entity_property_expression(resource_name, "probability", probability_name)
     end
@@ -893,16 +916,8 @@ if eon_unrestricted_vulcanus_resource_mode and nauvis_settings then
 end
 
 if mask_vulcanus_resources_off_ammonia_ocean and nauvis_settings then
-    local skip_ammonia_ocean_mask = {
-        ["lithium-brine"] = true,
-        ["fluorine-vent"] = true,
-    }
-
-    for resource_name, resource in pairs(data.raw.resource) do
-        if not skip_ammonia_ocean_mask[resource_name]
-            and nauvis_settings[resource_name]
-            and resource.autoplace
-        then
+    for resource_name, resource in pairs(data.raw.resource or {}) do
+        if nauvis_settings[resource_name] and resource.autoplace then
             local expression = resource.autoplace.probability_expression
 
             if type(expression) == "string"
@@ -915,18 +930,46 @@ if mask_vulcanus_resources_off_ammonia_ocean and nauvis_settings then
     end
 end
 
-if nauvis_settings then
-    for resource_name, resource in pairs(data.raw.resource) do
-        if nauvis_settings[resource_name] and resource.autoplace then
-            local expression = resource.autoplace.probability_expression
+---@param expression string
+---@return boolean
+local function has_aquilo_resource_tile_mask(expression)
+    return string.find(expression, "eon_mask_off_aquilo_resource_tiles(", 1, true) ~= nil
+        or string.find(expression, "eon_mask_aquilo_resource_tiles(", 1, true) ~= nil
+end
 
-            if type(expression) == "string"
-                and expression ~= ""
-                and not string.find(expression, "eon_mask_off_aquilo_resource_tiles(", 1, true)
-                and not string.find(expression, "eon_mask_aquilo_resource_tiles(", 1, true)
-            then
-                resource.autoplace.probability_expression = mask_off_aquilo_resource_tiles(expression)
-            end
-        end
+---@param resource_name string
+---@param property_name string
+---@return string
+local function masked_resource_property_expression_name(resource_name, property_name)
+    return "eon_" .. resource_name:gsub("[^%w_]", "_") .. "_aquilo_resource_tile_safe_" .. property_name
+end
+
+---@param resource_name string
+---@param resource table
+---@return nil
+local function mask_resource_autoplace_off_invalid_aquilo_tiles(resource_name, resource)
+    if not resource.autoplace then return end
+
+    local expression = resource.autoplace.probability_expression
+    if type(expression) == "string" and expression ~= "" and not has_aquilo_resource_tile_mask(expression) then
+        resource.autoplace.probability_expression = mask_off_aquilo_resource_tiles(expression)
     end
+
+    local nauvis = data.raw.planet["nauvis"]
+    local map_gen = nauvis and nauvis.map_gen_settings
+    local property_names = map_gen and map_gen.property_expression_names
+    if not property_names then return end
+
+    local property_key = "entity:" .. resource_name .. ":probability"
+    local property_expression = property_names[property_key]
+    if type(property_expression) ~= "string" or property_expression == "" then return end
+    if has_aquilo_resource_tile_mask(property_expression) then return end
+
+    local masked_name = masked_resource_property_expression_name(resource_name, "probability")
+    set_or_extend_noise_expression(masked_name, mask_off_aquilo_resource_tiles(property_expression))
+    property_names[property_key] = masked_name
+end
+
+for resource_name, resource in pairs(data.raw.resource or {}) do
+    mask_resource_autoplace_off_invalid_aquilo_tiles(resource_name, resource)
 end
