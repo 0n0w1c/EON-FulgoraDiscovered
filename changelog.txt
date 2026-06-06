@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.12.0
+Date: 06.06.2026
+  Bugfixes:
+    - Major refactor
+    - Aquilo on Nauvis: resolved the issue of the Aquilo biome extending onto volcanoes outer ring
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.11.4
 Date: 04.06.2026
   Bugfixes:

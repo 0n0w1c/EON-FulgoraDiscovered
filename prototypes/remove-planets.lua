@@ -1,8 +1,8 @@
 local data_util = require("data-util")
+local eon_mode = require("lib.eon-mode")
+local eon_planet_registry = require("lib.eon-planet-registry")
 
-local move_aquilo_to_fulgora =
-    settings.startup["eon-fd-aquilo-on-fulgora"] and
-    settings.startup["eon-fd-aquilo-on-fulgora"].value
+local move_aquilo_to_fulgora = eon_mode.aquilo_on_fulgora
 
 ---@return nil
 local function copy_nauvis_aquilo_connection_to_fulgora()
@@ -10,8 +10,8 @@ local function copy_nauvis_aquilo_connection_to_fulgora()
         return
     end
 
-    local source_connection = data.raw["space-connection"]["fulgora-aquilo"]
-    local nauvis_fulgora = data.raw["space-connection"]["nauvis-fulgora"]
+    local source_connection = data.raw["space-connection"][eon_planet_registry.aquilo_connection_to_copy]
+    local nauvis_fulgora = data.raw["space-connection"][eon_planet_registry.nauvis_fulgora_connection]
 
     if not source_connection or not nauvis_fulgora then
         return
@@ -21,50 +21,41 @@ local function copy_nauvis_aquilo_connection_to_fulgora()
         table.deepcopy(source_connection.asteroid_spawn_definitions)
 end
 
-if data.raw.planet["aquilo"] then
-    data.raw.planet["aquilo"].map_gen_settings = nil
-    data.raw.planet["aquilo"].hidden = true
+for _, planet_name in ipairs(eon_planet_registry.removed_planets) do
+    if data.raw.planet[planet_name] then
+        data.raw.planet[planet_name].map_gen_settings = nil
+        data.raw.planet[planet_name].hidden = true
+    end
 end
 
-if data.raw.planet["gleba"] then
-    data.raw.planet["gleba"].map_gen_settings = nil
-    data.raw.planet["gleba"].hidden = true
+for _, connection_name in ipairs(eon_planet_registry.space_connections_to_delete) do
+    if connection_name ~= eon_planet_registry.aquilo_connection_to_copy then
+        data_util.delete_prototype("space-connection", connection_name)
+    end
 end
-
-if data.raw.planet["vulcanus"] then
-    data.raw.planet["vulcanus"].map_gen_settings = nil
-    data.raw.planet["vulcanus"].hidden = true
-end
-
-data_util.delete_prototype("space-connection", "nauvis-vulcanus")
-data_util.delete_prototype("space-connection", "nauvis-gleba")
-data_util.delete_prototype("space-connection", "vulcanus-gleba")
-data_util.delete_prototype("space-connection", "gleba-aquilo")
-data_util.delete_prototype("space-connection", "gleba-fulgora")
 copy_nauvis_aquilo_connection_to_fulgora()
+data_util.delete_prototype("space-connection", eon_planet_registry.aquilo_connection_to_copy)
 
-data_util.delete_prototype("space-connection", "fulgora-aquilo")
-
-local edge = data.raw["space-connection"]["aquilo-solar-system-edge"]
+local edge = data.raw["space-connection"][eon_planet_registry.edge_connection_to_clone]
 
 if edge then
     local fulgora_edge = table.deepcopy(edge)
 
-    fulgora_edge.name = "fulgora-solar-system-edge"
+    fulgora_edge.name = eon_planet_registry.fulgora_edge_connection_name
     fulgora_edge.from = "fulgora"
 
     fulgora_edge.icons = {
         {
-            icon = "__space-age__/graphics/icons/planet-route.png"
+            icon = eon_planet_registry.edge_route_icon
         },
         {
-            icon = "__space-age__/graphics/icons/fulgora.png",
+            icon = eon_planet_registry.fulgora_icon,
             icon_size = 64,
             scale = 0.333,
             shift = { -6, -6 }
         },
         {
-            icon = "__space-age__/graphics/icons/solar-system-edge.png",
+            icon = eon_planet_registry.solar_system_edge_icon,
             icon_size = 64,
             scale = 0.333,
             shift = { 6, 6 }
@@ -73,37 +64,25 @@ if edge then
 
     data:extend({ fulgora_edge })
 
-    data_util.delete_prototype("space-connection", "aquilo-solar-system-edge")
+    data_util.delete_prototype("space-connection", eon_planet_registry.edge_connection_to_clone)
 end
 
+local main_menu_simulations = data.raw["utility-constants"]
+    and data.raw["utility-constants"]["default"]
+    and data.raw["utility-constants"]["default"].main_menu_simulations
 
-data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_oil_refinery = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_early_smelting = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_train_station = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_train_junction = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_artillery = nil
+if main_menu_simulations then
+    for _, simulation_name in ipairs(eon_planet_registry.main_menu_simulations_to_remove) do
+        main_menu_simulations[simulation_name] = nil
+    end
+end
 
+for _, technology_name in ipairs(eon_planet_registry.removed_discovery_technologies) do
+    data_util.hide_prototype("technology", technology_name)
+end
 
-data.raw["utility-constants"]["default"].main_menu_simulations.platform_moving = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.platform_messy_nuclear = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.vulcanus_lava_forge = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.vulcanus_crossing = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.vulcanus_punishmnent = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.vulcanus_sulfur_drop = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.gleba_agri_towers = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.gleba_pentapod_ponds = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.gleba_egg_escape = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.gleba_farm_attack = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.gleba_grotto = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.aquilo_send_help = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.aquilo_starter = nil
-data.raw["utility-constants"]["default"].main_menu_simulations.nauvis_rocket_factory = nil
-
-data_util.hide_prototype("technology", "planet-discovery-aquilo")
-data_util.hide_prototype("technology", "planet-discovery-gleba")
-data_util.hide_prototype("technology", "planet-discovery-vulcanus")
-
-data.raw["autoplace-control"]["aquilo_crude_oil"].hidden = true
-data.raw["autoplace-control"]["gleba_stone"].hidden = true
-data.raw["autoplace-control"]["gleba_cliff"].hidden = true
-data.raw["autoplace-control"]["vulcanus_coal"].hidden = true
+for _, control_name in ipairs(eon_planet_registry.autoplace_controls_to_hide) do
+    if data.raw["autoplace-control"][control_name] then
+        data.raw["autoplace-control"][control_name].hidden = true
+    end
+end

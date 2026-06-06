@@ -1,22 +1,13 @@
 if not mods["space-age"] then return end
 
-local ore_ganizer = mods["ore-ganizer"]
-
----@param name string
----@return any
-local function eon_keep_surface_conditions(name)
-    if ore_ganizer and name and string.sub(name, 1, 4) == "rmd-" then
-        return true
-    end
-    return false
-end
+local eon_surface_condition_registry = require("lib.eon-surface-condition-registry")
 
 for _, prototype_type in pairs(data.raw) do
     for _, prototype in pairs(prototype_type) do
-        if prototype.surface_conditions then
-            if not eon_keep_surface_conditions(prototype.name) then
-                prototype.surface_conditions = nil
-            end
+        if prototype.surface_conditions
+            and not eon_surface_condition_registry.should_keep_surface_conditions(prototype.name)
+        then
+            prototype.surface_conditions = nil
         end
     end
 end

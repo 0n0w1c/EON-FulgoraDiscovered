@@ -1,73 +1,55 @@
 local terrain = require("map-generation.terrain")
+local enemy_registry = require("lib.eon-enemy-registry")
+local eon_mode = require("lib.eon-mode")
+local eon_autoplace_policy = require("lib.eon-autoplace-policy")
 
-data:extend({
-    {
-        type = "noise-expression",
-        name = "biter_spawner",
-        expression = data.raw["unit-spawner"]["biter-spawner"].autoplace.probability_expression
-    },
-    {
-        type = "noise-expression",
-        name = "spitter_spawner",
-        expression = data.raw["unit-spawner"]["spitter-spawner"].autoplace.probability_expression
-    },
-    {
-        type = "noise-expression",
-        name = "small_worm_turret",
-        expression = data.raw["turret"]["small-worm-turret"].autoplace.probability_expression
-    },
-    {
-        type = "noise-expression",
-        name = "medium_worm_turret",
-        expression = data.raw["turret"]["medium-worm-turret"].autoplace.probability_expression
-    },
-    {
-        type = "noise-expression",
-        name = "big_worm_turret",
-        expression = data.raw["turret"]["big-worm-turret"].autoplace.probability_expression
-    },
-    {
-        type = "noise-expression",
-        name = "behemoth_worm_turret",
-        expression = data.raw["turret"]["behemoth-worm-turret"].autoplace.probability_expression
-    },
-})
+local eon_aquilo_on_fulgora = eon_mode.aquilo_on_fulgora
 
-data.raw["unit-spawner"]["biter-spawner"].autoplace.probability_expression = "eon_mask_nauvis_territory(biter_spawner)"
-data.raw["unit-spawner"]["spitter-spawner"].autoplace.probability_expression =
-"eon_mask_nauvis_territory(spitter_spawner)"
+---@param prototype_type string
+---@param prototype_name string
+---@return table|nil
+local function eon_autoplace_prototype(prototype_type, prototype_name)
+    local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
+    if not (prototype and prototype.autoplace and prototype.autoplace.probability_expression) then return nil end
+    if type(prototype.autoplace.probability_expression) ~= "string" then return nil end
+    return prototype
+end
 
-data.raw["turret"]["small-worm-turret"].autoplace.probability_expression = "eon_mask_nauvis_territory(small_worm_turret)"
-data.raw["turret"]["medium-worm-turret"].autoplace.probability_expression =
-"eon_mask_nauvis_territory(medium_worm_turret)"
+---@param entry table
+---@return table|nil
+local function eon_capture_enemy_autoplace(entry)
+    local prototype = eon_autoplace_prototype(entry.type, entry.name)
+    if not prototype then return nil end
 
-data.raw["turret"]["big-worm-turret"].autoplace.probability_expression = "eon_mask_nauvis_territory(big_worm_turret)"
-data.raw["turret"]["behemoth-worm-turret"].autoplace.probability_expression =
-"eon_mask_nauvis_territory(behemoth_worm_turret)"
+    data:extend({
+        {
+            type = "noise-expression",
+            name = entry.expression,
+            expression = prototype.autoplace.probability_expression
+        },
+    })
 
-if mods["ArmouredBiters"] then
-    local armoured_biter_spawner = data.raw["unit-spawner"] and data.raw["unit-spawner"]["armoured-biter-spawner"]
-    if armoured_biter_spawner
-        and armoured_biter_spawner.autoplace
-        and armoured_biter_spawner.autoplace.probability_expression
-    then
-        data:extend({
-            {
-                type = "noise-expression",
-                name = "armoured_biter_spawner",
-                expression = armoured_biter_spawner.autoplace.probability_expression
-            },
-        })
+    return prototype
+end
 
-        armoured_biter_spawner.autoplace.probability_expression =
-        "eon_mask_nauvis_territory(armoured_biter_spawner)"
+---@param entries table[]
+---@param mask_name string
+local function eon_apply_masked_enemy_group(entries, mask_name)
+    for _, entry in ipairs(entries) do
+        local prototype = eon_capture_enemy_autoplace(entry)
+        if prototype then
+            prototype.autoplace.probability_expression = mask_name .. "(" .. entry.expression .. ")"
+        end
     end
 end
 
-if mods["Explosive_biters"] then
-    local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
-        and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
+eon_apply_masked_enemy_group(enemy_registry.data_stage.vanilla_nauvis, "eon_mask_nauvis_territory")
 
+if mods[enemy_registry.data_stage.armoured_nauvis.mod] then
+    eon_apply_masked_enemy_group(enemy_registry.data_stage.armoured_nauvis.entries, "eon_mask_nauvis_territory")
+end
+
+if mods[enemy_registry.data_stage.explosive_vulcanus.mod] then
     ---@param expression string
     ---@return string
     local function eon_explosive_probability_expression(expression)
@@ -77,144 +59,57 @@ if mods["Explosive_biters"] then
         return expression
     end
 
-    ---@param prototype_type any
-    ---@param prototype_name string
-    ---@param expression_name string
-    ---@return nil
-    local function eon_mask_explosive_autoplace(prototype_type, prototype_name, expression_name)
-        local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
-        if prototype
-            and prototype.autoplace
-            and prototype.autoplace.probability_expression
-        then
-            local probability_expression = prototype.autoplace.probability_expression
-            if type(probability_expression) ~= "string" then return end
+    eon_autoplace_policy.set_planet_autoplace_control("nauvis",
+        enemy_registry.data_stage.explosive_vulcanus.autoplace_control)
 
-            prototype.autoplace.control = "hot_enemy_base"
+    for _, entry in ipairs(enemy_registry.data_stage.explosive_vulcanus.entries) do
+        local prototype = eon_autoplace_prototype(entry.type, entry.name)
+        if prototype then
+            prototype.autoplace.control = enemy_registry.data_stage.explosive_vulcanus.autoplace_control
 
             data:extend({
                 {
                     type = "noise-expression",
-                    name = expression_name,
-                    expression = eon_explosive_probability_expression(probability_expression)
+                    name = entry.expression,
+                    expression = eon_explosive_probability_expression(prototype.autoplace.probability_expression)
                 },
             })
 
             if eon_aquilo_on_fulgora then
-                prototype.autoplace.probability_expression = "eon_mask_vulcano_terrain(" .. expression_name .. ")"
+                prototype.autoplace.probability_expression = "eon_mask_vulcano_terrain(" .. entry.expression .. ")"
             else
                 prototype.autoplace.probability_expression =
-                    "eon_mask_off_aquilo_territory(eon_mask_vulcano_terrain(" .. expression_name .. "))"
+                    "eon_mask_off_aquilo_territory(eon_mask_vulcano_terrain(" .. entry.expression .. "))"
             end
         end
     end
-
-    if data.raw["planet"]
-        and data.raw["planet"]["nauvis"]
-        and data.raw["planet"]["nauvis"].map_gen_settings
-        and data.raw["planet"]["nauvis"].map_gen_settings.autoplace_controls
-    then
-        data.raw["planet"]["nauvis"].map_gen_settings.autoplace_controls["hot_enemy_base"] = {}
-    end
-
-    eon_mask_explosive_autoplace("unit-spawner", "explosive-biter-spawner", "explosive_biter_spawner")
-    eon_mask_explosive_autoplace("turret", "small-explosive-worm-turret", "small_explosive_worm_turret")
-    eon_mask_explosive_autoplace("turret", "medium-explosive-worm-turret", "medium_explosive_worm_turret")
-    eon_mask_explosive_autoplace("turret", "big-explosive-worm-turret", "big_explosive_worm_turret")
-    eon_mask_explosive_autoplace("turret", "behemoth-explosive-worm-turret", "behemoth_explosive_worm_turret")
-    eon_mask_explosive_autoplace("turret", "leviathan-explosive-worm-turret", "leviathan_explosive_worm_turret")
-    eon_mask_explosive_autoplace("turret", "mother-explosive-worm-turret", "mother_explosive_worm_turret")
 end
 
-if mods["Cold_biters"] then
-    local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
-        and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
-
-    ---@param prototype_type any
-    ---@param prototype_name string
-    ---@param expression_name string
-    ---@return nil
-    local function eon_mask_cold_autoplace(prototype_type, prototype_name, expression_name)
-        local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
-        if prototype
-            and prototype.autoplace
-            and prototype.autoplace.probability_expression
-        then
-            data:extend({
-                {
-                    type = "noise-expression",
-                    name = expression_name,
-                    expression = prototype.autoplace.probability_expression
-                },
-            })
-
-            prototype.autoplace.probability_expression = "eon_mask_aquilo_territory(" .. expression_name .. ")"
-        end
-    end
-
+if mods[enemy_registry.data_stage.cold_aquilo.mod] then
     local eon_cold_planet_name = eon_aquilo_on_fulgora and "fulgora" or "nauvis"
 
     if eon_aquilo_on_fulgora then
-        local nauvis = data.raw["planet"] and data.raw["planet"]["nauvis"]
-        if nauvis
-            and nauvis.map_gen_settings
-            and nauvis.map_gen_settings.autoplace_controls
-        then
-            nauvis.map_gen_settings.autoplace_controls["frost_enemy_base"] = nil
-        end
+        eon_autoplace_policy.set_planet_autoplace_control("nauvis",
+            enemy_registry.data_stage.cold_aquilo.autoplace_control, false)
     end
 
-    local eon_cold_planet = data.raw["planet"] and data.raw["planet"][eon_cold_planet_name]
-    if eon_cold_planet
-        and eon_cold_planet.map_gen_settings
-        and eon_cold_planet.map_gen_settings.autoplace_controls
-    then
-        eon_cold_planet.map_gen_settings.autoplace_controls["frost_enemy_base"] = {}
-    end
+    eon_autoplace_policy.set_planet_autoplace_control(eon_cold_planet_name,
+        enemy_registry.data_stage.cold_aquilo.autoplace_control)
 
-    eon_mask_cold_autoplace("unit-spawner", "cb-cold-spawner", "eon_cb_cold_spawner")
-    eon_mask_cold_autoplace("turret", "small-cold-worm-turret", "eon_small_cold_worm_turret")
-    eon_mask_cold_autoplace("turret", "medium-cold-worm-turret", "eon_medium_cold_worm_turret")
-    eon_mask_cold_autoplace("turret", "big-cold-worm-turret", "eon_big_cold_worm_turret")
-    eon_mask_cold_autoplace("turret", "behemoth-cold-worm-turret", "eon_behemoth_cold_worm_turret")
-    eon_mask_cold_autoplace("turret", "leviathan-cold-worm-turret", "eon_leviathan_cold_worm_turret")
-    eon_mask_cold_autoplace("turret", "mother-cold-worm-turret", "eon_mother_cold_worm_turret")
+    eon_apply_masked_enemy_group(enemy_registry.data_stage.cold_aquilo.entries, "eon_mask_aquilo_territory")
 end
 
-if mods["Electric_flying_enemies"] then
-    local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
-        and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
-
-    ---@param prototype_type any
-    ---@param prototype_name string
-    ---@param expression_name string
-    ---@return nil
-    local function eon_mask_electric_off_aquilo(prototype_type, prototype_name, expression_name)
-        local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
-        if prototype
-            and prototype.autoplace
-            and prototype.autoplace.probability_expression
-        then
-            data:extend({
-                {
-                    type = "noise-expression",
-                    name = expression_name,
-                    expression = prototype.autoplace.probability_expression
-                },
-            })
-
+if mods[enemy_registry.data_stage.electric_fulgora.mod] then
+    for _, entry in ipairs(enemy_registry.data_stage.electric_fulgora.entries) do
+        local prototype = eon_capture_enemy_autoplace(entry)
+        if prototype then
             if eon_aquilo_on_fulgora then
-                prototype.autoplace.probability_expression = "eon_mask_off_aquilo_territory(" .. expression_name .. ")"
+                prototype.autoplace.probability_expression = "eon_mask_off_aquilo_territory(" .. entry.expression .. ")"
             else
-                prototype.autoplace.probability_expression = expression_name
+                prototype.autoplace.probability_expression = entry.expression
             end
         end
     end
-
-    eon_mask_electric_off_aquilo("unit-spawner", "flying-electric-unit-spawner",
-        "eon_flying_electric_unit_spawner_off_aquilo")
-    eon_mask_electric_off_aquilo("unit-spawner", "walker-electric-unit-spawner",
-        "eon_walker_electric_unit_spawner_off_aquilo")
 end
 
 local eon_nauvis_territory_settings = table.deepcopy(data.raw["planet"]["vulcanus"].map_gen_settings.territory_settings)
@@ -238,7 +133,7 @@ data.raw["noise-expression"]["demolisher_starting_area"].expression = "if(eon_vu
 data.raw["noise-expression"]["demolisher_variation_expression"].expression =
 "floor(clamp(distance / (50 * 32) - 0.25, 0, 4)) + (-99 * no_enemies_mode)"
 
-data.raw["planet"]["nauvis"].map_gen_settings.autoplace_controls["gleba_enemy_base"] = {}
+eon_autoplace_policy.set_planet_autoplace_control("nauvis", "gleba_enemy_base")
 
 local gleba_enemy_frequency = "var('control:gleba_enemy_base:frequency')"
 local gleba_enemy_size = "sqrt(var('control:gleba_enemy_base:size'))"

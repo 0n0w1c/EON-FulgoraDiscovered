@@ -1,12 +1,10 @@
 local resource_autoplace = require("resource-autoplace")
 local base_sounds = require("__base__.prototypes.entity.sounds")
 local simulations = require("__space-age__.prototypes.factoriopedia-simulations")
+local eon_mode = require("lib.eon-mode")
 
-
-local eon_unrestricted_fulgora_aquilo_resources = settings.startup["eon-fd-aquilo-on-fulgora"]
-    and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
-    and not (settings.startup["eon-fd-guarded-resources"]
-        and settings.startup["eon-fd-guarded-resources"].value == true)
+local eon_unrestricted_fulgora_aquilo_resources = eon_mode.aquilo_on_fulgora
+    and not eon_mode.guarded_resources
 
 local eon_calcite_autoplace_density = eon_unrestricted_fulgora_aquilo_resources and 1.4 or 0.8
 local eon_calcite_autoplace_spots = eon_unrestricted_fulgora_aquilo_resources and 2.4 or 1.5

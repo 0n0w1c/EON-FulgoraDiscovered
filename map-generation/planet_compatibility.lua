@@ -1,39 +1,13 @@
 local compat = {}
+local registry = require("lib.eon-planet-compatibility-registry")
 
 local ORIGINALS = EON_ORIGINAL_AUTOPLACE or {}
 EON_ORIGINAL_AUTOPLACE = ORIGINALS
 ORIGINALS.__planet_property_expression_names = ORIGINALS.__planet_property_expression_names or {}
 
-local prototype_types = {
-    "tile",
-    "optimized-decorative",
-    "resource",
-    "simple-entity",
-    "tree",
-    "cliff",
-    "unit-spawner",
-    "turret",
-    "lightning-attractor",
-}
-
-local category_prototype_types = {
-    tile = { "tile" },
-    decorative = { "optimized-decorative" },
-    entity = {
-        "resource",
-        "simple-entity",
-        "tree",
-        "cliff",
-        "unit-spawner",
-        "turret",
-        "lightning-attractor",
-    },
-}
-
-local controlled_planets = {
-    nauvis = true,
-    fulgora = true,
-}
+local prototype_types = registry.prototype_types
+local category_prototype_types = registry.category_prototype_types
+local controlled_planets = registry.controlled_planets
 
 ---@param value string
 ---@return string
@@ -52,9 +26,7 @@ end
 ---@param category string
 ---@return string
 local function property_prefix(category)
-    if category == "tile" then return "tile" end
-    if category == "decorative" then return "decorative" end
-    return "entity"
+    return registry.property_prefix_by_category[category] or "entity"
 end
 
 ---@param category string

@@ -1,90 +1,46 @@
 local technologies = data.raw["technology"]
+local eon_technology_registry = require("lib.eon-technology-registry")
 
-data:extend({
-    {
-        type = "technology",
-        name = "solar-system-edge-discovery",
-        icon = "__space-age__/graphics/icons/solar-system-edge.png",
-        icon_size = 64,
-        essential = true,
-        effects =
-        {
-            {
-                type = "unlock-space-location",
-                space_location = "solar-system-edge",
-                use_icon_overlay_constant = true
-            },
-            {
-                type = "unlock-recipe",
-                recipe = "ammoniacal-solution-separation",
-            },
-            {
-                type = "unlock-recipe",
-                recipe = "solid-fuel-from-ammonia"
-            },
-            {
-                type = "unlock-recipe",
-                recipe = "ammonia-rocket-fuel"
-            },
-            {
-                type = "unlock-recipe",
-                recipe = "ice-platform",
-            }
-        },
-        prerequisites = { "electromagnetic-science-pack", "metallurgic-science-pack", "advanced-asteroid-processing" },
-        unit =
-        {
-            count = 2000,
-            ingredients =
-            {
-                { "automation-science-pack",      1 },
-                { "logistic-science-pack",        1 },
-                { "chemical-science-pack",        1 },
-                { "production-science-pack",      1 },
-                { "utility-science-pack",         1 },
-                { "space-science-pack",           1 },
-                { "metallurgic-science-pack",     1 },
-                { "agricultural-science-pack",    1 },
-                { "electromagnetic-science-pack", 1 }
-            },
-            time = 60
-        }
-    },
-})
+---@param value any
+---@return any
+local function eon_deepcopy(value)
+    if type(value) ~= "table" then return value end
 
-table.insert(technologies["promethium-science-pack"].prerequisites, "solar-system-edge-discovery")
+    local copy = {}
+    for key, child in pairs(value) do
+        copy[eon_deepcopy(key)] = eon_deepcopy(child)
+    end
+    return copy
+end
 
-technologies["lithium-processing"].prerequisites = {
-    "rocket-turret",
-    "advanced-asteroid-processing",
-    "heating-tower",
-    "asteroid-reprocessing"
-}
+data:extend({ eon_deepcopy(eon_technology_registry.solar_system_edge_discovery) })
 
-technologies["agriculture"].prerequisites = { "landfill", "steel-processing" }
-technologies["heating-tower"].prerequisites = { "concrete" }
+for technology_name, prerequisites in pairs(eon_technology_registry.prerequisites_to_append) do
+    local technology = technologies[technology_name]
+    if technology then
+        technology.prerequisites = technology.prerequisites or {}
+        for _, prerequisite in ipairs(prerequisites) do
+            table.insert(technology.prerequisites, prerequisite)
+        end
+    end
+end
 
-technologies["calcite-processing"].prerequisites = { "production-science-pack" }
-technologies["calcite-processing"].research_trigger = nil
-technologies["calcite-processing"].unit = {
-    count = 100,
-    ingredients = {
-        { "automation-science-pack", 1 },
-        { "logistic-science-pack",   1 },
-        { "chemical-science-pack",   1 },
-        { "production-science-pack", 1 }
-    },
-    time = 30
-}
-technologies["tungsten-carbide"].prerequisites = { "production-science-pack" }
-technologies["tungsten-carbide"].research_trigger = nil
-technologies["tungsten-carbide"].unit = {
-    count = 200,
-    ingredients = {
-        { "automation-science-pack", 1 },
-        { "logistic-science-pack",   1 },
-        { "chemical-science-pack",   1 },
-        { "production-science-pack", 1 }
-    },
-    time = 60
-}
+for technology_name, prerequisites in pairs(eon_technology_registry.prerequisite_replacements) do
+    local technology = technologies[technology_name]
+    if technology then
+        technology.prerequisites = eon_deepcopy(prerequisites)
+    end
+end
+
+for technology_name, patch in pairs(eon_technology_registry.unit_replacements) do
+    local technology = technologies[technology_name]
+    if technology then
+        technology.prerequisites = eon_deepcopy(patch.prerequisites)
+        if patch.research_trigger == false then
+            technology.research_trigger = nil
+        else
+            technology.research_trigger = eon_deepcopy(patch.research_trigger)
+        end
+        technology.unit = eon_deepcopy(patch.unit)
+    end
+end

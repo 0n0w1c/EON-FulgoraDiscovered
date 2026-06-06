@@ -1,84 +1,29 @@
 local data_util = require("data-util")
+local eon_mode = require("lib.eon-mode")
+local eon_craft_deco_registry = require("lib.eon-craft-deco-registry")
+local eon_autoplace_policy = require("lib.eon-autoplace-policy")
 
-local eon_aquilo_on_fulgora = settings.startup["eon-fd-aquilo-on-fulgora"]
-    and settings.startup["eon-fd-aquilo-on-fulgora"].value == true
+local eon_aquilo_on_fulgora = eon_mode.aquilo_on_fulgora
 
 local eon_vulcanus_off_aquilo_mask = eon_aquilo_on_fulgora
     and "eon_identity"
     or "eon_mask_off_aquilo_territory"
 
----@type table<string, boolean>
-local CRAFT_DECO_TREE_SUBGROUPS = {
-    ["craftable-simple-trees"] = true,
-    ["craftable-alive-trees"] = true,
-    ["craftable-trees"] = true,
-    ["craftable-alien-biomes-trees"] = true,
-}
+local CRAFT_DECO_TREE_SUBGROUPS = eon_craft_deco_registry.trees.subgroups
+local NON_NAUVIS_PLANETS = eon_craft_deco_registry.non_nauvis_planets
+local PALM_TREES = eon_craft_deco_registry.trees.palm.names
+local VOLCANIC_TREES = eon_craft_deco_registry.trees.volcanic.names
+local SNOW_TREES = eon_craft_deco_registry.trees.snow.names
+local SNOW_TILE_RESTRICTIONS = eon_craft_deco_registry.trees.snow.tile_restrictions
+local PALM_TILE_RESTRICTIONS = eon_craft_deco_registry.trees.palm.tile_restrictions
+local VOLCANIC_TILE_RESTRICTIONS = eon_craft_deco_registry.trees.volcanic.tile_restrictions
+local ALIEN_BIOMES_TREE_EXPRESSIONS_BY_FAMILY = eon_craft_deco_registry.trees.alien_biomes_expression_families
 
----@type table<string, boolean>
-local NON_NAUVIS_PLANETS = {
-    fulgora = true,
-    gleba = true,
-    vulcanus = true,
-    aquilo = true,
-}
-
----@type table<string, boolean>
-local PALM_TREES = {
-    ["tree-palm-a"] = true,
-    ["tree-palm-b"] = true,
-}
-
----@type table<string, boolean>
-local VOLCANIC_TREES = {
-    ["tree-volcanic-a"] = true,
-}
-
-
-if not (data.raw["noise-expression"] and data.raw["noise-expression"]["eon_vulcanus_ashland_tree_density"]) then
-    data:extend({
-        {
-            type = "noise-expression",
-            name = "eon_vulcanus_ashland_tree_density",
-            expression = "max(tree_06, tree_08_red, tree_09_red)",
-        },
-    })
-end
-
----@type table<string, boolean>
-local SNOW_TREES = {
-    ["tree-snow-a"] = true,
-}
-
----@type string[]
-local SNOW_TILE_RESTRICTIONS = {
-    "snow-flat",
-    "snow-crests",
-    "snow-lumpy",
-    "snow-patchy",
-}
-
----@type string[]
-local PALM_TILE_RESTRICTIONS = {
-    "sand-1",
-    "sand-2",
-    "sand-3",
-    "red-desert-0",
-    "red-desert-1",
-    "red-desert-2",
-    "red-desert-3",
-}
-
----@type table<string, string[]>
-local ALIEN_BIOMES_TREE_EXPRESSIONS_BY_FAMILY = {
-    wetland = { "tree_01", "tree_04", "tree_05", "tree_07" },
-    grassland = { "tree_02", "tree_03", "tree_04", "tree_05", "tree_07" },
-    dryland = { "tree_06", "tree_06_brown", "tree_08", "tree_08_brown", "tree_09", "tree_09_brown" },
-    desert = { "tree_06", "tree_06_brown", "tree_08_red", "tree_09_red" },
-    snow = { "tree_02" },
-    volcanic = { "tree_06", "tree_08_red", "tree_09_red" },
-    palm = { "tree_04", "tree_05" },
-}
+local volcanic_density_expression = eon_craft_deco_registry.trees.volcanic.density_expression
+eon_autoplace_policy.ensure_noise_expression(
+    volcanic_density_expression.name,
+    volcanic_density_expression.expression
+)
 
 ---@param prototype table
 ---@return boolean
@@ -207,34 +152,19 @@ end
 
 ---@param name string
 local function register_scatter_expression(name)
-    local expression_name = scatter_expression_name(name)
-    local noise_expressions = data.raw["noise-expression"]
-    if not noise_expressions or noise_expressions[expression_name] then return end
-
-    data:extend({
-        {
-            type = "noise-expression",
-            name = expression_name,
-            expression = "multioctave_noise{x = x, y = y, persistence = 0.55, seed0 = map_seed, seed1 = '" ..
-                name .. "', octaves = 2, input_scale = 1/18 * control:trees:frequency, output_scale = 0.7} - 0.58",
-        },
-    })
+    eon_autoplace_policy.ensure_noise_expression(
+        scatter_expression_name(name),
+        "multioctave_noise{x = x, y = y, persistence = 0.55, seed0 = map_seed, seed1 = '" ..
+        name .. "', octaves = 2, input_scale = 1/18 * control:trees:frequency, output_scale = 0.7} - 0.58"
+    )
 end
 
 ---@return nil
 local function register_palm_expression()
-    local expression_name = palm_expression_name()
-    local noise_expressions = data.raw["noise-expression"]
-    if not noise_expressions or noise_expressions[expression_name] then return end
-
-    data:extend({
-        {
-            type = "noise-expression",
-            name = expression_name,
-            expression =
-            "clamp((2.5 - elevation) / 2.5, 0, 1) * max(0, multioctave_noise{x = x, y = y, persistence = 0.58, seed0 = map_seed, seed1 = 8675309, octaves = 2, input_scale = 1/96 * control:trees:frequency, output_scale = 1} - 0.48) * 0.014",
-        },
-    })
+    eon_autoplace_policy.ensure_noise_expression(
+        palm_expression_name(),
+        "clamp((2.5 - elevation) / 2.5, 0, 1) * max(0, multioctave_noise{x = x, y = y, persistence = 0.58, seed0 = map_seed, seed1 = 8675309, octaves = 2, input_scale = 1/96 * control:trees:frequency, output_scale = 1} - 0.48) * 0.014"
+    )
 end
 
 ---@param name string
@@ -242,13 +172,12 @@ end
 local function apply_palm_autoplace(name, tree)
     register_palm_expression()
 
-    tree.autoplace = {
+    tree.autoplace = eon_autoplace_policy.autoplace_config({
         control = "trees",
         order = "z[tree]-c[craft-deco-2]-palm-" .. name,
         probability_expression = "eon_mask_nauvis_territory(" .. palm_expression_name() .. ")",
         richness_expression = "clamp(random_penalty_at(24, 1), 0, 1)",
-        tile_restriction = PALM_TILE_RESTRICTIONS,
-    }
+    }, PALM_TILE_RESTRICTIONS)
 end
 
 ---@param name string
@@ -259,44 +188,25 @@ local function apply_standard_tree_autoplace(name, tree)
 
     register_scatter_expression(name)
 
-    tree.autoplace = {
+    tree.autoplace = eon_autoplace_policy.autoplace_config({
         control = "trees",
         order = "z[tree]-c[craft-deco-2]-" .. name,
         probability_expression = "eon_mask_nauvis_territory(min(" ..
-        expression .. ", " .. scatter_expression_name(name) .. "))",
+            expression .. ", " .. scatter_expression_name(name) .. "))",
         richness_expression = "clamp(random_penalty_at(6, 1), 0, 1)",
-    }
+    })
 end
 
 ---@param name string
 ---@param tree table
 local function apply_volcanic_autoplace(name, tree)
-    tree.autoplace = {
+    tree.autoplace = eon_autoplace_policy.autoplace_config({
         control = "trees",
         order = "z[tree]-c[craft-deco-2]-volcanic-" .. name,
         probability_expression = eon_vulcanus_off_aquilo_mask ..
-        "(eon_mask_vulcano_terrain(eon_vulcanus_tree_on_nauvis))",
+            "(eon_mask_vulcano_terrain(eon_vulcanus_tree_on_nauvis))",
         richness_expression = "clamp(random_penalty_at(18, 1), 0, 1)",
-        tile_restriction = {
-            "volcanic-ash-cracks",
-            "volcanic-ash-dark",
-            "volcanic-ash-flats",
-            "volcanic-ash-light",
-            "volcanic-ash-soil",
-            "volcanic-cracks",
-            "volcanic-cracks-hot",
-            "volcanic-cracks-warm",
-            "volcanic-folds",
-            "volcanic-folds-flat",
-            "volcanic-folds-warm",
-            "volcanic-jagged-ground",
-            "volcanic-pumice-stones",
-            "volcanic-smooth-stone",
-            "volcanic-smooth-stone-warm",
-            "volcanic-soil-dark",
-            "volcanic-soil-light",
-        },
-    }
+    }, VOLCANIC_TILE_RESTRICTIONS)
 end
 
 ---@return string
@@ -306,18 +216,10 @@ end
 
 ---@return nil
 local function register_snow_expression()
-    local expression_name = snow_expression_name()
-    local noise_expressions = data.raw["noise-expression"]
-    if not noise_expressions or noise_expressions[expression_name] then return end
-
-    data:extend({
-        {
-            type = "noise-expression",
-            name = expression_name,
-            expression =
-            "max(0, eon_aquilo_land) * max(0, multioctave_noise{x = x, y = y, persistence = 0.55, seed0 = map_seed, seed1 = 26012026, octaves = 2, input_scale = 1/64 * control:trees:frequency, output_scale = 1} - 0.45) * 0.01125",
-        },
-    })
+    eon_autoplace_policy.ensure_noise_expression(
+        snow_expression_name(),
+        "max(0, eon_aquilo_land) * max(0, multioctave_noise{x = x, y = y, persistence = 0.55, seed0 = map_seed, seed1 = 26012026, octaves = 2, input_scale = 1/64 * control:trees:frequency, output_scale = 1} - 0.45) * 0.01125"
+    )
 end
 
 ---@param name string
@@ -325,13 +227,12 @@ end
 local function apply_snow_autoplace(name, tree)
     register_snow_expression()
 
-    tree.autoplace = {
+    tree.autoplace = eon_autoplace_policy.autoplace_config({
         control = "trees",
         order = "z[tree]-c[craft-deco-2]-snow-" .. name,
         probability_expression = "eon_mask_aquilo_territory(" .. snow_expression_name() .. ")",
         richness_expression = "clamp(random_penalty_at(14, 1), 0, 1)",
-        tile_restriction = SNOW_TILE_RESTRICTIONS,
-    }
+    }, SNOW_TILE_RESTRICTIONS)
 end
 
 ---@param name string
@@ -357,14 +258,9 @@ local function planet_entity_autoplace_settings(planet_name)
     local map_gen_settings = planet and planet.map_gen_settings
     if not map_gen_settings then return nil end
 
-    map_gen_settings.autoplace_controls = map_gen_settings.autoplace_controls or {}
-    map_gen_settings.autoplace_controls.trees = map_gen_settings.autoplace_controls.trees or {}
+    eon_autoplace_policy.set_map_gen_autoplace_control(map_gen_settings, "trees")
 
-    map_gen_settings.autoplace_settings = map_gen_settings.autoplace_settings or {}
-    map_gen_settings.autoplace_settings.entity = map_gen_settings.autoplace_settings.entity or { settings = {} }
-    map_gen_settings.autoplace_settings.entity.settings = map_gen_settings.autoplace_settings.entity.settings or {}
-
-    return map_gen_settings.autoplace_settings.entity.settings
+    return eon_autoplace_policy.map_gen_autoplace_category_settings(map_gen_settings, "entity")
 end
 
 ---@param tree_names string[]
@@ -379,18 +275,7 @@ end
 
 ---@param tree_names string[]
 local function remove_fulgora_tree_settings(tree_names)
-    local planet = data.raw.planet and data.raw.planet["fulgora"]
-    local settings = planet
-        and planet.map_gen_settings
-        and planet.map_gen_settings.autoplace_settings
-        and planet.map_gen_settings.autoplace_settings.entity
-        and planet.map_gen_settings.autoplace_settings.entity.settings
-
-    if not settings then return end
-
-    for _, tree_name in ipairs(tree_names) do
-        settings[tree_name] = nil
-    end
+    eon_autoplace_policy.remove_planet_autoplace_settings("fulgora", "entity", tree_names)
 end
 
 ---@type string[]

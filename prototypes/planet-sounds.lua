@@ -1,5 +1,7 @@
-local sounds_enabled = settings.startup["eon-fd-planet-sounds"].value
-if not sounds_enabled then return end
+local eon_mode = require("lib.eon-mode")
+if not eon_mode.planet_sounds then return end
+
+local eon_sound_registry = require("lib.eon-sound-registry")
 
 ---@param value any
 ---@return table
@@ -35,21 +37,13 @@ local function merge_persistent_sounds(target_planet_name, source_planet_name)
 
     if not target_pas or not src_pas then return end
 
-    local target_base_ambience = ensure_array(target_pas.base_ambience)
-    local target_wind = ensure_array(target_pas.wind)
-    local target_semi_persistent = ensure_array(target_pas.semi_persistent)
+    for _, field_name in ipairs(eon_sound_registry.persistent_sound_fields) do
+        local target_values = ensure_array(target_pas[field_name])
+        local source_values = ensure_array(src_pas[field_name])
 
-    local source_base_ambience = ensure_array(src_pas.base_ambience)
-    local source_wind = ensure_array(src_pas.wind)
-    local source_semi_persistent = ensure_array(src_pas.semi_persistent)
-
-    append_list(target_base_ambience, source_base_ambience)
-    append_list(target_wind, source_wind)
-    append_list(target_semi_persistent, source_semi_persistent)
-
-    target_pas.base_ambience = target_base_ambience
-    target_pas.wind = target_wind
-    target_pas.semi_persistent = target_semi_persistent
+        append_list(target_values, source_values)
+        target_pas[field_name] = target_values
+    end
 end
 
 ---@param source_planet_name string
@@ -60,13 +54,11 @@ local function clone_planet_music(source_planet_name, target_planet_name)
     local ambient_sounds = data.raw["ambient-sound"] or {}
 
     for _, sound in pairs(ambient_sounds) do
-        if sound.planet == source_planet_name then
-            if sound.track_type ~= "hero-track" then
-                local copy = table.deepcopy(sound)
-                copy.name = sound.name .. "-on-" .. target_planet_name
-                copy.planet = target_planet_name
-                clones[#clones + 1] = copy
-            end
+        if sound.planet == source_planet_name and not eon_sound_registry.excluded_track_types[sound.track_type] then
+            local copy = table.deepcopy(sound)
+            copy.name = sound.name .. "-on-" .. target_planet_name
+            copy.planet = target_planet_name
+            clones[#clones + 1] = copy
         end
     end
 
@@ -75,10 +67,10 @@ local function clone_planet_music(source_planet_name, target_planet_name)
     end
 end
 
-clone_planet_music("gleba", "nauvis")
-clone_planet_music("vulcanus", "nauvis")
-clone_planet_music("aquilo", "fulgora")
+for _, clone in ipairs(eon_sound_registry.music_clones) do
+    clone_planet_music(clone.source, clone.target)
+end
 
-merge_persistent_sounds("nauvis", "gleba")
-merge_persistent_sounds("nauvis", "vulcanus")
-merge_persistent_sounds("fulgora", "aquilo")
+for _, merge in ipairs(eon_sound_registry.persistent_sound_merges) do
+    merge_persistent_sounds(merge.target, merge.source)
+end

@@ -1,0 +1,107 @@
+local eon_autoplace_masks = require("lib.eon-autoplace-masks")
+local eon_nauvis_registry = require("lib.eon-nauvis-registry")
+
+local eon_nauvis_terrain_setup = {}
+
+---@param config table
+---@return nil
+function eon_nauvis_terrain_setup.apply(config)
+    data:extend({
+        {
+            type = "noise-expression",
+            name = "eon_starting_radius",
+            expression = "0.7 * 0.75"
+        },
+    })
+
+    data.raw.tile["water"].autoplace.probability_expression = "eon_updated_water + if(eon_gleba_region(-10), -inf, 0)"
+    data.raw.tile["deepwater"].autoplace.probability_expression =
+    "eon_updated_deepwater + if(eon_gleba_region(-100), -inf, 0)"
+
+    data.raw["noise-expression"]["trees_forest_path_cutout_faded"].expression =
+    "eon_mask_nauvis_territory(trees_forest_path_cutout * 0.3 + tree_small_noise * 0.1)"
+
+    eon_autoplace_masks.apply_group(
+        eon_nauvis_registry.native_mask_policy,
+        eon_nauvis_registry.native_autoplace_manifest()
+    )
+
+    data.raw["noise-expression"]["cliffiness_nauvis"].expression = config.nauvis_cliffiness_expression
+
+    data:extend({
+        {
+            type = "noise-expression",
+            name = "eon_updated_water",
+            expression = "eon_mask_nauvis_territory(eon_water_base(0, 100) + eon_gleba_region(-100))"
+        },
+        {
+            type = "noise-expression",
+            name = "eon_updated_deepwater",
+            expression = "eon_mask_nauvis_territory(eon_water_base(-2, 200))"
+        },
+        {
+            type = "noise-expression",
+            name = "eon_gleba_continuous_cliffiness",
+            expression = config.gleba_continuous_cliffiness_expression
+        },
+        {
+            type = "noise-expression",
+            name = "eon_vulcanus_cliffiness",
+            expression = config.vulcanus_cliffiness_expression
+        },
+        {
+            type = "noise-expression",
+            name = "eon_blended_cliffiness",
+            expression = config.blended_cliffiness_expression
+        },
+        {
+            type = "noise-expression",
+            name = "eon_blended_cliff_elevation",
+            expression = config.blended_cliff_elevation_expression
+        },
+        {
+            type = "noise-expression",
+            name = "eon_resource_territory",
+            expression = "eon_aquilo_base(eon_aquilo_ammonia_depth + 2, 200)"
+        },
+        {
+            type = "noise-function",
+            name = "eon_identity",
+            parameters = { "expression" },
+            expression = "expression"
+        },
+        {
+            type = "noise-function",
+            name = "eon_mask_nauvis_territory",
+            parameters = { "expression" },
+            expression = config.nauvis_territory_expression
+        },
+        {
+            type = "noise-function",
+            name = "eon_mask_off_nauvis_territory",
+            parameters = { "expression" },
+            expression = "if(eon_mask_nauvis_territory(expression) < 0, expression, -inf)"
+        },
+        {
+            type = "noise-function",
+            name = "eon_mask_resource_territory",
+            parameters = { "expression" },
+            expression =
+            "if(eon_resource_territory <= 0, if(eon_aquilo_mask, if(eon_aquilo_resource_placeable_land, expression, -inf), expression), -inf)"
+        },
+        {
+            type = "noise-function",
+            name = "eon_mask_fulgora_aquilo_territory",
+            parameters = { "expression" },
+            expression = "if(y < eon_fulgora_aquilo_boundary, expression, -inf)"
+        },
+        {
+            type = "noise-function",
+            name = "eon_mask_off_fulgora_aquilo_territory",
+            parameters = { "expression" },
+            expression = "if(eon_fulgora_aquilo_territory_mask, -inf, expression)"
+        },
+    })
+end
+
+return eon_nauvis_terrain_setup
