@@ -3,6 +3,20 @@ if not eon_mode.planet_sounds then return end
 
 local eon_sound_registry = require("lib.eon-sound-registry")
 
+local RAIN_SOUND_FILENAME = "__space-age__/sound/world/weather/rain.ogg"
+
+---@param value any
+---@param filename string
+---@return boolean
+local function contains_filename(value, filename)
+    if type(value) ~= "table" then return false end
+    if value.filename == filename then return true end
+    for _, child in pairs(value) do
+        if contains_filename(child, filename) then return true end
+    end
+    return false
+end
+
 ---@param value any
 ---@return table
 local function ensure_array(value)
@@ -40,6 +54,16 @@ local function merge_persistent_sounds(target_planet_name, source_planet_name)
     for _, field_name in ipairs(eon_sound_registry.persistent_sound_fields) do
         local target_values = ensure_array(target_pas[field_name])
         local source_values = ensure_array(src_pas[field_name])
+
+        if eon_mode.biome_weather and source_planet_name == "gleba" and target_planet_name == "nauvis" then
+            local filtered = {}
+            for _, value in ipairs(source_values) do
+                if not contains_filename(value, RAIN_SOUND_FILENAME) then
+                    filtered[#filtered + 1] = value
+                end
+            end
+            source_values = filtered
+        end
 
         append_list(target_values, source_values)
         target_pas[field_name] = target_values

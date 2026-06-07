@@ -36,10 +36,17 @@ data:extend({
     },
     {
         type = "bool-setting",
+        name = "eon-fd-biome-weather",
+        setting_type = "startup",
+        default_value = false,
+        order = "f",
+    },
+    {
+        type = "bool-setting",
         name = "eon-fd-hide-craft-deco-2-technology",
         setting_type = "startup",
         default_value = false,
         hidden = not mods["craft-deco-2"],
-        order = "f"
+        order = "z"
     },
 })

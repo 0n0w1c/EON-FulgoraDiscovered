@@ -1,6 +1,8 @@
 require("prototypes.remove-planets")
 require("prototypes.surface-conditions")
 require("prototypes.planet-sounds")
+require("prototypes.eon-gleba-rain")
+require("prototypes.eon-aquilo-snow")
 
 require("prototypes.patches")
 

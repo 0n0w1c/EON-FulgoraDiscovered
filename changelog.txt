@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.12.3
+Date: 07.06.2026
+  Bugfixes:
+    - None
+  Changes:
+    - Added startup setting to Enable native biome weather (default: disabled) - adds runtime
+---------------------------------------------------------------------------------------------------
 Version: 0.12.2
 Date: 07.06.2026
   Bugfixes:

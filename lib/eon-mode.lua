@@ -13,6 +13,7 @@ mode.use_tungsten_plate = startup_bool("eon-fd-use-tungsten-plate")
 mode.guarded_resources = startup_bool("eon-fd-guarded-resources")
 mode.aquilo_on_fulgora = startup_bool("eon-fd-aquilo-on-fulgora")
 mode.hide_craft_deco_2_technology = startup_bool("eon-fd-hide-craft-deco-2-technology")
+mode.biome_weather = startup_bool("eon-fd-biome-weather")
 
 mode.aquilo_surface = mode.aquilo_on_fulgora and "fulgora" or "nauvis"
 mode.vulcanus_mode = mode.aquilo_on_fulgora and "northern_region" or "volcano_spots"
