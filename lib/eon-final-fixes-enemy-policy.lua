@@ -70,6 +70,95 @@ local function eon_normalize_autoplaced_enemy_candidates()
     end
 end
 
+
+---Retunes vanilla Gleba pentapod spawn curves for Nauvis evolution pacing.
+---In Space Age, Gleba reaches big pentapods much earlier than Nauvis reaches
+---behemoth biters. This mod moves Gleba enemies onto Nauvis, so keep the
+---pentapod families but delay medium/big variants to better match Nauvis
+---military progression.
+---@return nil
+local function eon_slow_nauvis_pentapod_evolution()
+    local spawners = data.raw["unit-spawner"]
+    if not spawners then return end
+
+    local gleba_spawner = spawners["gleba-spawner"]
+    if gleba_spawner then
+        gleba_spawner.result_units = {
+            -- Small pentapods: early threat, fade out around big-biter timing.
+            { "small-wriggler-pentapod", {
+                { 0.00, 0.40 },
+                { 0.30, 0.40 },
+                { 0.75, 0.00 },
+            } },
+            { "small-strafer-pentapod", {
+                { 0.00, 0.40 },
+                { 0.30, 0.40 },
+                { 0.75, 0.00 },
+            } },
+            { "small-stomper-pentapod", {
+                { 0.10, 0.00 },
+                { 0.35, 0.20 },
+                { 0.75, 0.00 },
+            } },
+
+            -- Medium pentapods: main midgame Gleba threat on Nauvis.
+            { "medium-wriggler-pentapod", {
+                { 0.35, 0.00 },
+                { 0.70, 0.40 },
+                { 1.00, 0.10 },
+            } },
+            { "medium-strafer-pentapod", {
+                { 0.40, 0.00 },
+                { 0.75, 0.40 },
+                { 1.00, 0.10 },
+            } },
+            { "medium-stomper-pentapod", {
+                { 0.50, 0.00 },
+                { 0.80, 0.20 },
+                { 1.00, 0.08 },
+            } },
+
+            -- Big pentapods: delayed to behemoth-era evolution.
+            { "big-wriggler-pentapod", {
+                { 0.85, 0.00 },
+                { 0.95, 0.35 },
+                { 1.00, 0.35 },
+            } },
+            { "big-strafer-pentapod", {
+                { 0.88, 0.00 },
+                { 0.97, 0.35 },
+                { 1.00, 0.35 },
+            } },
+            { "big-stomper-pentapod", {
+                { 0.92, 0.00 },
+                { 0.98, 0.12 },
+                { 1.00, 0.15 },
+            } },
+        }
+    end
+
+    local gleba_spawner_small = spawners["gleba-spawner-small"]
+    if gleba_spawner_small then
+        gleba_spawner_small.result_units = {
+            { "small-wriggler-pentapod", {
+                { 0.00, 0.90 },
+                { 0.40, 0.90 },
+                { 0.80, 0.00 },
+            } },
+            { "medium-wriggler-pentapod", {
+                { 0.40, 0.00 },
+                { 0.75, 0.70 },
+                { 1.00, 0.15 },
+            } },
+            { "big-wriggler-pentapod", {
+                { 0.88, 0.00 },
+                { 0.98, 0.60 },
+                { 1.00, 0.80 },
+            } },
+        }
+    end
+end
+
 ---@return nil
 local function eon_make_deep_oil_ocean_collide_with_players()
     local tile = data.raw["tile"] and data.raw["tile"]["oil-ocean-deep"]
@@ -140,6 +229,7 @@ end
 ---@return nil
 function eon_final_fixes_enemy_policy.apply()
     eon_normalize_autoplaced_enemy_candidates()
+    eon_slow_nauvis_pentapod_evolution()
     eon_make_deep_oil_ocean_collide_with_players()
     eon_prevent_cold_biter_bases_on_fulgora_oil_ocean()
     eon_prevent_fulgoran_enemy_bases_on_fulgora_oil_ocean()
