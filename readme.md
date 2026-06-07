@@ -24,6 +24,8 @@ How much this matters depends on how the engineer chooses to play.
 Alternatively, enable the startup setting *Create the Aquilo biome on Fulgora*.  
 (Enables the freezing mechanic on Fulgora and creates a full Vulcanus biome on Nauvis)  
 
+Existing saves should be loaded with the same *Create the Aquilo biome on Fulgora* startup setting they were created with. Changing that setting for an existing save changes which surface owns the Aquilo biome and can alter map generation for newly generated chunks.  
+
 ---
 
 Per the Factorio Wiki: `The rest` can be accessed by holding `CTRL + ALT` when clicking the `Settings` button in the pause menu (Esc).  

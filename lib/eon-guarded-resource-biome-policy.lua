@@ -1,4 +1,10 @@
 local eon_autoplace_policy = require("lib.eon-autoplace-policy")
+local biomes = require("lib.eon-biome-registry")
+
+local gleba_masks = biomes.get("gleba").masks
+local nauvis_masks = biomes.get("nauvis").masks
+local vulcanus_masks = biomes.get("vulcanus").masks
+local aquilo_masks = biomes.get("aquilo").masks
 local eon_resource_registry = require("lib.eon-resource-registry")
 
 ---@class EonGuardedResourceBiomeAlignConfig
@@ -9,7 +15,7 @@ local guarded_resource_biome_policy = {}
 ---@param expression string
 ---@return string
 local function mask_off_ammonia_ocean(expression)
-    return "eon_mask_off_ammonia_ocean(" .. expression .. ")"
+    return aquilo_masks.off_ammonia_ocean .. "(" .. expression .. ")"
 end
 
 ---@param planet_name string
@@ -107,14 +113,14 @@ local function apply_guarded_resource_biome_mask(resource_name, resource, aquilo
     if nauvis_settings[resource_name]
         and not eon_resource_registry.eon_added_vulcanus_resources[resource_name]
     then
-        add_masked_expression(masked, default_expression, "eon_mask_nauvis_territory")
+        add_masked_expression(masked, default_expression, nauvis_masks.territory)
     end
 
     if gleba_settings[resource_name] then
         add_masked_expression(
             masked,
             guarded_resource_expression_for_planet(resource_name, "gleba", default_expression),
-            "eon_mask_gleba_territory"
+            gleba_masks.territory
         )
     end
 
@@ -122,7 +128,7 @@ local function apply_guarded_resource_biome_mask(resource_name, resource, aquilo
         add_masked_expression(
             masked,
             guarded_resource_expression_for_planet(resource_name, "vulcanus", default_expression),
-            "eon_mask_vulcano_terrain"
+            vulcanus_masks.terrain
         )
     end
 
@@ -146,8 +152,8 @@ local function apply_guarded_resource_biome_mask(resource_name, resource, aquilo
 
         if default_richness and gleba_richness then
             local richness_expression = combine_masked_expressions({
-                mask_expression(default_richness, "eon_mask_nauvis_territory"),
-                mask_expression(gleba_richness, "eon_mask_gleba_territory")
+                mask_expression(default_richness, nauvis_masks.territory),
+                mask_expression(gleba_richness, gleba_masks.territory)
             })
 
             if richness_expression then
@@ -156,7 +162,7 @@ local function apply_guarded_resource_biome_mask(resource_name, resource, aquilo
                 resource.autoplace.richness_expression = "eon_guarded_stone_richness"
             end
         elseif gleba_richness then
-            local richness_expression = mask_expression(gleba_richness, "eon_mask_gleba_territory")
+            local richness_expression = mask_expression(gleba_richness, gleba_masks.territory)
 
             set_or_extend_noise_expression("eon_guarded_stone_richness", richness_expression)
             set_nauvis_entity_property_expression("stone", "richness", "eon_guarded_stone_richness")
@@ -179,8 +185,8 @@ local function apply_guarded_resource_biome_mask(resource_name, resource, aquilo
 
         if default_richness and vulcanus_richness then
             local richness_expression = combine_masked_expressions({
-                mask_expression(default_richness, "eon_mask_nauvis_territory"),
-                mask_expression(vulcanus_richness, "eon_mask_vulcano_terrain")
+                mask_expression(default_richness, nauvis_masks.territory),
+                mask_expression(vulcanus_richness, vulcanus_masks.terrain)
             })
 
             if richness_expression then
@@ -189,7 +195,7 @@ local function apply_guarded_resource_biome_mask(resource_name, resource, aquilo
                 resource.autoplace.richness_expression = "eon_guarded_coal_richness"
             end
         elseif vulcanus_richness then
-            local richness_expression = mask_expression(vulcanus_richness, "eon_mask_vulcano_terrain")
+            local richness_expression = mask_expression(vulcanus_richness, vulcanus_masks.terrain)
 
             set_or_extend_noise_expression("eon_guarded_coal_richness", richness_expression)
             set_nauvis_entity_property_expression("coal", "richness", "eon_guarded_coal_richness")
@@ -207,8 +213,8 @@ function guarded_resource_biome_policy.align(config)
         end
     end
 
-    apply_simple_entity_biome_mask("iron-stromatolite", "eon_mask_gleba_territory")
-    apply_simple_entity_biome_mask("copper-stromatolite", "eon_mask_gleba_territory")
+    apply_simple_entity_biome_mask("iron-stromatolite", gleba_masks.territory)
+    apply_simple_entity_biome_mask("copper-stromatolite", gleba_masks.territory)
 end
 
 return guarded_resource_biome_policy

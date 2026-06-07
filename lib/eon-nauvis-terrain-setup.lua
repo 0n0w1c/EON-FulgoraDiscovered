@@ -1,11 +1,20 @@
 local eon_autoplace_masks = require("lib.eon-autoplace-masks")
 local eon_nauvis_registry = require("lib.eon-nauvis-registry")
+local biomes = require("lib.eon-biome-registry")
+
+local nauvis_masks = biomes.get("nauvis").masks
+local fulgora_masks = biomes.get("fulgora").masks
+local aquilo_masks = biomes.get("aquilo").masks
 
 local eon_nauvis_terrain_setup = {}
 
 ---@param config table
 ---@return nil
 function eon_nauvis_terrain_setup.apply(config)
+    -- Legacy Fulgora/Aquilo mask names are save-compatibility aliases. Do not remove them.
+    local fulgora_territory_expression = "if(eon_fulgora_aquilo_territory_mask, -inf, expression)"
+    local aquilo_on_fulgora_territory_expression = "if(y < eon_fulgora_aquilo_boundary, expression, -inf)"
+
     data:extend({
         {
             type = "noise-expression",
@@ -19,7 +28,7 @@ function eon_nauvis_terrain_setup.apply(config)
     "eon_updated_deepwater + if(eon_gleba_region(-100), -inf, 0)"
 
     data.raw["noise-expression"]["trees_forest_path_cutout_faded"].expression =
-    "eon_mask_nauvis_territory(trees_forest_path_cutout * 0.3 + tree_small_noise * 0.1)"
+    nauvis_masks.territory .. "(trees_forest_path_cutout * 0.3 + tree_small_noise * 0.1)"
 
     eon_autoplace_masks.apply_group(
         eon_nauvis_registry.native_mask_policy,
@@ -32,12 +41,12 @@ function eon_nauvis_terrain_setup.apply(config)
         {
             type = "noise-expression",
             name = "eon_updated_water",
-            expression = "eon_mask_nauvis_territory(eon_water_base(0, 100) + eon_gleba_region(-100))"
+            expression = nauvis_masks.territory .. "(eon_water_base(0, 100) + eon_gleba_region(-100))"
         },
         {
             type = "noise-expression",
             name = "eon_updated_deepwater",
-            expression = "eon_mask_nauvis_territory(eon_water_base(-2, 200))"
+            expression = nauvis_masks.territory .. "(eon_water_base(-2, 200))"
         },
         {
             type = "noise-expression",
@@ -72,34 +81,58 @@ function eon_nauvis_terrain_setup.apply(config)
         },
         {
             type = "noise-function",
-            name = "eon_mask_nauvis_territory",
+            name = nauvis_masks.territory,
             parameters = { "expression" },
             expression = config.nauvis_territory_expression
         },
         {
             type = "noise-function",
-            name = "eon_mask_off_nauvis_territory",
+            name = nauvis_masks.off_territory,
             parameters = { "expression" },
-            expression = "if(eon_mask_nauvis_territory(expression) < 0, expression, -inf)"
+            expression = "if(" .. nauvis_masks.territory .. "(expression) < 0, expression, -inf)"
         },
         {
             type = "noise-function",
-            name = "eon_mask_resource_territory",
+            name = nauvis_masks.resource_territory,
             parameters = { "expression" },
             expression =
             "if(eon_resource_territory <= 0, if(eon_aquilo_mask, if(eon_aquilo_resource_placeable_land, expression, -inf), expression), -inf)"
         },
         {
             type = "noise-function",
-            name = "eon_mask_fulgora_aquilo_territory",
+            name = fulgora_masks.territory,
             parameters = { "expression" },
-            expression = "if(y < eon_fulgora_aquilo_boundary, expression, -inf)"
+            expression = fulgora_territory_expression
         },
         {
             type = "noise-function",
-            name = "eon_mask_off_fulgora_aquilo_territory",
+            name = fulgora_masks.off_territory,
             parameters = { "expression" },
-            expression = "if(eon_fulgora_aquilo_territory_mask, -inf, expression)"
+            expression = aquilo_on_fulgora_territory_expression
+        },
+        {
+            type = "noise-function",
+            name = fulgora_masks.aquilo_territory,
+            parameters = { "expression" },
+            expression = aquilo_on_fulgora_territory_expression
+        },
+        {
+            type = "noise-function",
+            name = fulgora_masks.off_aquilo_territory,
+            parameters = { "expression" },
+            expression = fulgora_territory_expression
+        },
+        {
+            type = "noise-function",
+            name = aquilo_masks.territory_on_fulgora,
+            parameters = { "expression" },
+            expression = aquilo_on_fulgora_territory_expression
+        },
+        {
+            type = "noise-function",
+            name = aquilo_masks.off_territory_on_fulgora,
+            parameters = { "expression" },
+            expression = fulgora_territory_expression
         },
     })
 end

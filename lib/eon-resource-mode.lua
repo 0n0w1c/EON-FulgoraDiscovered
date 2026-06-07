@@ -1,3 +1,4 @@
+local biomes = require("lib.eon-biome-registry")
 ---@class EonResourceModeConfig
 ---@field aquilo_on_fulgora boolean
 ---@field guarded_resources_enabled boolean
@@ -16,6 +17,7 @@ local resource_mode = {}
 ---@param config EonResourceModeConfig
 ---@return EonResourceModeValues
 function resource_mode.values(config)
+    local aquilo_masks = biomes.get("aquilo").masks
     local eon_aquilo_on_fulgora = config.aquilo_on_fulgora == true
     local guarded_resources_enabled = config.guarded_resources_enabled == true
 
@@ -25,13 +27,13 @@ function resource_mode.values(config)
     local mask_vulcanus_resources_off_aquilo = guarded_resources_enabled and not eon_aquilo_on_fulgora
 
     local eon_vulcanus_resource_off_aquilo_mask = mask_vulcanus_resources_off_aquilo
-        and "eon_mask_off_aquilo_territory"
+        and aquilo_masks.off_territory
         or "eon_identity"
 
     local mask_vulcanus_resources_off_ammonia_ocean = guarded_resources_enabled and not eon_aquilo_on_fulgora
 
     local eon_vulcanus_resource_off_ammonia_ocean_mask = mask_vulcanus_resources_off_ammonia_ocean
-        and "eon_mask_off_ammonia_ocean"
+        and aquilo_masks.off_ammonia_ocean
         or "eon_identity"
 
     local eon_vulcanus_resource_richness_expression = mask_vulcanus_resources_off_aquilo

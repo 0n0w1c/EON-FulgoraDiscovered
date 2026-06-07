@@ -1,9 +1,14 @@
 local terrain = require("map-generation.terrain")
 local enemy_registry = require("lib.eon-enemy-registry")
+local biomes = require("lib.eon-biome-registry")
 local eon_mode = require("lib.eon-mode")
 local eon_autoplace_policy = require("lib.eon-autoplace-policy")
 
 local eon_aquilo_on_fulgora = eon_mode.aquilo_on_fulgora
+local aquilo_masks = biomes.get("aquilo").masks
+local gleba_masks = biomes.get("gleba").masks
+local nauvis_masks = biomes.get("nauvis").masks
+local vulcanus_masks = biomes.get("vulcanus").masks
 
 ---@param prototype_type string
 ---@param prototype_name string
@@ -43,10 +48,10 @@ local function eon_apply_masked_enemy_group(entries, mask_name)
     end
 end
 
-eon_apply_masked_enemy_group(enemy_registry.data_stage.vanilla_nauvis, "eon_mask_nauvis_territory")
+eon_apply_masked_enemy_group(enemy_registry.data_stage.vanilla_nauvis, nauvis_masks.territory)
 
 if mods[enemy_registry.data_stage.armoured_nauvis.mod] then
-    eon_apply_masked_enemy_group(enemy_registry.data_stage.armoured_nauvis.entries, "eon_mask_nauvis_territory")
+    eon_apply_masked_enemy_group(enemy_registry.data_stage.armoured_nauvis.entries, nauvis_masks.territory)
 end
 
 if mods[enemy_registry.data_stage.explosive_vulcanus.mod] then
@@ -76,10 +81,10 @@ if mods[enemy_registry.data_stage.explosive_vulcanus.mod] then
             })
 
             if eon_aquilo_on_fulgora then
-                prototype.autoplace.probability_expression = "eon_mask_vulcano_terrain(" .. entry.expression .. ")"
+                prototype.autoplace.probability_expression = vulcanus_masks.terrain .. "(" .. entry.expression .. ")"
             else
                 prototype.autoplace.probability_expression =
-                    "eon_mask_off_aquilo_territory(eon_mask_vulcano_terrain(" .. entry.expression .. "))"
+                    aquilo_masks.off_territory .. "(" .. vulcanus_masks.terrain .. "(" .. entry.expression .. "))"
             end
         end
     end
@@ -96,7 +101,7 @@ if mods[enemy_registry.data_stage.cold_aquilo.mod] then
     eon_autoplace_policy.set_planet_autoplace_control(eon_cold_planet_name,
         enemy_registry.data_stage.cold_aquilo.autoplace_control)
 
-    eon_apply_masked_enemy_group(enemy_registry.data_stage.cold_aquilo.entries, "eon_mask_aquilo_territory")
+    eon_apply_masked_enemy_group(enemy_registry.data_stage.cold_aquilo.entries, aquilo_masks.territory)
 end
 
 if mods[enemy_registry.data_stage.electric_fulgora.mod] then
@@ -104,7 +109,7 @@ if mods[enemy_registry.data_stage.electric_fulgora.mod] then
         local prototype = eon_capture_enemy_autoplace(entry)
         if prototype then
             if eon_aquilo_on_fulgora then
-                prototype.autoplace.probability_expression = "eon_mask_off_aquilo_territory(" .. entry.expression .. ")"
+                prototype.autoplace.probability_expression = aquilo_masks.off_territory .. "(" .. entry.expression .. ")"
             else
                 prototype.autoplace.probability_expression = entry.expression
             end
@@ -160,7 +165,7 @@ end
 ---@return string
 local function gleba_enemy_mask(expr)
     return gleba_enemy_frequency ..
-        " * eon_mask_gleba_territory((" ..
+        " * " .. gleba_masks.territory .. "((" ..
         expr ..
         ") * " .. gleba_enemy_size ..
         " * gleba_above_deep_water_mask)"

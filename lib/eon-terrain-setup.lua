@@ -11,6 +11,7 @@ local eon_aquilo_terrain_setup = require("lib.eon-aquilo-terrain-setup")
 local eon_aquilo_map_gen_setup = require("lib.eon-aquilo-map-gen-setup")
 local eon_aquilo_terrain_mask_setup = require("lib.eon-aquilo-terrain-mask-setup")
 local eon_nauvis_terrain_setup = require("lib.eon-nauvis-terrain-setup")
+local biomes = require("lib.eon-biome-registry")
 
 local eon_terrain_setup = {}
 
@@ -19,7 +20,7 @@ function eon_terrain_setup.apply(terrain)
     local eon_aquilo_planet_name = eon_mode.aquilo_surface
     local eon_guarded_resources_enabled = eon_mode.guarded_resources
 
-    local eon_aquilo_resource_tile_mask = "eon_mask_aquilo_resource_tiles"
+    local eon_aquilo_resource_tile_mask = biomes.get("aquilo").masks.resource_tiles
     local eon_mask_resource_tiles = eon_aquilo_terrain_mask_setup.mask_resource_tiles
 
     local eon_terrain_expression_values = eon_terrain_expressions.values(eon_aquilo_on_fulgora)

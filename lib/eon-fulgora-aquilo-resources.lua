@@ -4,6 +4,7 @@ local eon_fulgora_registry = require("lib.eon-fulgora-registry")
 local eon_noise_expressions = require("lib.eon-noise-expressions")
 local eon_terrain_autoplace = require("lib.eon-terrain-autoplace")
 local eon_terrain_map_gen = require("lib.eon-terrain-map-gen")
+local biomes = require("lib.eon-biome-registry")
 
 local fulgora_aquilo_resources = {}
 
@@ -11,11 +12,13 @@ local eon_aquilo_decorative_names = eon_aquilo_registry.decorative_set
 local eon_aquilo_entity_names = eon_aquilo_registry.entity_set
 local eon_aquilo_tile_names = eon_aquilo_registry.tile_set
 
+local aquilo_masks = biomes.get("aquilo").masks
+
 ---@return nil
 local function mask_fulgora_oil_ocean_off_aquilo_ocean_edge()
     for _, tile_name in pairs(eon_fulgora_registry.oil_ocean_tiles) do
         local tile = data.raw.tile and data.raw.tile[tile_name]
-        eon_terrain_autoplace.wrap_probability_expression(tile, "eon_mask_off_aquilo_ocean_edge")
+        eon_terrain_autoplace.wrap_probability_expression(tile, aquilo_masks.off_ocean_edge_on_fulgora)
     end
 end
 
@@ -62,7 +65,7 @@ local function apply_fulgora_scrap_off_aquilo()
 
             eon_noise_expressions.set_or_extend(
                 probability_expression_name,
-                "eon_mask_off_aquilo_territory(" .. probability_expression .. ")",
+                aquilo_masks.off_territory .. "(" .. probability_expression .. ")",
                 scrap_local_expressions
             )
 
@@ -100,14 +103,14 @@ function fulgora_aquilo_resources.apply(args)
         for tile_name, _ in pairs(fulgora_settings.tile.settings) do
             if not eon_aquilo_tile_names[tile_name] and data.raw.tile[tile_name] then
                 eon_terrain_autoplace.wrap_probability_expression(data.raw.tile[tile_name],
-                    "eon_mask_off_aquilo_territory")
+                    aquilo_masks.off_territory)
             end
         end
 
         for decorative_name, _ in pairs(fulgora_settings.decorative.settings) do
             if not eon_aquilo_decorative_names[decorative_name] then
                 eon_terrain_autoplace.wrap_probability_expression(data.raw["optimized-decorative"][decorative_name],
-                    "eon_mask_off_aquilo_territory")
+                    aquilo_masks.off_territory)
             end
         end
     end
@@ -119,14 +122,14 @@ function fulgora_aquilo_resources.apply(args)
             if not eon_aquilo_entity_names[entity_name] then
                 eon_terrain_autoplace.wrap_probability_expression(
                     eon_terrain_autoplace.entity_prototype(entity_name),
-                    "eon_mask_off_aquilo_territory")
+                    aquilo_masks.off_territory)
             end
         end
 
         for _, entity_name in pairs(eon_fulgora_registry.extra_entities_to_mask_off_aquilo) do
             eon_terrain_autoplace.wrap_probability_expression(
                 eon_terrain_autoplace.entity_prototype(entity_name),
-                "eon_mask_off_aquilo_territory")
+                aquilo_masks.off_territory)
         end
     end
 

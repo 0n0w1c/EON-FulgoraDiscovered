@@ -1,5 +1,6 @@
 local eon_autoplace_masks = require("lib.eon-autoplace-masks")
 local eon_autoplace_policy = require("lib.eon-autoplace-policy")
+local biomes = require("lib.eon-biome-registry")
 local eon_terrain_autoplace = require("lib.eon-terrain-autoplace")
 local eon_volcanus_registry = require("lib.eon-volcanus-registry")
 
@@ -41,13 +42,14 @@ end
 ---@param tree_name string
 ---@param expression string
 ---@param vulcanus_off_aquilo_mask string
+---@param vulcanus_terrain_mask string
 ---@return nil
-local function eon_set_vulcanus_tree_probability(tree_name, expression, vulcanus_off_aquilo_mask)
+local function eon_set_vulcanus_tree_probability(tree_name, expression, vulcanus_off_aquilo_mask, vulcanus_terrain_mask)
     local tree = data.raw.tree and data.raw.tree[tree_name]
     if not (tree and tree.autoplace) then return end
 
     tree.autoplace.probability_expression =
-        vulcanus_off_aquilo_mask .. "(eon_mask_vulcano_terrain(" .. expression .. "))"
+        vulcanus_off_aquilo_mask .. "(" .. vulcanus_terrain_mask .. "(" .. expression .. "))"
 end
 
 ---@param settings EonVulcanusTerrainSetupSettings
@@ -55,6 +57,7 @@ end
 function eon_vulcanus_terrain_setup.apply(settings)
     local aquilo_on_fulgora = settings.aquilo_on_fulgora
     local vulcanus_off_aquilo_mask = settings.vulcanus_off_aquilo_mask
+    local vulcanus_masks = biomes.get("vulcanus").masks
 
     eon_autoplace_policy.set_planet_autoplace_control("nauvis", "vulcanus_volcanism")
 
@@ -78,18 +81,17 @@ function eon_vulcanus_terrain_setup.apply(settings)
 
     if aquilo_on_fulgora then
         local eon_vulcanus_tile_probability_expressions = eon_volcanus_registry
-        .northern_region_tile_probability_expressions
+            .northern_region_tile_probability_expressions
 
         for tile_name, probability_expression in pairs(eon_vulcanus_tile_probability_expressions) do
             if data.raw.tile[tile_name] and data.raw.tile[tile_name].autoplace then
                 data.raw.tile[tile_name].autoplace.probability_expression =
-                    "eon_mask_vulcano_terrain(" .. probability_expression .. ")"
+                    vulcanus_masks.terrain .. "(" .. probability_expression .. ")"
             end
         end
 
         data.raw.cliff["crater-cliff"].autoplace.probability_expression = "eon_crater_cliff"
     else
-
         eon_autoplace_masks.apply_group("mask_vulcano_coverage", eon_volcanus_registry.coverage_mask_autoplace_by_type, {
             ["tile"] = true,
         })
@@ -121,7 +123,7 @@ function eon_vulcanus_terrain_setup.apply(settings)
     end
 
     for tree_name, expression in pairs(eon_volcanus_registry.special_tree_probability_expressions) do
-        eon_set_vulcanus_tree_probability(tree_name, expression, vulcanus_off_aquilo_mask)
+        eon_set_vulcanus_tree_probability(tree_name, expression, vulcanus_off_aquilo_mask, vulcanus_masks.terrain)
     end
 
     for _, decorative_name in ipairs(eon_vulcanus_optimized_decorative_names) do
@@ -136,7 +138,7 @@ function eon_vulcanus_terrain_setup.apply(settings)
     local lava_fire = data.raw["optimized-decorative"] and data.raw["optimized-decorative"]["vulcanus-lava-fire"]
     if lava_fire and lava_fire.autoplace then
         lava_fire.autoplace.probability_expression =
-            vulcanus_off_aquilo_mask .. "(eon_mask_vulcano_terrain(0.04))"
+            vulcanus_off_aquilo_mask .. "(" .. vulcanus_masks.terrain .. "(0.04))"
         eon_autoplace_policy.set_autoplace_tile_restriction(lava_fire, eon_vulcanus_lava_fire_tile_restrictions)
     end
 end

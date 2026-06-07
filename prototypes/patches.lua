@@ -1,7 +1,12 @@
 local eon_mode = require("lib.eon-mode")
 local eon_patch_registry = require("lib.eon-patch-registry")
 local eon_autoplace_policy = require("lib.eon-autoplace-policy")
+local biomes = require("lib.eon-biome-registry")
 local eon_aquilo_on_fulgora = eon_mode.aquilo_on_fulgora
+
+local aquilo_masks = biomes.get("aquilo").masks
+local gleba_masks = biomes.get("gleba").masks
+local vulcanus_masks = biomes.get("vulcanus").masks
 
 local EON_NUKE_EFFECT_ID = eon_patch_registry.nuke.biome_effect_id
 local EON_NUKE_CRATER_EFFECT_ID = eon_patch_registry.nuke.crater_effect_id
@@ -10,7 +15,7 @@ local EON_NUKE_CRATER_EFFECT_ID = eon_patch_registry.nuke.crater_effect_id
 ---@return string
 local function eon_mask_off_aquilo_for_nauvis(expression)
     if eon_aquilo_on_fulgora then return expression end
-    return eon_autoplace_policy.wrap_expression(expression, "eon_mask_off_aquilo_territory")
+    return eon_autoplace_policy.wrap_expression(expression, aquilo_masks.off_territory)
 end
 
 ---@param prototype table|nil
@@ -158,7 +163,7 @@ local fish_expr = eon_autoplace_policy.autoplace_probability_expression(fish)
 if fish_expr then
     local expr = eon_autoplace_policy.wrap_expression(
         fish_expr,
-        "eon_mask_off_vulcano_terrain"
+        vulcanus_masks.off_terrain
     )
     fish.autoplace.probability_expression = eon_mask_off_aquilo_for_nauvis(expr)
 end
@@ -169,9 +174,9 @@ local dead_tree_expr = eon_autoplace_policy.autoplace_probability_expression(dea
 if dead_tree_expr then
     local expr = eon_autoplace_policy.wrap_expression(
         dead_tree_expr,
-        "eon_mask_off_vulcano_terrain"
+        vulcanus_masks.off_terrain
     )
-    expr = eon_autoplace_policy.wrap_expression(expr, "eon_mask_off_gleba_territory")
+    expr = eon_autoplace_policy.wrap_expression(expr, gleba_masks.off_territory)
     dead_tree.autoplace.probability_expression = eon_mask_off_aquilo_for_nauvis(expr)
 end
 

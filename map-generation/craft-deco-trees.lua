@@ -2,12 +2,16 @@ local data_util = require("data-util")
 local eon_mode = require("lib.eon-mode")
 local eon_craft_deco_registry = require("lib.eon-craft-deco-registry")
 local eon_autoplace_policy = require("lib.eon-autoplace-policy")
+local biomes = require("lib.eon-biome-registry")
 
 local eon_aquilo_on_fulgora = eon_mode.aquilo_on_fulgora
+local aquilo_masks = biomes.get("aquilo").masks
+local nauvis_masks = biomes.get("nauvis").masks
+local vulcanus_masks = biomes.get("vulcanus").masks
 
 local eon_vulcanus_off_aquilo_mask = eon_aquilo_on_fulgora
     and "eon_identity"
-    or "eon_mask_off_aquilo_territory"
+    or aquilo_masks.off_territory
 
 local CRAFT_DECO_TREE_SUBGROUPS = eon_craft_deco_registry.trees.subgroups
 local NON_NAUVIS_PLANETS = eon_craft_deco_registry.non_nauvis_planets
@@ -175,7 +179,7 @@ local function apply_palm_autoplace(name, tree)
     tree.autoplace = eon_autoplace_policy.autoplace_config({
         control = "trees",
         order = "z[tree]-c[craft-deco-2]-palm-" .. name,
-        probability_expression = "eon_mask_nauvis_territory(" .. palm_expression_name() .. ")",
+        probability_expression = nauvis_masks.territory .. "(" .. palm_expression_name() .. ")",
         richness_expression = "clamp(random_penalty_at(24, 1), 0, 1)",
     }, PALM_TILE_RESTRICTIONS)
 end
@@ -191,7 +195,7 @@ local function apply_standard_tree_autoplace(name, tree)
     tree.autoplace = eon_autoplace_policy.autoplace_config({
         control = "trees",
         order = "z[tree]-c[craft-deco-2]-" .. name,
-        probability_expression = "eon_mask_nauvis_territory(min(" ..
+        probability_expression = nauvis_masks.territory .. "(min(" ..
             expression .. ", " .. scatter_expression_name(name) .. "))",
         richness_expression = "clamp(random_penalty_at(6, 1), 0, 1)",
     })
@@ -204,7 +208,7 @@ local function apply_volcanic_autoplace(name, tree)
         control = "trees",
         order = "z[tree]-c[craft-deco-2]-volcanic-" .. name,
         probability_expression = eon_vulcanus_off_aquilo_mask ..
-            "(eon_mask_vulcano_terrain(eon_vulcanus_tree_on_nauvis))",
+            "(" .. vulcanus_masks.terrain .. "(eon_vulcanus_tree_on_nauvis))",
         richness_expression = "clamp(random_penalty_at(18, 1), 0, 1)",
     }, VOLCANIC_TILE_RESTRICTIONS)
 end
@@ -230,7 +234,7 @@ local function apply_snow_autoplace(name, tree)
     tree.autoplace = eon_autoplace_policy.autoplace_config({
         control = "trees",
         order = "z[tree]-c[craft-deco-2]-snow-" .. name,
-        probability_expression = "eon_mask_aquilo_territory(" .. snow_expression_name() .. ")",
+        probability_expression = aquilo_masks.territory .. "(" .. snow_expression_name() .. ")",
         richness_expression = "clamp(random_penalty_at(14, 1), 0, 1)",
     }, SNOW_TILE_RESTRICTIONS)
 end

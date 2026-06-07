@@ -1,5 +1,8 @@
 local eon_autoplace_masks = require("lib.eon-autoplace-masks")
 local eon_gleba_registry = require("lib.eon-gleba-registry")
+local biomes = require("lib.eon-biome-registry")
+
+local gleba_masks = biomes.get("gleba").masks
 
 local eon_gleba_terrain_setup = {}
 
@@ -17,7 +20,7 @@ function eon_gleba_terrain_setup.apply(config)
     data.raw["autoplace-control"]["gleba_plants"].can_be_disabled = true
     data.raw["autoplace-control"]["gleba_water"].can_be_disabled = true
 
-    data.raw["noise-expression"]["gleba_plants_noise"].expression = "eon_mask_gleba_territory(abs(multioctave_noise{x = x,\z
+    data.raw["noise-expression"]["gleba_plants_noise"].expression = gleba_masks.territory .. "(abs(multioctave_noise{x = x,\z
                                                                                                                 y = y,\z
                                                                                                                 persistence = 0.8,\z
                                                                                                                 seed0 = map_seed,\z
@@ -32,7 +35,7 @@ function eon_gleba_terrain_setup.apply(config)
                                                                                                                 octaves = 3,\z
                                                                                                                 input_scale = 1/6 * control:gleba_plants:frequency }))"
     data.raw["noise-expression"]["gleba_plants_noise_b"].expression =
-    "eon_mask_gleba_territory(abs(multioctave_noise{x = x,\z
+    gleba_masks.territory .. "(abs(multioctave_noise{x = x,\z
                                                                                                                   y = y,\z
                                                                                                                   persistence = 0.8,\z
                                                                                                                   seed0 = map_seed,\z
@@ -121,7 +124,7 @@ function eon_gleba_terrain_setup.apply(config)
             type = "noise-function",
             name = "eon_gleba_agriculture_spots",
             parameters = { "seed", "spot_radius_expression", "spot_frequency_expression" },
-            expression = "eon_mask_gleba_territory(spot_noise{x = x + wobble_noise_x * 15,\z
+            expression = gleba_masks.territory .. "(spot_noise{x = x + wobble_noise_x * 15,\z
                                                           y = y + wobble_noise_y * 15,\z
                                                           seed0 = map_seed,\z
                                                           seed1 = seed,\z
@@ -147,13 +150,13 @@ function eon_gleba_terrain_setup.apply(config)
         },
         {
             type = "noise-function",
-            name = "eon_mask_gleba_territory",
+            name = gleba_masks.territory,
             parameters = { "expression" },
             expression = "if(eon_gleba_mask, expression, -inf)"
         },
         {
             type = "noise-function",
-            name = "eon_mask_off_gleba_territory",
+            name = gleba_masks.off_territory,
             parameters = { "expression" },
             expression = "if(eon_gleba_mask, -inf, expression)"
         },

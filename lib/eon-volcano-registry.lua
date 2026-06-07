@@ -1,4 +1,8 @@
+local biomes = require("lib.eon-biome-registry")
+
 local eon_volcano_registry = {}
+
+local vulcanus_masks = biomes.get("vulcanus").masks
 
 local function eon_vulcanus_coverage_expression(aquilo_on_fulgora)
     return aquilo_on_fulgora
@@ -109,7 +113,8 @@ function eon_volcano_registry.noise_prototypes(aquilo_on_fulgora)
             type = "noise-expression",
             name = "eon_crater_cliff",
             expression =
-            "eon_mask_vulcano_coverage(0.5 * (vulcanus_rock_noise + 0.5 * aux - 0.5 * moisture) * (1 - max(vulcanus_basalts_biome,vulcanus_ashlands_biome)) * place_every_n(21,21,0,0))"
+                vulcanus_masks.coverage ..
+                "(0.5 * (vulcanus_rock_noise + 0.5 * aux - 0.5 * moisture) * (1 - max(vulcanus_basalts_biome,vulcanus_ashlands_biome)) * place_every_n(21,21,0,0))"
         },
         {
             type = "noise-expression",
@@ -157,25 +162,25 @@ function eon_volcano_registry.noise_prototypes(aquilo_on_fulgora)
         },
         {
             type = "noise-function",
-            name = "eon_mask_vulcano_coverage",
+            name = vulcanus_masks.coverage,
             parameters = { "expression" },
             expression = "if(eon_vulcano_coverage, expression, -inf)"
         },
         {
             type = "noise-function",
-            name = "eon_mask_vulcano_terrain",
+            name = vulcanus_masks.terrain,
             parameters = { "expression" },
             expression = "if(eon_vulcanus_terrain, expression, -inf)"
         },
         {
             type = "noise-function",
-            name = "eon_mask_off_vulcano_coverage",
+            name = vulcanus_masks.off_coverage,
             parameters = { "expression" },
             expression = "if(eon_vulcano_coverage, -inf, expression)"
         },
         {
             type = "noise-function",
-            name = "eon_mask_off_vulcano_terrain",
+            name = vulcanus_masks.off_terrain,
             parameters = { "expression" },
             expression = "if(eon_vulcanus_terrain, -inf, expression)"
         },

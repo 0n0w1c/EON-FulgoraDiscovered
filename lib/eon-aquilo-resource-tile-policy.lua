@@ -1,5 +1,7 @@
+local biomes = require("lib.eon-biome-registry")
 local eon_autoplace_policy = require("lib.eon-autoplace-policy")
 local aquilo_resource_tile_policy = {}
+local aquilo_masks = biomes.get("aquilo").masks
 
 ---@param name string
 ---@param expression string
@@ -23,14 +25,14 @@ end
 ---@param expression string
 ---@return string
 function aquilo_resource_tile_policy.mask_off_invalid_aquilo_resource_tiles(expression)
-    return "eon_mask_off_aquilo_resource_tiles(" .. expression .. ")"
+    return aquilo_masks.off_resource_tiles .. "(" .. expression .. ")"
 end
 
 ---@param expression string
 ---@return boolean
 function aquilo_resource_tile_policy.has_aquilo_resource_tile_mask(expression)
-    return string.find(expression, "eon_mask_off_aquilo_resource_tiles(", 1, true) ~= nil
-        or string.find(expression, "eon_mask_aquilo_resource_tiles(", 1, true) ~= nil
+    return string.find(expression, aquilo_masks.off_resource_tiles .. "(", 1, true) ~= nil
+        or string.find(expression, aquilo_masks.resource_tiles .. "(", 1, true) ~= nil
 end
 
 ---@param resource_name string

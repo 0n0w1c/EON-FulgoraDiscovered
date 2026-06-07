@@ -1,4 +1,7 @@
 local eon_autoplace_policy = require("lib.eon-autoplace-policy")
+local biomes = require("lib.eon-biome-registry")
+
+local vulcanus_masks = biomes.get("vulcanus").masks
 local eon_aquilo_resource_tiles = require("lib.eon-aquilo-resource-tile-policy")
 
 ---@class EonUnrestrictedVulcanusResourceBoostConfig
@@ -55,7 +58,7 @@ end
 ---@param additive_expression string
 ---@return string
 local function add_expression_on_vulcanus_terrain(expression, additive_expression)
-    return eon_autoplace_policy.max_with_masked_expression(expression, "eon_mask_vulcano_terrain", additive_expression)
+    return eon_autoplace_policy.max_with_masked_expression(expression, vulcanus_masks.terrain, additive_expression)
 end
 
 ---@param resource_name string

@@ -1,11 +1,15 @@
+local biomes = require("lib.eon-biome-registry")
+
 local eon_resource_ocean_policy = {}
+
+local aquilo_masks = biomes.get("aquilo").masks
 
 ---@param expression string
 ---@return boolean
 local function should_wrap_probability_expression(expression)
     return type(expression) == "string"
         and expression ~= ""
-        and not string.find(expression, "eon_mask_off_ammonia_ocean(", 1, true)
+        and not string.find(expression, aquilo_masks.off_ammonia_ocean .. "(", 1, true)
 end
 
 ---@class EonResourceOceanMaskNauvisConfig

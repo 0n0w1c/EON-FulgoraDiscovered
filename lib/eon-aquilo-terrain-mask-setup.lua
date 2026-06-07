@@ -1,6 +1,9 @@
 local eon_autoplace_masks = require("lib.eon-autoplace-masks")
 local eon_aquilo_registry = require("lib.eon-aquilo-registry")
 local eon_terrain_autoplace = require("lib.eon-terrain-autoplace")
+local biomes = require("lib.eon-biome-registry")
+
+local aquilo_masks = biomes.get("aquilo").masks
 
 local eon_aquilo_terrain_mask_setup = {}
 
@@ -8,7 +11,7 @@ local eon_aquilo_terrain_mask_setup = {}
 ---@param in_aquilo_only boolean
 ---@return string
 function eon_aquilo_terrain_mask_setup.mask_resource_tiles(expression, in_aquilo_only)
-    local mask = in_aquilo_only and "eon_mask_aquilo_resource_tiles" or "eon_mask_off_aquilo_resource_tiles"
+    local mask = in_aquilo_only and aquilo_masks.resource_tiles or aquilo_masks.off_resource_tiles
     return mask .. "(" .. expression .. ")"
 end
 
@@ -19,7 +22,6 @@ function eon_aquilo_terrain_mask_setup.apply(options)
     local guarded_resources_enabled = options.guarded_resources_enabled
 
     if guarded_resources_enabled then
-
         eon_autoplace_masks.apply_group("mask_aquilo_territory", eon_aquilo_registry.territory_mask_autoplace_by_type, {
             ["resource"] = true,
         })

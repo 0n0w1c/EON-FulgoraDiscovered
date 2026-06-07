@@ -1,13 +1,20 @@
 local data_util = require("data-util")
 local mode = require("lib.eon-mode")
+local biomes = require("lib.eon-biome-registry")
 
 local masks = {}
 
-local eon_aquilo_resource_tile_mask = "eon_mask_aquilo_resource_tiles"
-local eon_aquilo_decorative_mask = "eon_mask_aquilo_territory"
+local aquilo_masks = biomes.get("aquilo").masks
+local fulgora_masks = biomes.get("fulgora").masks
+local gleba_masks = biomes.get("gleba").masks
+local nauvis_masks = biomes.get("nauvis").masks
+local vulcanus_masks = biomes.get("vulcanus").masks
+
+local eon_aquilo_resource_tile_mask = aquilo_masks.resource_tiles
+local eon_aquilo_decorative_mask = aquilo_masks.decorative_territory
 local eon_aquilo_snow_decorative_mask = mode.aquilo_on_fulgora
     and "eon_identity"
-    or "eon_mask_aquilo_territory"
+    or aquilo_masks.snow_decorative_territory
 
 local function set_probability(prototype_type, prototype_name, expression)
     local prototypes = data.raw[prototype_type]
@@ -19,31 +26,55 @@ local function set_probability(prototype_type, prototype_name, expression)
     return true
 end
 
+local function wrap(mask_name, name)
+    return mask_name .. "(" .. data_util.generate_eon_name(name) .. ")"
+end
+
+local function wrap_aquilo_territory_on_fulgora(name)
+    return wrap(aquilo_masks.territory_on_fulgora, name)
+end
+
+local function wrap_off_aquilo_territory_on_fulgora(name)
+    return wrap(aquilo_masks.off_territory_on_fulgora, name)
+end
+
 local wrappers = {
     mask_nauvis_territory = function(name, type_name)
-        return "eon_mask_nauvis_territory(" .. data_util.generate_eon_name(name) .. ")"
+        return nauvis_masks.territory .. "(" .. data_util.generate_eon_name(name) .. ")"
     end,
     mask_off_nauvis_territory = function(name, type_name)
-        return "eon_mask_off_nauvis_territory(" .. data_util.generate_eon_name(name) .. ")"
+        return nauvis_masks.off_territory .. "(" .. data_util.generate_eon_name(name) .. ")"
     end,
     mask_resource_territory = function(name, type_name)
-        return "eon_mask_resource_territory(" .. data_util.generate_eon_name(name) .. ")"
+        return wrap(nauvis_masks.resource_territory, name)
     end,
     mask_aquilo_territory = function(name, type_name)
-        local mask = type_name == "resource" and eon_aquilo_resource_tile_mask or "eon_mask_aquilo_territory"
+        local mask = type_name == "resource" and eon_aquilo_resource_tile_mask or aquilo_masks.territory
         return mask .. "(" .. data_util.generate_eon_name(name) .. ")"
     end,
     mask_off_aquilo_territory = function(name, type_name)
-        return "eon_mask_off_aquilo_territory(" .. data_util.generate_eon_name(name) .. ")"
+        return aquilo_masks.off_territory .. "(" .. data_util.generate_eon_name(name) .. ")"
+    end,
+    mask_aquilo_territory_on_fulgora = function(name, type_name)
+        return wrap_aquilo_territory_on_fulgora(name)
+    end,
+    mask_off_aquilo_territory_on_fulgora = function(name, type_name)
+        return wrap_off_aquilo_territory_on_fulgora(name)
+    end,
+    mask_fulgora_territory = function(name, type_name)
+        return wrap(fulgora_masks.territory, name)
+    end,
+    mask_off_fulgora_territory = function(name, type_name)
+        return wrap(fulgora_masks.off_territory, name)
     end,
     mask_fulgora_aquilo_territory = function(name, type_name)
-        return "eon_mask_fulgora_aquilo_territory(" .. data_util.generate_eon_name(name) .. ")"
+        return wrap_aquilo_territory_on_fulgora(name)
     end,
     mask_off_fulgora_aquilo_territory = function(name, type_name)
-        return "eon_mask_off_fulgora_aquilo_territory(" .. data_util.generate_eon_name(name) .. ")"
+        return wrap_off_aquilo_territory_on_fulgora(name)
     end,
     mask_ammonia_ocean = function(name, type_name)
-        return "eon_mask_ammonia_ocean(" .. data_util.generate_eon_name(name) .. ")"
+        return wrap(aquilo_masks.ammonia_ocean, name)
     end,
     mask_aquilo_decorative_territory = function(name, type_name)
         return eon_aquilo_decorative_mask .. "(" .. data_util.generate_eon_name(name) .. ")"
@@ -52,25 +83,25 @@ local wrappers = {
         return eon_aquilo_snow_decorative_mask .. "(" .. data_util.generate_eon_name(name) .. ")"
     end,
     mask_off_ammonia_ocean = function(name, type_name)
-        return "eon_mask_off_ammonia_ocean(" .. data_util.generate_eon_name(name) .. ")"
+        return wrap(aquilo_masks.off_ammonia_ocean, name)
     end,
     mask_gleba_territory = function(name, type_name)
-        return "eon_mask_gleba_territory(" .. data_util.generate_eon_name(name) .. ")"
+        return gleba_masks.territory .. "(" .. data_util.generate_eon_name(name) .. ")"
     end,
     mask_off_gleba_territory = function(name, type_name)
-        return "eon_mask_off_gleba_territory(" .. data_util.generate_eon_name(name) .. ")"
+        return gleba_masks.off_territory .. "(" .. data_util.generate_eon_name(name) .. ")"
     end,
     mask_vulcano_coverage = function(name, type_name)
-        return "eon_mask_vulcano_coverage(" .. data_util.generate_eon_name(name) .. ")"
+        return vulcanus_masks.coverage .. "(" .. data_util.generate_eon_name(name) .. ")"
     end,
     mask_off_vulcano_coverage = function(name, type_name)
-        return "eon_mask_off_vulcano_coverage(" .. data_util.generate_eon_name(name) .. ")"
+        return vulcanus_masks.off_coverage .. "(" .. data_util.generate_eon_name(name) .. ")"
     end,
     mask_vulcano_terrain = function(name, type_name)
-        return "eon_mask_vulcano_terrain(" .. data_util.generate_eon_name(name) .. ")"
+        return vulcanus_masks.terrain .. "(" .. data_util.generate_eon_name(name) .. ")"
     end,
     mask_off_vulcano_terrain = function(name, type_name)
-        return "eon_mask_off_vulcano_terrain(" .. data_util.generate_eon_name(name) .. ")"
+        return vulcanus_masks.off_terrain .. "(" .. data_util.generate_eon_name(name) .. ")"
     end,
 }
 
