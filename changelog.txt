@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.13.0
+Date: 08.06.2026
+  Bugfixes:
+    - None
+  Changes:
+    - Added startup setting Enable technology guard (default: disabled)
+---------------------------------------------------------------------------------------------------
 Version: 0.12.4
 Date: 07.06.2026
   Bugfixes:
@@ -11,7 +18,7 @@ Date: 07.06.2026
   Bugfixes:
     - None
   Changes:
-    - Added startup setting to Enable native biome weather (default: disabled) - adds runtime
+    - Added startup setting Enable native biome weather (default: disabled) - adds runtime
 ---------------------------------------------------------------------------------------------------
 Version: 0.12.2
 Date: 07.06.2026

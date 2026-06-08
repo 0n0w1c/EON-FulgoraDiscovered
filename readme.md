@@ -47,6 +47,7 @@ This will increase the amount of the map revealed in the Map Generator's Preview
 - Foundry made with tungsten plate (default: disabled)
 - Restrict resources to their native biomes (default: disabled)
 - Create the Aquilo biome on Fulgora (default: disabled)
+- Enable technology guard (default: disabled)
 - Enable native biome weather (default: disabled) - *runtime code*
 - Hide the Craft Deco 2 technology (default: disabled)
 

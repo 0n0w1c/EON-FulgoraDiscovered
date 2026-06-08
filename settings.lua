@@ -36,10 +36,17 @@ data:extend({
     },
     {
         type = "bool-setting",
-        name = "eon-fd-biome-weather",
+        name = "eon-fd-enable-technology-guard",
         setting_type = "startup",
         default_value = false,
         order = "f",
+    },
+    {
+        type = "bool-setting",
+        name = "eon-fd-biome-weather",
+        setting_type = "startup",
+        default_value = false,
+        order = "g",
     },
     {
         type = "bool-setting",

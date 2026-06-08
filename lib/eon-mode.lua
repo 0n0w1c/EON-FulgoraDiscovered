@@ -12,6 +12,7 @@ mode.gleba_enemies_react_to_pollution = startup_bool("eon-fd-gleba-enemies-react
 mode.use_tungsten_plate = startup_bool("eon-fd-use-tungsten-plate")
 mode.guarded_resources = startup_bool("eon-fd-guarded-resources")
 mode.aquilo_on_fulgora = startup_bool("eon-fd-aquilo-on-fulgora")
+mode.enable_technology_guard = startup_bool("eon-fd-enable-technology-guard")
 mode.hide_craft_deco_2_technology = startup_bool("eon-fd-hide-craft-deco-2-technology")
 mode.biome_weather = startup_bool("eon-fd-biome-weather")
 

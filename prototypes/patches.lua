@@ -235,17 +235,19 @@ for _, scale_policy in ipairs(eon_patch_registry.autoplace_scale) do
     scale_entity_autoplace(scale_policy.type, scale_policy.name, scale_policy.factor)
 end
 
-local foundry = data.raw["technology"] and data.raw["technology"]["foundry"]
-if foundry and foundry.prerequisites then
-    local found = false
-    for _, prerequisite in ipairs(foundry.prerequisites) do
-        if prerequisite == "lubricant" then
-            found = true
-            break
+if not eon_mode.enable_technology_guard then
+    local foundry = data.raw["technology"] and data.raw["technology"]["foundry"]
+    if foundry and foundry.prerequisites then
+        local found = false
+        for _, prerequisite in ipairs(foundry.prerequisites) do
+            if prerequisite == "lubricant" then
+                found = true
+                break
+            end
         end
-    end
 
-    if not found then table.insert(foundry.prerequisites, "lubricant") end
+        if not found then table.insert(foundry.prerequisites, "lubricant") end
+    end
 end
 
 local calcite = data.raw["resource"] and data.raw["resource"]["calcite"]

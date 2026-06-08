@@ -45,6 +45,11 @@ registry.prerequisites_to_append = {
     },
 }
 
+registry.technology_guard = {
+    removed_discovery_prerequisite_replacement = "space-science-pack",
+    prerequisites_to_append = {},
+}
+
 registry.prerequisite_replacements = {
     ["lithium-processing"] = {
         "rocket-turret",
