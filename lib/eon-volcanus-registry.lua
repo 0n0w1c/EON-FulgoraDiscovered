@@ -32,6 +32,10 @@ registry.all_tiles = {
 
 registry.all_tile_set = make_set(registry.all_tiles)
 
+registry.biome_weather_sound_tiles = registry.all_tiles
+registry.biome_weather_sound_tile_set = registry.all_tile_set
+
+
 registry.volcano_spot_tiles = {
     "volcanic-folds",
     "volcanic-folds-flat",

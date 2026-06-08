@@ -158,17 +158,59 @@ end
 eon_patch_atomic_rocket_nuke_effects()
 
 local fish = data.raw["fish"] and data.raw["fish"]["fish"]
-local fish_expr = eon_autoplace_policy.autoplace_probability_expression(fish)
 
-if fish_expr then
-    local expr = eon_autoplace_policy.wrap_expression(
-        fish_expr,
-        vulcanus_masks.off_terrain
-    )
-    fish.autoplace.probability_expression = eon_mask_off_aquilo_for_nauvis(expr)
+---@return string
+local function eon_fish_safe_nauvis_water_expression()
+    local fish_lava_mask_name = "eon_mask_off_fish_lava"
+
+    if not (data.raw["noise-function"] and data.raw["noise-function"][fish_lava_mask_name]) then
+        data:extend({
+            {
+                type = "noise-function",
+                name = fish_lava_mask_name,
+                parameters = { "expression" },
+                expression =
+                    "if(max(" ..
+                    "eon_lava_mountains_range, " ..
+                    "eon_lava_hot_mountains_range, " ..
+                    "lava_basalts_range, " ..
+                    "lava_mountains_range, " ..
+                    "lava_hot_basalts_range, " ..
+                    "lava_hot_mountains_range" ..
+                    ") > 0, -inf, expression)"
+            }
+        })
+    end
+
+    local expr = "0.01"
+    expr = eon_autoplace_policy.wrap_expression(expr, vulcanus_masks.off_terrain)
+    expr = eon_autoplace_policy.wrap_expression(expr, vulcanus_masks.off_coverage)
+    expr = eon_autoplace_policy.wrap_expression(expr, fish_lava_mask_name)
+    expr = eon_autoplace_policy.wrap_expression(expr, aquilo_masks.off_ammonia_ocean)
+    expr = eon_mask_off_aquilo_for_nauvis(expr)
+
+    return expr
 end
 
-local dead_tree = data.raw["tree"] and data.raw["tree"]["dead-grey-trunk"]
+if fish and fish.autoplace then
+    eon_autoplace_policy.set_autoplace_tile_restriction(fish, { "water", "deepwater" })
+    eon_autoplace_policy.add_collision_mask_layer(fish, "lava_tile")
+
+    local expression_name = "eon_fish_safe_nauvis_water_probability"
+    eon_autoplace_policy.ensure_noise_expression(expression_name, eon_fish_safe_nauvis_water_expression())
+
+    fish.autoplace.probability_expression = expression_name
+
+    local nauvis = data.raw.planet and data.raw.planet["nauvis"]
+    local map_gen = nauvis and nauvis.map_gen_settings
+    if map_gen then
+        map_gen.property_expression_names = map_gen.property_expression_names or {}
+        map_gen.property_expression_names["entity:fish:probability"] = expression_name
+    end
+end
+
+local dead_tree =
+ data.raw["tree"] and data.raw["tree"]["dead-grey-trunk"]
 local dead_tree_expr = eon_autoplace_policy.autoplace_probability_expression(dead_tree)
 
 if dead_tree_expr then
