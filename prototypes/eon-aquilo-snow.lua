@@ -65,5 +65,33 @@ data:extend({
             height = 1,
             frame_count = 1
         }
+    },
+    {
+        type = "sound",
+        name = "eon-fd-aquilo-ice-cracks",
+        variations = {
+            { filename = "__space-age__/sound/world/semi-persistent/ice-cracks-1.ogg", volume = 0.7 },
+            { filename = "__space-age__/sound/world/semi-persistent/ice-cracks-2.ogg", volume = 0.7 },
+            { filename = "__space-age__/sound/world/semi-persistent/ice-cracks-3.ogg", volume = 0.7 },
+            { filename = "__space-age__/sound/world/semi-persistent/ice-cracks-4.ogg", volume = 0.7 },
+            { filename = "__space-age__/sound/world/semi-persistent/ice-cracks-5.ogg", volume = 0.7 }
+        },
+        category = "environment",
+        audible_distance_modifier = 3.0,
+        priority = 100
+    },
+    {
+        type = "sound",
+        name = "eon-fd-aquilo-cold-wind-gust",
+        variations = {
+            { filename = "__space-age__/sound/world/semi-persistent/cold-wind-gust-1.ogg", volume = 0.3 },
+            { filename = "__space-age__/sound/world/semi-persistent/cold-wind-gust-2.ogg", volume = 0.3 },
+            { filename = "__space-age__/sound/world/semi-persistent/cold-wind-gust-3.ogg", volume = 0.3 },
+            { filename = "__space-age__/sound/world/semi-persistent/cold-wind-gust-4.ogg", volume = 0.3 },
+            { filename = "__space-age__/sound/world/semi-persistent/cold-wind-gust-5.ogg", volume = 0.3 }
+        },
+        category = "environment",
+        audible_distance_modifier = 3.0,
+        priority = 100
     }
 })

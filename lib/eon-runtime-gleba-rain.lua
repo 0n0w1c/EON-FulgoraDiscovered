@@ -10,6 +10,10 @@ local RAIN_INTERVAL = 15
 local SOUND_SCAN_INTERVAL = 60
 local SOUND_REPEAT_INTERVAL = 480  -- 8 seconds at 60 UPS
 local THUNDER_SCAN_INTERVAL = 1800 -- 30 seconds at 60 UPS
+local THUNDER_FLASH_DISTANCE = 64
+local THUNDER_FLASH_SCALE = 96
+local THUNDER_FLASH_INTENSITY = 2
+local THUNDER_FLASH_TTL = 12
 
 local function ensure_storage()
     storage.eon_fd_gleba_rain = storage.eon_fd_gleba_rain or {}
@@ -49,6 +53,33 @@ local function spawn_rain(event)
     end
 end
 
+local function draw_flash_light(surface, position, scale, intensity)
+    rendering.draw_light {
+        sprite = "utility/light_medium",
+        surface = surface,
+        target = position,
+        scale = scale,
+        intensity = intensity,
+        minimum_darkness = 0,
+        color = { r = 0.5, g = 0.5, b = 1, a = 1 },
+        render_mode = "game",
+        time_to_live = THUNDER_FLASH_TTL,
+        blink_interval = math.floor(math.max(4, math.random() * 8))
+    }
+end
+
+local function draw_thunder_flash(player)
+    local position = {
+        player.position.x + math.random(-THUNDER_FLASH_DISTANCE, THUNDER_FLASH_DISTANCE),
+        player.position.y + math.random(-THUNDER_FLASH_DISTANCE, THUNDER_FLASH_DISTANCE)
+    }
+
+    -- Keep the flash distant, matching the style used by dynamic-rain.
+    draw_flash_light(player.surface, position, THUNDER_FLASH_SCALE, THUNDER_FLASH_INTENSITY)
+
+    return position
+end
+
 local function play_rain_sound(event)
     if event.tick % SOUND_SCAN_INTERVAL ~= 0 then return end
 
@@ -67,9 +98,11 @@ local function play_rain_sound(event)
             end
 
             if event.tick % THUNDER_SCAN_INTERVAL == 0 then
+                local thunder_position = draw_thunder_flash(player)
+
                 player.play_sound {
                     path = "eon-fd-gleba-tile-thunder",
-                    position = player.position
+                    position = thunder_position
                 }
             end
         else

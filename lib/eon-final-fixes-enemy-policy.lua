@@ -5,8 +5,6 @@ local eon_tile_registry = require("lib.eon-tile-registry")
 
 local eon_final_fixes_enemy_policy = {}
 
----Normalizes Commander enemy candidates on Nauvis.
----Collision masks are shared; tile restrictions define wetland or land placement.
 local eon_enemy_autoplace_policy = eon_tile_registry.enemy_autoplace
 local eon_commander_enemy_collision_mask = eon_autoplace_policy.make_collision_mask(
     eon_enemy_autoplace_policy.commander_collision_layers
@@ -16,7 +14,6 @@ local eon_gleba_wetland_spawner_tiles = eon_enemy_autoplace_policy.gleba_wetland
 ---@type string[]
 local eon_land_spawner_tiles = eon_autoplace_policy.collect_solid_land_tile_names()
 
----Returns whether a prototype participates in enemy-base style autoplace.
 ---@param proto table|nil Candidate unit-spawner or turret prototype.
 ---@return boolean is_candidate True when the prototype has an autoplace control.
 local function eon_is_autoplaced_enemy_candidate(proto)
@@ -25,7 +22,6 @@ local function eon_is_autoplaced_enemy_candidate(proto)
         and proto.autoplace.control ~= nil
 end
 
----Normalizes an autoplaced enemy prototype for Commander expansion.
 ---@param proto table Unit-spawner or turret prototype to adjust in-place.
 ---@return nil
 local function eon_normalize_autoplaced_enemy_candidate(proto)
@@ -50,7 +46,6 @@ end
 
 local eon_fulgora_oil_ocean_group = eon_tile_registry.water_exclusion.fulgora_enemy_group
 
----Excludes Fulgora oil-ocean tiles from a base prototype's autoplace tile restriction.
 ---@param proto table|nil Candidate spawner or worm prototype.
 ---@return boolean changed True when the tile restriction was changed.
 local function eon_exclude_fulgora_oil_ocean_from_autoplace(proto)
@@ -70,93 +65,71 @@ local function eon_normalize_autoplaced_enemy_candidates()
     end
 end
 
+---@param spawner table|nil
+---@param unit_name string
+---@return table|nil
+local function eon_get_result_unit_points(spawner, unit_name)
+    if not (spawner and spawner.result_units) then return nil end
 
----Retunes vanilla Gleba pentapod spawn curves for Nauvis evolution pacing.
----In Space Age, Gleba reaches big pentapods much earlier than Nauvis reaches
----behemoth biters. This mod moves Gleba enemies onto Nauvis, so keep the
----pentapod families but delay medium/big variants to better match Nauvis
----military progression.
+    for _, result_unit in pairs(spawner.result_units) do
+        if result_unit[1] == unit_name then
+            return result_unit[2]
+        end
+    end
+
+    return nil
+end
+
+---@param result_units table[]|nil
+---@param unit_points_by_name table
 ---@return nil
-local function eon_slow_nauvis_pentapod_evolution()
+local function eon_apply_nauvis_evolution_to_pentapods(result_units, unit_points_by_name)
+    if not result_units then return end
+
+    for _, result_unit in pairs(result_units) do
+        local unit_name = result_unit[1]
+        local points = unit_points_by_name[unit_name]
+        if points then
+            result_unit[2] = table.deepcopy(points)
+        end
+    end
+end
+
+---@return nil
+local function eon_align_nauvis_pentapod_evolution()
     local spawners = data.raw["unit-spawner"]
     if not spawners then return end
 
-    local gleba_spawner = spawners["gleba-spawner"]
-    if gleba_spawner then
-        gleba_spawner.result_units = {
-            -- Small pentapods: early threat, fade out around big-biter timing.
-            { "small-wriggler-pentapod", {
-                { 0.00, 0.40 },
-                { 0.30, 0.40 },
-                { 0.75, 0.00 },
-            } },
-            { "small-strafer-pentapod", {
-                { 0.00, 0.40 },
-                { 0.30, 0.40 },
-                { 0.75, 0.00 },
-            } },
-            { "small-stomper-pentapod", {
-                { 0.10, 0.00 },
-                { 0.35, 0.20 },
-                { 0.75, 0.00 },
-            } },
+    local biter_spawner = spawners["biter-spawner"]
 
-            -- Medium pentapods: main midgame Gleba threat on Nauvis.
-            { "medium-wriggler-pentapod", {
-                { 0.35, 0.00 },
-                { 0.70, 0.40 },
-                { 1.00, 0.10 },
-            } },
-            { "medium-strafer-pentapod", {
-                { 0.40, 0.00 },
-                { 0.75, 0.40 },
-                { 1.00, 0.10 },
-            } },
-            { "medium-stomper-pentapod", {
-                { 0.50, 0.00 },
-                { 0.80, 0.20 },
-                { 1.00, 0.08 },
-            } },
+    local biter_small = eon_get_result_unit_points(biter_spawner, "small-biter")
+    local biter_medium = eon_get_result_unit_points(biter_spawner, "medium-biter")
+    local biter_big = eon_get_result_unit_points(biter_spawner, "big-biter")
 
-            -- Big pentapods: delayed to behemoth-era evolution.
-            { "big-wriggler-pentapod", {
-                { 0.85, 0.00 },
-                { 0.95, 0.35 },
-                { 1.00, 0.35 },
-            } },
-            { "big-strafer-pentapod", {
-                { 0.88, 0.00 },
-                { 0.97, 0.35 },
-                { 1.00, 0.35 },
-            } },
-            { "big-stomper-pentapod", {
-                { 0.92, 0.00 },
-                { 0.98, 0.12 },
-                { 1.00, 0.15 },
-            } },
-        }
-    end
+    if not (biter_small and biter_medium and biter_big) then return end
 
-    local gleba_spawner_small = spawners["gleba-spawner-small"]
-    if gleba_spawner_small then
-        gleba_spawner_small.result_units = {
-            { "small-wriggler-pentapod", {
-                { 0.00, 0.90 },
-                { 0.40, 0.90 },
-                { 0.80, 0.00 },
-            } },
-            { "medium-wriggler-pentapod", {
-                { 0.40, 0.00 },
-                { 0.75, 0.70 },
-                { 1.00, 0.15 },
-            } },
-            { "big-wriggler-pentapod", {
-                { 0.88, 0.00 },
-                { 0.98, 0.60 },
-                { 1.00, 0.80 },
-            } },
-        }
-    end
+    local unit_points_by_name = {
+        ["small-wriggler-pentapod"] = biter_small,
+        ["medium-wriggler-pentapod"] = biter_medium,
+        ["big-wriggler-pentapod"] = biter_big,
+
+        ["small-stomper-pentapod"] = biter_small,
+        ["medium-stomper-pentapod"] = biter_medium,
+        ["big-stomper-pentapod"] = biter_big,
+
+        ["small-strafer-pentapod"] = biter_small,
+        ["medium-strafer-pentapod"] = biter_medium,
+        ["big-strafer-pentapod"] = biter_big,
+    }
+
+    eon_apply_nauvis_evolution_to_pentapods(
+        spawners["gleba-spawner"] and spawners["gleba-spawner"].result_units,
+        unit_points_by_name
+    )
+    eon_apply_nauvis_evolution_to_pentapods(
+        spawners["gleba-spawner-small"] and spawners["gleba-spawner-small"].result_units,
+        unit_points_by_name
+    )
 end
 
 ---@return nil
@@ -170,7 +143,7 @@ end
 ---@return nil
 local function eon_prevent_cold_biter_bases_on_fulgora_oil_ocean()
     if not eon_mode.aquilo_on_fulgora then return end
-    if not (mods["Cold_biters"] or mods["Frost_biters"]) then return end
+    if not mods["Cold_biters"] then return end
 
     local collision_patched = 0
     local restriction_patched = 0
@@ -216,10 +189,10 @@ local function eon_prevent_fulgoran_enemy_bases_on_fulgora_oil_ocean()
 end
 
 ---@return nil
-local function eon_order_fulgoran_enemies_after_gleba_enemy_bases()
-    if not mods["Electric_flying_enemies"] then return end
+local function eon_order_cold_biter_enemies_after_gleba_enemy_bases()
+    if not mods["Cold_biters"] then return end
 
-    local control = data.raw["autoplace-control"] and data.raw["autoplace-control"]["electric_enemies"]
+    local control = data.raw["autoplace-control"] and data.raw["autoplace-control"]["frost_enemy_base"]
     if not control then return end
 
     control.order = "z-a"
@@ -227,13 +200,25 @@ local function eon_order_fulgoran_enemies_after_gleba_enemy_bases()
 end
 
 ---@return nil
+local function eon_order_fulgoran_enemies_after_cold_biter_enemies()
+    if not mods["Electric_flying_enemies"] then return end
+
+    local control = data.raw["autoplace-control"] and data.raw["autoplace-control"]["electric_enemies"]
+    if not control then return end
+
+    control.order = "z-b"
+    control.category = "enemy"
+end
+
+---@return nil
 function eon_final_fixes_enemy_policy.apply()
     eon_normalize_autoplaced_enemy_candidates()
-    eon_slow_nauvis_pentapod_evolution()
+    eon_align_nauvis_pentapod_evolution()
     eon_make_deep_oil_ocean_collide_with_players()
     eon_prevent_cold_biter_bases_on_fulgora_oil_ocean()
     eon_prevent_fulgoran_enemy_bases_on_fulgora_oil_ocean()
-    eon_order_fulgoran_enemies_after_gleba_enemy_bases()
+    eon_order_cold_biter_enemies_after_gleba_enemy_bases()
+    eon_order_fulgoran_enemies_after_cold_biter_enemies()
 end
 
 return eon_final_fixes_enemy_policy

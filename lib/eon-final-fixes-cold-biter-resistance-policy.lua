@@ -31,7 +31,7 @@ end
 ---@return nil
 local function eon_make_cold_biters_electric_immune_on_fulgora_aquilo()
     if not eon_mode.aquilo_on_fulgora then return end
-    if not (mods["Cold_biters"] or mods["Frost_biters"]) then return end
+    if not mods["Cold_biters"] then return end
 
     local patched = 0
     for _, prototype_type in pairs(eon_enemy_registry.final_fixes.resistance_patch_types) do
