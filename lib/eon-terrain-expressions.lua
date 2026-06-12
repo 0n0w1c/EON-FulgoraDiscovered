@@ -2,8 +2,29 @@ local biomes = require("lib.eon-biome-registry")
 
 local eon_terrain_expressions = {}
 
+---@class EonTerrainExpressionValues
+---@field aquilo_north_bias_y_offset number
+---@field aquilo_core_boundary_relative_y number
+---@field aquilo_fulgora_core_inset number
+---@field aquilo_exclusion_mask string
+---@field ammonia_ocean_tile_expression string
+---@field aquilo_decorative_mask string
+---@field vulcanus_off_aquilo_mask string
+---@field aquilo_snow_decorative_mask string
+---@field nauvis_territory_expression string
+---@field nauvis_cliffiness_expression string
+---@field fulgora_cliffiness_expression string
+---@field gleba_region_expression string
+---@field gleba_mask_threshold number
+---@field gleba_south_bias_y_offset number
+---@field gleba_south_core_y_offset number
+---@field gleba_continuous_cliffiness_expression string
+---@field vulcanus_cliffiness_expression string
+---@field blended_cliffiness_expression string
+---@field blended_cliff_elevation_expression string
+
 ---@param aquilo_on_fulgora boolean
----@return table
+---@return EonTerrainExpressionValues
 function eon_terrain_expressions.values(aquilo_on_fulgora)
     local aquilo_masks = biomes.get("aquilo").masks
     local gleba_masks = biomes.get("gleba").masks
@@ -15,12 +36,15 @@ function eon_terrain_expressions.values(aquilo_on_fulgora)
 
     return {
         aquilo_north_bias_y_offset = aquilo_on_fulgora and 650 or -250,
+        aquilo_core_boundary_relative_y = -3000,
+        aquilo_fulgora_core_inset = 750,
         aquilo_exclusion_mask = aquilo_on_fulgora and "eon_identity" or vulcanus_off_terrain,
-        ammonia_ocean_tile_mask = aquilo_masks.territory,
         ammonia_ocean_tile_expression = aquilo_on_fulgora and "eon_aquilo_ammonia_core" or "eon_aquilo_ammonia",
         aquilo_decorative_mask = aquilo_masks.decorative_territory,
         vulcanus_off_aquilo_mask = aquilo_on_fulgora and "eon_identity" or aquilo_off_territory,
-        aquilo_snow_decorative_mask = aquilo_on_fulgora and "eon_identity" or aquilo_masks.snow_decorative_territory,
+        aquilo_snow_decorative_mask = aquilo_on_fulgora
+            and "eon_identity"
+            or "eon_mask_aquilo_nauvis_snow_decorative_territory",
         nauvis_territory_expression = aquilo_on_fulgora
             and gleba_off_territory .. "(" .. vulcanus_off_terrain .. "(expression))"
             or aquilo_off_territory .. "(" .. gleba_off_territory .. "(" .. vulcanus_off_terrain .. "(expression)))",
@@ -32,9 +56,10 @@ function eon_terrain_expressions.values(aquilo_on_fulgora)
             or "fulgora_cliffiness",
         gleba_region_expression =
             vulcanus_off_terrain ..
-            "(if(gleba_noise + gleba_intermediate_noise + gleba_small_noise + moisture_nauvis + south_offset > threshold, 1, 0))",
+            "(if(south_core, 1, if(gleba_noise + gleba_intermediate_noise + gleba_small_noise + moisture_nauvis + south_offset > threshold, 1, 0)))",
         gleba_mask_threshold = -10,
         gleba_south_bias_y_offset = aquilo_on_fulgora and 1000 or 1500,
+        gleba_south_core_y_offset = 250,
         gleba_continuous_cliffiness_expression = "clamp(quick_multioctave_noise{x = x,\z
                                                        y = y,\z
                                                        seed0 = map_seed,\z

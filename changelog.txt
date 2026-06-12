@@ -1,4 +1,14 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.14.1
+Date: 12.06.2026
+  Bugfixes:
+    - Improved the transition into the Aquilo biome on Nauvis
+    - Reduced Nauvis terrain leaking into the Gleba and Aquilo biomes
+    - Aquilo on Fulgora: Reduced Fulgora terrain leaking into the Aquilo biome
+  Changes:
+    - Stone now spawns in the Gleba biome
+    - Softened the map generation effect of the Gleba plants autoplace control
+---------------------------------------------------------------------------------------------------
 Version: 0.14.0
 Date: 11.06.2026
   Bugfixes:
@@ -53,7 +63,7 @@ Version: 0.12.0
 Date: 06.06.2026
   Bugfixes:
     - Major refactor
-    - Aquilo on Nauvis: resolved the issue of the Aquilo biome extending onto volcanoes outer ring
+    - Aquilo on Nauvis: resolved the Aquilo biome extending onto the volcanoes' outer rings
   Changes:
     - None
 ---------------------------------------------------------------------------------------------------

@@ -11,6 +11,12 @@ local function enable_planet_resource_autoplace_controls(planet_name)
     eon_autoplace_policy.copy_planet_autoplace_controls_by_category(planet_name, "nauvis", "resource")
 end
 
+---@return nil
+local function enable_gleba_stone_autoplace()
+    eon_autoplace_policy.ensure_planet_autoplace_setting("gleba", "entity", "stone")
+    eon_autoplace_policy.set_planet_autoplace_control("gleba", "stone", true)
+end
+
 ---@param config EonResourceControlSetupConfig
 ---@return nil
 function resource_control_setup.apply(config)
@@ -20,6 +26,8 @@ function resource_control_setup.apply(config)
     data.raw.planet["aquilo"].map_gen_settings.autoplace_controls = {}
 
     data.raw["autoplace-control"]["gleba_plants"].localised_description = nil
+
+    enable_gleba_stone_autoplace()
 
     if guarded_resources_enabled then
         enable_planet_resource_autoplace_controls("nauvis")

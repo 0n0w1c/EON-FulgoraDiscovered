@@ -1,5 +1,6 @@
 local eon_autoplace_masks = require("lib.eon-autoplace-masks")
 local eon_nauvis_registry = require("lib.eon-nauvis-registry")
+local eon_terrain_autoplace = require("lib.eon-terrain-autoplace")
 local biomes = require("lib.eon-biome-registry")
 
 local nauvis_masks = biomes.get("nauvis").masks
@@ -8,7 +9,16 @@ local aquilo_masks = biomes.get("aquilo").masks
 
 local eon_nauvis_terrain_setup = {}
 
----@param config table
+---@class EonNauvisTerrainSetupConfig
+---@field nauvis_territory_expression string Body of the Nauvis territory mask noise function.
+---@field nauvis_cliffiness_expression string Nauvis cliff probability expression.
+---@field gleba_continuous_cliffiness_expression string Cliffiness expression used in Gleba territory.
+---@field vulcanus_cliffiness_expression string Cliffiness expression used in Vulcanus territory.
+---@field blended_cliffiness_expression string Combined biome-aware cliffiness expression.
+---@field blended_cliff_elevation_expression string Combined biome-aware cliff elevation expression.
+---@field mask_native_tiles_off_aquilo boolean Whether native Nauvis tiles must be excluded from Aquilo territory.
+
+---@param config EonNauvisTerrainSetupConfig
 ---@return nil
 function eon_nauvis_terrain_setup.apply(config)
     -- Legacy Fulgora/Aquilo mask names are save-compatibility aliases. Do not remove them.
@@ -34,6 +44,24 @@ function eon_nauvis_terrain_setup.apply(config)
         eon_nauvis_registry.native_mask_policy,
         eon_nauvis_registry.native_autoplace_manifest()
     )
+
+    if config.mask_native_tiles_off_aquilo then
+        for _, tile_name in ipairs(eon_nauvis_registry.tiles) do
+            eon_terrain_autoplace.wrap_current_probability_expression(
+                "tile",
+                tile_name,
+                aquilo_masks.off_territory
+            )
+        end
+
+        for _, tile_name in ipairs({ "water", "deepwater" }) do
+            eon_terrain_autoplace.wrap_current_probability_expression(
+                "tile",
+                tile_name,
+                aquilo_masks.off_territory
+            )
+        end
+    end
 
     data.raw["noise-expression"]["cliffiness_nauvis"].expression = config.nauvis_cliffiness_expression
 

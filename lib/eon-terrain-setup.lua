@@ -15,6 +15,8 @@ local biomes = require("lib.eon-biome-registry")
 
 local eon_terrain_setup = {}
 
+---@param terrain table Terrain masking API populated during data-stage setup.
+---@return nil
 function eon_terrain_setup.apply(terrain)
     local eon_aquilo_on_fulgora = eon_mode.aquilo_on_fulgora
     local eon_aquilo_planet_name = eon_mode.aquilo_surface
@@ -26,8 +28,9 @@ function eon_terrain_setup.apply(terrain)
     local eon_terrain_expression_values = eon_terrain_expressions.values(eon_aquilo_on_fulgora)
 
     local eon_aquilo_north_bias_y_offset = eon_terrain_expression_values.aquilo_north_bias_y_offset
+    local eon_aquilo_core_boundary_relative_y = eon_terrain_expression_values.aquilo_core_boundary_relative_y
+    local eon_aquilo_fulgora_core_inset = eon_terrain_expression_values.aquilo_fulgora_core_inset
     local eon_aquilo_exclusion_mask = eon_terrain_expression_values.aquilo_exclusion_mask
-    local eon_ammonia_ocean_tile_mask = eon_terrain_expression_values.ammonia_ocean_tile_mask
     local eon_ammonia_ocean_tile_expression = eon_terrain_expression_values.ammonia_ocean_tile_expression
     local eon_aquilo_decorative_mask = eon_terrain_expression_values.aquilo_decorative_mask
     local eon_vulcanus_off_aquilo_mask = eon_terrain_expression_values.vulcanus_off_aquilo_mask
@@ -38,6 +41,7 @@ function eon_terrain_setup.apply(terrain)
     local eon_gleba_region_expression = eon_terrain_expression_values.gleba_region_expression
     local eon_gleba_mask_threshold = eon_terrain_expression_values.gleba_mask_threshold
     local eon_gleba_south_bias_y_offset = eon_terrain_expression_values.gleba_south_bias_y_offset
+    local eon_gleba_south_core_y_offset = eon_terrain_expression_values.gleba_south_core_y_offset
     local eon_gleba_continuous_cliffiness_expression =
         eon_terrain_expression_values.gleba_continuous_cliffiness_expression
     local eon_vulcanus_cliffiness_expression = eon_terrain_expression_values.vulcanus_cliffiness_expression
@@ -57,6 +61,7 @@ function eon_terrain_setup.apply(terrain)
         vulcanus_cliffiness_expression = eon_vulcanus_cliffiness_expression,
         blended_cliffiness_expression = eon_blended_cliffiness_expression,
         blended_cliff_elevation_expression = eon_blended_cliff_elevation_expression,
+        mask_native_tiles_off_aquilo = not eon_aquilo_on_fulgora,
     })
     eon_nauvis_cliff_settings.apply_blended_cliff_settings()
 
@@ -86,10 +91,11 @@ function eon_terrain_setup.apply(terrain)
 
     eon_aquilo_terrain_setup.apply({
         aquilo_on_fulgora = eon_aquilo_on_fulgora,
-        ammonia_ocean_tile_mask = eon_ammonia_ocean_tile_mask,
         ammonia_ocean_tile_expression = eon_ammonia_ocean_tile_expression,
         aquilo_exclusion_mask = eon_aquilo_exclusion_mask,
         aquilo_north_bias_y_offset = eon_aquilo_north_bias_y_offset,
+        aquilo_core_boundary_relative_y = eon_aquilo_core_boundary_relative_y,
+        aquilo_fulgora_core_inset = eon_aquilo_fulgora_core_inset,
         fulgora_cliffiness_expression = eon_fulgora_cliffiness_expression,
     })
 
@@ -97,6 +103,7 @@ function eon_terrain_setup.apply(terrain)
         gleba_mask_threshold = eon_gleba_mask_threshold,
         gleba_region_expression = eon_gleba_region_expression,
         gleba_south_bias_y_offset = eon_gleba_south_bias_y_offset,
+        gleba_south_core_y_offset = eon_gleba_south_core_y_offset,
     })
 
     eon_vulcanus_terrain_setup.apply({

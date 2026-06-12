@@ -6,30 +6,69 @@ local fulgora_masks = biomes.get("fulgora").masks
 
 local eon_aquilo_terrain_setup = {}
 
+---@class EonAquiloTerrainSetupParameters
+---@field aquilo_on_fulgora boolean Whether Aquilo is routed to Fulgora instead of Nauvis.
+---@field ammonia_ocean_tile_expression string Base ammonia-ocean probability expression.
+---@field aquilo_exclusion_mask string Noise-function name excluding terrain that must remain authoritative.
+---@field aquilo_north_bias_y_offset number Vertical offset of the native Aquilo north bias.
+---@field aquilo_core_boundary_relative_y number Base Y coordinate of the deep Nauvis-side Aquilo core.
+---@field aquilo_fulgora_core_inset number Distance between Fulgora's visible Aquilo boundary and guaranteed core.
+---@field fulgora_cliffiness_expression string Cliffiness expression used outside Fulgora's Aquilo territory.
+
+---@param parameters EonAquiloTerrainSetupParameters
+---@return nil
 function eon_aquilo_terrain_setup.apply(parameters)
     local eon_aquilo_on_fulgora = parameters.aquilo_on_fulgora
-    local eon_ammonia_ocean_tile_mask = parameters.ammonia_ocean_tile_mask
     local eon_ammonia_ocean_tile_expression = parameters.ammonia_ocean_tile_expression
     local eon_aquilo_exclusion_mask = parameters.aquilo_exclusion_mask
     local eon_aquilo_north_bias_y_offset = parameters.aquilo_north_bias_y_offset
+    local eon_aquilo_core_boundary_relative_y = parameters.aquilo_core_boundary_relative_y
+    local eon_aquilo_fulgora_core_inset = parameters.aquilo_fulgora_core_inset
     local eon_fulgora_cliffiness_expression = parameters.fulgora_cliffiness_expression
 
-    data.raw.tile["ammoniacal-ocean"].autoplace.probability_expression =
-        eon_ammonia_ocean_tile_mask .. "(" .. eon_ammonia_ocean_tile_expression .. " + 0.01 * (aux - 0.5))"
-    data.raw.tile["ammoniacal-ocean-2"].autoplace.probability_expression =
-        eon_ammonia_ocean_tile_mask .. "(" .. eon_ammonia_ocean_tile_expression .. " - 0.01 * (aux - 0.5))"
+    ---@param expression string
+    ---@return string
+    local function boosted_aquilo_tile_expression(expression)
+        if not eon_aquilo_on_fulgora then
+            return aquilo_masks.territory .. "(" .. expression .. ")"
+        end
 
-    data.raw.tile["snow-flat"].autoplace.probability_expression = aquilo_masks.territory .. "(eon_aquilo_land)"
+        return aquilo_masks.territory ..
+            "((" .. expression .. ") + eon_aquilo_core_tile_priority_boost)"
+    end
+
+    ---@return string
+    local function snow_flat_expression()
+        if eon_aquilo_on_fulgora then
+            return boosted_aquilo_tile_expression("eon_aquilo_land")
+        end
+
+        return aquilo_masks.territory ..
+            "(max(eon_aquilo_land, if(eon_aquilo_core_gap, 1, -inf)))"
+    end
+
+    data.raw.tile["ammoniacal-ocean"].autoplace.probability_expression =
+        boosted_aquilo_tile_expression(
+            eon_ammonia_ocean_tile_expression .. " + 0.01 * (aux - 0.5)"
+        )
+    data.raw.tile["ammoniacal-ocean-2"].autoplace.probability_expression =
+        boosted_aquilo_tile_expression(
+            eon_ammonia_ocean_tile_expression .. " - 0.01 * (aux - 0.5)"
+        )
+
+    data.raw.tile["snow-flat"].autoplace.probability_expression =
+        snow_flat_expression()
     data.raw.tile["ice-rough"].autoplace.probability_expression =
-        aquilo_masks.territory .. "(eon_aquilo_base(eon_aquilo_ammonia_depth + 1.5, 200))"
+        boosted_aquilo_tile_expression("eon_aquilo_base(eon_aquilo_ammonia_depth + 1.5, 200)")
     data.raw.tile["ice-smooth"].autoplace.probability_expression =
-        aquilo_masks.territory ..
-        "(max(eon_aquilo_base(eon_aquilo_ammonia_depth + 1, 200), eon_aquilo_fulgora_ammonia_transition))"
-    data.raw.tile["brash-ice"].autoplace.probability_expression = eon_aquilo_on_fulgora
-        and aquilo_masks.territory .. "(eon_aquilo_base(eon_aquilo_ammonia_depth + 0.5, 200))"
-        or
-        aquilo_masks.territory ..
-        "(max(eon_aquilo_base(eon_aquilo_ammonia_depth + 0.5, 200), eon_aquilo_nauvis_ammonia_ocean_edge))"
+        boosted_aquilo_tile_expression(
+            "max(eon_aquilo_base(eon_aquilo_ammonia_depth + 1, 200), eon_aquilo_fulgora_ammonia_transition)"
+        )
+    data.raw.tile["brash-ice"].autoplace.probability_expression =
+        boosted_aquilo_tile_expression(
+            "max(eon_aquilo_base(eon_aquilo_ammonia_depth + 0.5, 200), " ..
+            (eon_aquilo_on_fulgora and "-inf" or "eon_aquilo_nauvis_ammonia_ocean_edge") .. ")"
+        )
 
     data:extend({
         {
@@ -48,13 +87,26 @@ function eon_aquilo_terrain_setup.apply(parameters)
     data:extend({
         {
             type = "noise-expression",
-            name = "eon_aquilo_mask",
+            name = "eon_aquilo_native_mask",
             expression = "eon_aquilo_land > -1",
         },
         {
             type = "noise-expression",
-            name = "eon_ammonia_mask",
-            expression = "eon_aquilo_ammonia > -1",
+            name = "eon_aquilo_core_boundary_noise",
+            expression =
+            "quick_multioctave_noise{x = x, y = y, seed0 = map_seed, seed1 = 748231, octaves = 3, input_scale = 1 / 256, output_scale = 350}",
+        },
+        {
+            type = "noise-expression",
+            name = "eon_aquilo_core_boundary",
+            expression = tostring(eon_aquilo_core_boundary_relative_y) ..
+                " + " .. tostring(eon_aquilo_north_bias_y_offset) ..
+                " + eon_aquilo_core_boundary_noise",
+        },
+        {
+            type = "noise-expression",
+            name = "eon_aquilo_core_depth",
+            expression = "eon_aquilo_core_boundary - y",
         },
         {
             type = "noise-expression",
@@ -66,6 +118,43 @@ function eon_aquilo_terrain_setup.apply(parameters)
             type = "noise-expression",
             name = "eon_fulgora_aquilo_territory_mask",
             expression = "y < eon_fulgora_aquilo_boundary",
+        },
+        {
+            type = "noise-expression",
+            name = "eon_fulgora_aquilo_core_boundary",
+            expression = "eon_fulgora_aquilo_boundary - " .. tostring(eon_aquilo_fulgora_core_inset),
+        },
+        {
+            type = "noise-expression",
+            name = "eon_fulgora_aquilo_core_mask",
+            expression = "y < eon_fulgora_aquilo_core_boundary",
+        },
+        {
+            type = "noise-expression",
+            name = "eon_aquilo_core_mask",
+            expression = eon_aquilo_on_fulgora
+                and "eon_fulgora_aquilo_core_mask"
+                or "if(eon_vulcanus_terrain, false, eon_aquilo_core_depth > 0)",
+        },
+        {
+            type = "noise-expression",
+            name = "eon_aquilo_mask",
+            expression = "if(eon_aquilo_native_mask, true, eon_aquilo_core_mask)",
+        },
+        {
+            type = "noise-expression",
+            name = "eon_aquilo_core_gap",
+            expression = "if(eon_aquilo_native_mask, false, eon_aquilo_core_mask)",
+        },
+        {
+            type = "noise-expression",
+            name = "eon_aquilo_core_tile_priority_boost",
+            expression = "if(eon_aquilo_core_gap, 1000, 0)",
+        },
+        {
+            type = "noise-expression",
+            name = "eon_ammonia_mask",
+            expression = "eon_aquilo_ammonia > -1",
         },
         {
             type = "noise-expression",
@@ -209,7 +298,7 @@ function eon_aquilo_terrain_setup.apply(parameters)
                                                          output_scale = 0.03,\z
                                                          offset_x = 10000 / eon_aquilo_segmentation_multiplier,\z
                                                          octaves = 5,\z
-                                                         persistence = eon_aquilo_persistance}"
+                                                         persistence = eon_aquilo_persistence}"
         },
         {
             type = "noise-expression",
@@ -218,7 +307,7 @@ function eon_aquilo_terrain_setup.apply(parameters)
         },
         {
             type = "noise-expression",
-            name = "eon_aquilo_persistance",
+            name = "eon_aquilo_persistence",
             expression = "clamp(amplitude_corrected_multioctave_noise{x = x,\z
                                                               y = y,\z
                                                               seed0 = map_seed + 1,\z
@@ -254,6 +343,20 @@ function eon_aquilo_terrain_setup.apply(parameters)
             parameters = { "max_elevation", "influence" },
             expression =
             "if(max_elevation >= eon_elevation_aquilo, influence * min(max_elevation - eon_elevation_aquilo, 1), -inf)"
+        },
+        {
+            type = "noise-expression",
+            name = "eon_aquilo_nauvis_snow_decorative_territory",
+            expression = eon_aquilo_on_fulgora
+                and "false"
+                or
+                "if(eon_vulcanus_terrain, false, if(eon_aquilo_core_mask, true, if(abs(eon_aquilo_core_depth) < 192, true, eon_aquilo_base(eon_aquilo_max_elevation + 2, 200) > -1)))",
+        },
+        {
+            type = "noise-function",
+            name = "eon_mask_aquilo_nauvis_snow_decorative_territory",
+            parameters = { "expression" },
+            expression = "if(eon_aquilo_nauvis_snow_decorative_territory, expression, -inf)",
         },
         {
             type = "noise-function",

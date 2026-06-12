@@ -3,6 +3,22 @@ local eon_terrain_map_gen = require("lib.eon-terrain-map-gen")
 
 local nauvis_aquilo_fluids = {}
 
+local AQUILO_CORE_SNOW_DECAL_SEAM_DEPTH = 192
+local AQUILO_CORE_SNOWY_DECAL_CORE_MIN = 0.22
+local AQUILO_CORE_SNOWY_DECAL_SEAM_MIN = 0.18
+local AQUILO_CORE_SNOW_DRIFT_CORE_MIN = 0.08
+local AQUILO_CORE_SNOW_DRIFT_SEAM_MIN = 0.06
+
+---@param base_expression string Native decorative probability expression.
+---@param core_min number Minimum probability inside the authoritative deep core.
+---@param seam_min number Minimum probability within the core-boundary seam.
+---@return string probability_expression
+local function aquilo_snow_decal_expression(base_expression, core_min, seam_min)
+    return "if(eon_aquilo_core_mask, max(" .. base_expression .. ", " .. core_min .. "), " ..
+        "if(abs(eon_aquilo_core_depth) < " .. AQUILO_CORE_SNOW_DECAL_SEAM_DEPTH ..
+        ", max(" .. base_expression .. ", " .. seam_min .. "), " .. base_expression .. "))"
+end
+
 ---@class EonNauvisAquiloFluidResourceConfig
 ---@field resource_name string
 ---@field expression_name string
@@ -210,14 +226,18 @@ function nauvis_aquilo_fluids.apply(args)
             name = snowy_decal_expression_name,
             expression = "max(" ..
                 snow_decorative_mask ..
-                "(eon_aqulio_snowy_decal), eon_nauvis_aquilo_fluid_resource_snow_decal)"
+                "(" ..
+                aquilo_snow_decal_expression("eon_aqulio_snowy_decal", AQUILO_CORE_SNOWY_DECAL_CORE_MIN,
+                    AQUILO_CORE_SNOWY_DECAL_SEAM_MIN) .. "), eon_nauvis_aquilo_fluid_resource_snow_decal)"
         },
         {
             type = "noise-expression",
             name = snow_drift_decal_expression_name,
             expression = "max(" ..
                 snow_decorative_mask ..
-                "(eon_snow_drift_decal), eon_nauvis_aquilo_fluid_resource_snow_drift)"
+                "(" ..
+                aquilo_snow_decal_expression("eon_snow_drift_decal", AQUILO_CORE_SNOW_DRIFT_CORE_MIN,
+                    AQUILO_CORE_SNOW_DRIFT_SEAM_MIN) .. "), eon_nauvis_aquilo_fluid_resource_snow_drift)"
         }
     })
 

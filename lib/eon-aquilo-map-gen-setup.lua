@@ -3,7 +3,11 @@ local eon_terrain_map_gen = require("lib.eon-terrain-map-gen")
 
 local eon_aquilo_map_gen_setup = {}
 
----@param options table
+---@class EonAquiloMapGenSetupOptions
+---@field aquilo_on_fulgora boolean Whether Aquilo is routed to Fulgora instead of Nauvis.
+---@field aquilo_planet_name string Active planet prototype receiving Aquilo map-generation settings.
+
+---@param options EonAquiloMapGenSetupOptions
 ---@return nil
 function eon_aquilo_map_gen_setup.apply(options)
     local aquilo_on_fulgora = options.aquilo_on_fulgora
@@ -16,7 +20,6 @@ function eon_aquilo_map_gen_setup.apply(options)
     local inactive_aquilo_map_gen = inactive_aquilo_planet and inactive_aquilo_planet.map_gen_settings
 
     local aquilo_autoplace_controls = eon_aquilo_registry.autoplace_controls
-    local all_aquilo_autoplace_controls = eon_aquilo_registry.autoplace_controls
 
     for resource_name, control_name in pairs(eon_aquilo_registry.resource_controls) do
         if data.raw.resource[resource_name] and data.raw.resource[resource_name].autoplace then
@@ -26,7 +29,7 @@ function eon_aquilo_map_gen_setup.apply(options)
 
     if aquilo_map_gen then
         eon_terrain_map_gen.enable_autoplace_controls(aquilo_map_gen, aquilo_autoplace_controls)
-        eon_terrain_map_gen.disable_autoplace_controls(inactive_aquilo_map_gen, all_aquilo_autoplace_controls)
+        eon_terrain_map_gen.disable_autoplace_controls(inactive_aquilo_map_gen, aquilo_autoplace_controls)
 
         for _, tile_name in ipairs(eon_aquilo_registry.tiles) do
             aquilo_map_gen.autoplace_settings.tile.settings[tile_name] = {}
