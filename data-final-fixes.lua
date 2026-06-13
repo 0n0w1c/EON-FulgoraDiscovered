@@ -1,4 +1,5 @@
 require("prototypes.remove-planets")
+require("lib.eon-final-fixes-menu-simulations").patch_fulgora_race_orientation()
 require("prototypes.surface-conditions")
 require("prototypes.planet-sounds")
 require("prototypes.eon-gleba-rain")
