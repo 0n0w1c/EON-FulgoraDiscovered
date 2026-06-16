@@ -193,6 +193,23 @@ local function eon_fish_safe_nauvis_water_expression()
 end
 
 if fish and fish.autoplace then
+    if fish.collision_mask == nil then
+        local utility_constants = data.raw["utility-constants"] and data.raw["utility-constants"]["default"]
+        local default_masks = utility_constants and utility_constants.default_collision_masks
+        local default_fish_mask = default_masks and default_masks["fish"]
+
+        if default_fish_mask then
+            fish.collision_mask = table.deepcopy(default_fish_mask)
+        else
+            fish.collision_mask = {
+                layers = {
+                    ground_tile = true
+                },
+                colliding_with_tiles_only = true
+            }
+        end
+    end
+
     eon_autoplace_policy.set_autoplace_tile_restriction(fish, { "water", "deepwater" })
     eon_autoplace_policy.add_collision_mask_layer(fish, "lava_tile")
 
@@ -210,7 +227,7 @@ if fish and fish.autoplace then
 end
 
 local dead_tree =
- data.raw["tree"] and data.raw["tree"]["dead-grey-trunk"]
+    data.raw["tree"] and data.raw["tree"]["dead-grey-trunk"]
 local dead_tree_expr = eon_autoplace_policy.autoplace_probability_expression(dead_tree)
 
 if dead_tree_expr then

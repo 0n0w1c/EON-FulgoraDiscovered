@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.14.4
+Date: 16.06.2026
+  Bugfixes:
+    - Fish escaping under land tiles (if you find one, pick it up and drop the five fish in water)
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.14.3
 Date: 16.06.2026
   Bugfixes:
