@@ -67,16 +67,6 @@ if edge then
     data_util.delete_prototype("space-connection", eon_planet_registry.edge_connection_to_clone)
 end
 
-local main_menu_simulations = data.raw["utility-constants"]
-    and data.raw["utility-constants"]["default"]
-    and data.raw["utility-constants"]["default"].main_menu_simulations
-
-if main_menu_simulations then
-    for _, simulation_name in ipairs(eon_planet_registry.main_menu_simulations_to_remove) do
-        main_menu_simulations[simulation_name] = nil
-    end
-end
-
 for _, technology_name in ipairs(eon_planet_registry.removed_discovery_technologies) do
     data_util.hide_prototype("technology", technology_name)
 end

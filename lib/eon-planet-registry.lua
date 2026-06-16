@@ -44,28 +44,6 @@ registry.edge_route_icon = "__space-age__/graphics/icons/planet-route.png"
 registry.fulgora_icon = "__space-age__/graphics/icons/fulgora.png"
 registry.solar_system_edge_icon = "__space-age__/graphics/icons/solar-system-edge.png"
 
-registry.main_menu_simulations_to_remove = {
-    "nauvis_oil_refinery",
-    "nauvis_early_smelting",
-    "nauvis_train_station",
-    "nauvis_train_junction",
-    "nauvis_artillery",
-    "platform_moving",
-    "platform_messy_nuclear",
-    "vulcanus_lava_forge",
-    "vulcanus_crossing",
-    "vulcanus_punishmnent",
-    "vulcanus_sulfur_drop",
-    "gleba_agri_towers",
-    "gleba_pentapod_ponds",
-    "gleba_egg_escape",
-    "gleba_farm_attack",
-    "gleba_grotto",
-    "aquilo_send_help",
-    "aquilo_starter",
-    "nauvis_rocket_factory",
-}
-
 registry.autoplace_controls_to_hide = {
     "aquilo_crude_oil",
     "gleba_stone",
