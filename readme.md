@@ -49,6 +49,7 @@ This will increase the amount of the map revealed in the Map Generator's Preview
 - Create the Aquilo biome on Fulgora (default: disabled)
 - Enable technology guard (default: disabled)
 - Enable native biome weather (default: disabled) - *runtime code*
+- Preserve Fulgora surface conditions (default: disabled)
 - Hide the Craft Deco 2 technology (default: disabled)
 
 *For an alternative experience, the enabling of startup settings is encouraged.*
