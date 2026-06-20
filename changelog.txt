@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.14.5
+Date: 20.06.2026
+  Bugfixes:
+    - None
+  Changes:
+    - Added startup setting: Preserve Fulgora surface conditions for crafting and placement
+---------------------------------------------------------------------------------------------------
 Version: 0.14.4
 Date: 16.06.2026
   Bugfixes:

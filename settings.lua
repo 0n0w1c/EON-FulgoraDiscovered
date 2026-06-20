@@ -50,6 +50,13 @@ data:extend({
     },
     {
         type = "bool-setting",
+        name = "eon-fd-preserve-planet-surface-conditions",
+        setting_type = "startup",
+        default_value = false,
+        order = "h",
+    },
+    {
+        type = "bool-setting",
         name = "eon-fd-hide-craft-deco-2-technology",
         setting_type = "startup",
         default_value = false,
