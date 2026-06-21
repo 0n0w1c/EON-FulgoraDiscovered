@@ -114,13 +114,19 @@ function eon_runtime_enemies.create_handlers(settings)
     end
 
     ---@param terrain_family string|nil
+    ---@param source_family string|nil Current unit family, when known.
     ---@return string|nil
-    local function eon_target_unit_family_for_terrain(terrain_family)
+    local function eon_target_unit_family_for_terrain(terrain_family, source_family)
         if terrain_family == "cold" then return "cold" end
         if terrain_family == "hot" then return "hot" end
         if terrain_family == "gleba" then return "gleba" end
         if terrain_family == "fulgora" then return "fulgora" end
-        if terrain_family == "nauvis" then return "vanilla" end
+
+        if terrain_family == "nauvis" then
+            if source_family == "armoured" then return "armoured" end
+            return "vanilla"
+        end
+
         return nil
     end
 
@@ -257,8 +263,6 @@ function eon_runtime_enemies.create_handlers(settings)
 
         local tile = surface.get_tile(destination.x, destination.y)
         local terrain_family = eon_enemy_tile_family(tile)
-        local target_family = eon_target_unit_family_for_terrain(terrain_family)
-        if not target_family then return end
 
         local old_units = {}
         local replacements = {}
@@ -267,13 +271,16 @@ function eon_runtime_enemies.create_handlers(settings)
         for _, unit in pairs(group.members or {}) do
             if unit and unit.valid then
                 table.insert(old_units, unit)
+                local unit_index = table_size(old_units)
+                local source_family = eon_enemy_unit_family(unit.name)
+                local target_family = eon_target_unit_family_for_terrain(terrain_family, source_family)
                 local replacement_name = nil
 
-                if eon_enemy_unit_family(unit.name) ~= target_family then
+                if target_family and source_family ~= target_family then
                     replacement_name = eon_replacement_unit_name(unit.name, target_family)
                 end
 
-                replacements[unit.unit_number or table_size(old_units)] = replacement_name
+                replacements[unit_index] = replacement_name
                 if replacement_name and replacement_name ~= unit.name then
                     changed = true
                 end
@@ -284,8 +291,8 @@ function eon_runtime_enemies.create_handlers(settings)
             return
         end
 
-        for _, old_unit in pairs(old_units) do
-            local replacement_name = replacements[old_unit.unit_number or 0]
+        for unit_index, old_unit in pairs(old_units) do
+            local replacement_name = replacements[unit_index]
             if replacement_name and replacement_name ~= old_unit.name then
                 local created = surface.create_entity({
                     name = replacement_name,

@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.14.6
+Date: 21.06.2026
+  Bugfixes:
+    - Armoured Biters: armoured biters converted to vanilla biters during expansions
+  Changes:
+    - None
+---------------------------------------------------------------------------------------------------
 Version: 0.14.5
 Date: 20.06.2026
   Bugfixes:
