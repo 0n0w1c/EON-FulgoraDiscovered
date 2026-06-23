@@ -395,8 +395,28 @@ if eon_mode.use_tungsten_plate then
             end
         end
 
-        if mods["quality"] then
-            local recycling = require("__quality__/prototypes/recycling")
+        local function eon_require_recycling_module()
+            local candidates = {}
+
+            if mods["recycler"] then
+                table.insert(candidates, "__recycler__/prototypes/recycling")
+            end
+            if mods["quality"] then
+                table.insert(candidates, "__quality__/prototypes/recycling")
+            end
+
+            for _, module_name in ipairs(candidates) do
+                local ok, recycling = pcall(require, module_name)
+                if ok and recycling and recycling.generate_recycling_recipe then
+                    return recycling
+                end
+            end
+
+            return nil
+        end
+
+        local recycling = eon_require_recycling_module()
+        if recycling then
             recycling.generate_recycling_recipe(foundry_recipe)
         end
     end
