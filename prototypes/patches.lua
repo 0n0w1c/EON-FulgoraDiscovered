@@ -3,6 +3,7 @@ local eon_patch_registry = require("lib.eon-patch-registry")
 local eon_autoplace_policy = require("lib.eon-autoplace-policy")
 local biomes = require("lib.eon-biome-registry")
 local eon_aquilo_on_fulgora = eon_mode.aquilo_on_fulgora
+local recycling = require("__recycler__.recycling")
 
 local aquilo_masks = biomes.get("aquilo").masks
 local gleba_masks = biomes.get("gleba").masks
@@ -395,29 +396,6 @@ if eon_mode.use_tungsten_plate then
             end
         end
 
-        local function eon_require_recycling_module()
-            local candidates = {}
-
-            if mods["recycler"] then
-                table.insert(candidates, "__recycler__/prototypes/recycling")
-            end
-            if mods["quality"] then
-                table.insert(candidates, "__quality__/prototypes/recycling")
-            end
-
-            for _, module_name in ipairs(candidates) do
-                local ok, recycling = pcall(require, module_name)
-                if ok and recycling and recycling.generate_recycling_recipe then
-                    return recycling
-                end
-            end
-
-            return nil
-        end
-
-        local recycling = eon_require_recycling_module()
-        if recycling then
-            recycling.generate_recycling_recipe(foundry_recipe)
-        end
+        recycling.generate_recycling_recipe(foundry_recipe)
     end
 end

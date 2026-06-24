@@ -1,6 +1,6 @@
 {
     "name": "EON-FulgoraDiscovered",
-    "version": "0.16.0",
+    "version": "0.16.1",
     "title": "EverythingOnNauvis - Fulgora Discovered!",
     "description": "Everything On Nauvis, until Fulgora is discovered.",
     "author": "0n0w1c",
@@ -11,8 +11,6 @@
     "dependencies": [
         "base >= 2.1.0",
         "space-age >= 2.1.0",
-        "? quality >= 2.1.0",
-        "? recycler >= 2.1.0",
         "? ArmouredBiters",
         "? Explosive_biters",
         "? Cold_biters",
