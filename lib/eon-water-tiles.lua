@@ -23,7 +23,9 @@ water.groups = {
     },
     fulgora_oil_ocean = {
         "oil-ocean-shallow",
+        "oil-ocean-shallow-2",
         "oil-ocean-deep",
+        "oil-ocean-deep-2",
     },
 }
 

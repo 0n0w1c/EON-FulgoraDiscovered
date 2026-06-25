@@ -142,6 +142,7 @@ local function eon_remove_oil_ocean_from_out_of_map_transition(tile_name)
     for _, transition in pairs(tile.transitions) do
         if transition.transition_group == 2 and eon_transition_targets_out_of_map(transition) then
             eon_remove_value_from_list(transition.to_tiles, "oil-ocean-shallow")
+            eon_remove_value_from_list(transition.to_tiles, "oil-ocean-shallow-2")
         end
     end
 end

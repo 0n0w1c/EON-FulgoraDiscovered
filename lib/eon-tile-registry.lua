@@ -54,6 +54,7 @@ registry.absorption_groups = {
         "wetland-red-tentacle",
         "lava",
         "oil-ocean-shallow",
+        "oil-ocean-shallow-2",
         "brash-ice",
         "ammoniacal-ocean",
     },
@@ -61,6 +62,7 @@ registry.absorption_groups = {
         "gleba-deep-lake",
         "lava-hot",
         "oil-ocean-deep",
+        "oil-ocean-deep-2",
         "ammoniacal-ocean-2",
     },
     grass_like = {

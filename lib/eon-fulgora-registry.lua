@@ -7,7 +7,9 @@ fulgora.cliffiness_property_expression = "eon_fulgora_cliffiness_off_aquilo"
 
 fulgora.oil_ocean_tiles = {
     "oil-ocean-deep",
+    "oil-ocean-deep-2",
     "oil-ocean-shallow",
+    "oil-ocean-shallow-2",
 }
 
 fulgora.water_tiles = fulgora.oil_ocean_tiles

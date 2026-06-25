@@ -134,10 +134,12 @@ end
 
 ---@return nil
 local function eon_make_deep_oil_ocean_collide_with_players()
-    local tile = data.raw["tile"] and data.raw["tile"]["oil-ocean-deep"]
-    if not tile then return end
-
-    eon_autoplace_policy.add_collision_mask_layer(tile, "player")
+    for _, tile_name in pairs({ "oil-ocean-deep", "oil-ocean-deep-2" }) do
+        local tile = data.raw["tile"] and data.raw["tile"][tile_name]
+        if tile then
+            eon_autoplace_policy.add_collision_mask_layer(tile, "player")
+        end
+    end
 end
 
 ---@return nil
